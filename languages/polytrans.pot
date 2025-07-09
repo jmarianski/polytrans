@@ -1,0 +1,294 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025 PolyTrans Team
+# This file is distributed under the same license as the PolyTrans plugin.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PolyTrans 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-07-08 00:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: includes/class-translation-meta-box.php:25
+msgid "Prepared by Human"
+msgstr ""
+
+#: includes/class-translation-meta-box.php:26
+msgid "Translation done by Machine"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:65
+msgid "This post is already a translation. Original post"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:67
+msgid "here"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:75
+msgid "Translation Scope"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:77
+msgid "Local (no translation)"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:78
+msgid "Regional"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:79
+msgid "Global"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:84
+msgid "Target Languages"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:93
+msgid "Hold Ctrl (Windows/Linux) or Cmd (Mac) to select multiple languages."
+msgstr ""
+
+#: includes/class-translation-scheduler.php:97
+msgid "Needs review"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:99
+msgid "Translate"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:113
+msgid "Completed"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:115
+msgid "Edit"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:120
+msgid "In Progress"
+msgstr ""
+
+#: includes/class-translation-scheduler.php:124
+msgid "Not Started"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:18
+msgid "Publish"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:19
+msgid "Draft"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:20
+msgid "Pending Review"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:21
+msgid "Same as source"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:54
+msgid "Settings saved."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:73
+msgid "Translation Settings"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:74
+msgid "Configure translation workflow for each language. You can specify the default post status after translation, assign a reviewer, and customize the emails sent to the reviewer and author."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:78
+msgid "Translation Provider"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:79
+msgid "Basic Settings"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:80
+msgid "Email Settings"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:81
+msgid "OpenAI Configuration"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:82
+msgid "Advanced Settings"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:89
+msgid "Choose which translation service to use for automatic translations."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:92
+msgid "Google Translate"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:92
+msgid "(Simple, fast translation)"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:95
+msgid "OpenAI"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:95
+msgid "(AI-powered translation with custom assistants)"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:102
+msgid "Allowed Source Languages"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:103
+msgid "Select which source languages are allowed for automatic translation. Only posts in these languages will be considered as sources for translation."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:113
+msgid "Allowed Target Languages"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:114
+msgid "Select which target languages are allowed for automatic translation. Only these languages will be available as translation targets and shown in the configuration table below."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:143
+msgid "Save Settings"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:152
+msgid "Language"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:153
+msgid "Post Status After Translation"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:154
+msgid "Reviewer"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:168
+msgid "Choose the status for posts after translation in this language. \"Same as source\" means the translation will be published if the source is published, or draft if the source is draft."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:180
+msgid "Type to search user..."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:184
+msgid "Select a reviewer for this language. \"None\" disables review."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:189
+msgid "No target languages selected. Please select at least one target language above."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:200
+msgid "Reviewer Email Template"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:201
+msgid "Email Subject (Reviewer)"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:203
+msgid "Subject of the email sent to reviewer. You can use {title} for the post title."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:214
+msgid "Email sent to reviewer when translation is ready for review. Use {link} for the edit link and {title} for the post title."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:217
+msgid "Author Email Template (when translation is published)"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:218
+msgid "Email Subject (Author)"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:220
+msgid "Subject of the email sent to the author. You can use {title} for the post title."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:230
+msgid "Email sent to the author when translation is published. Use {link} for the edit link and {title} for the post title."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:239
+msgid "Advanced Integration Settings"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:240
+msgid "Translation Endpoint"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:242
+msgid "Specify the URL of the translation endpoint. The system will send JSON with source_language, target_language, title, and text to this endpoint."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:244
+msgid "Translation Receiver Endpoint"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:246
+msgid "Specify the URL of the translation receiver endpoint. This is where translated data will be sent (e.g., http://localhost:9008/wp-json/polytrans/v1/translation/receive-post)."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:248
+msgid "Translation Receiver Secret"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:250
+msgid "Enter secret for receiver authentication"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:251
+msgid "Generate Secret"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:253
+msgid "This secret will be used to authenticate translation requests. Keep it private!"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:255
+msgid "How to Pass Secret"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:258
+msgid "None (do not send secret)"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:259
+msgid "GET parameter (?secret=...)"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:260
+msgid "HTTP Header: Authorization: Bearer ..."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:261
+msgid "HTTP Header: x-polytrans-secret: ..."
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:262
+msgid "POST body field (JSON: secret)"
+msgstr ""
+
+#: includes/admin/class-translation-settings.php:264
+msgid "Choose how the secret should be sent to the receiver endpoint. Select \"None\" to disable secret sending/checking."
+msgstr ""

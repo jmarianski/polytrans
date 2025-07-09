@@ -1,0 +1,50 @@
+/* Tag Translation Admin Styles */
+
+.tag-translation-admin-desc {
+    background: #f0f0f1;
+    padding: 1em;
+    border-radius: 4px;
+    margin-bottom: 1.5em;
+}
+
+#tag-list-area {
+    margin-bottom: 2em;
+    padding: 1em;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+#tag-list-textarea {
+    width: 100%;
+    min-height: 120px;
+    font-family: monospace;
+    margin-bottom: 0.5em;
+}
+
+#tag-list-saved {
+    color: #46b450;
+    font-weight: bold;
+    margin-left: 0.5em;
+    display: none;
+}
+
+#import-csv-area {
+    display: none;
+    margin-left: 1em;
+}
+
+#tag-translation-table {
+    margin-top: 1.5em;
+}
+
+.tag-translation-input {
+    border: 1px solid #ddd;
+    padding: 5px;
+    border-radius: 3px;
+}
+
+.tag-translation-input:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 1px #0073aa;
+}

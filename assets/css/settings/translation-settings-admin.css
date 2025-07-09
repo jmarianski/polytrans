@@ -1,0 +1,206 @@
+/* Translation Settings Admin Tab Styles */
+
+.nav-tab-wrapper {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ccc;
+}
+
+.nav-tab {
+    display: inline-block;
+    padding: 8px 16px;
+    margin-right: 4px;
+    background: #f1f1f1;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    text-decoration: none;
+    color: #555;
+    cursor: pointer;
+    border-radius: 4px 4px 0 0;
+    transition: all 0.2s ease;
+}
+
+.nav-tab.hidden {
+    display: none !important;
+}
+
+.nav-tab:hover {
+    background: #e9e9e9;
+    color: #333;
+}
+
+.nav-tab.nav-tab-active {
+    background: #fff;
+    color: #000;
+    border-bottom: 1px solid #fff;
+    margin-bottom: -1px;
+    font-weight: 600;
+}
+
+.tab-content {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-top: none;
+    min-height: 400px;
+}
+
+.tab-content h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Ensure form elements maintain proper spacing within tabs */
+.tab-content table {
+    margin-top: 20px;
+}
+
+.tab-content .form-table th {
+    width: 200px;
+}
+
+.tab-content .widefat {
+    margin-top: 1em;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    .nav-tab {
+        display: block;
+        margin-bottom: 2px;
+        margin-right: 0;
+        border-radius: 4px;
+    }
+    
+    .nav-tab.nav-tab-active {
+        margin-bottom: 2px;
+        border-bottom: 1px solid #ccc;
+    }
+    
+    .nav-tab-wrapper {
+        border-bottom: none;
+    }
+    
+    .tab-content {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+}
+
+/* Translation provider section styles */
+.translation-provider-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+}
+
+.translation-provider-section label {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.translation-provider-section input[type="radio"] {
+    margin-right: 8px;
+}
+
+/* Email settings specific styles */
+.translation-emails-row {
+    gap: 2em;
+    margin-top: 2em;
+}
+
+.translation-email-col {
+    flex: 1 1 350px;
+    min-width: 320px;
+    max-width: 600px;
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+}
+
+/* Language selection grid */
+.language-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.language-grid label {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.language-grid label:hover {
+    background: #e9ecef;
+}
+
+.language-grid input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+/* Advanced settings section */
+#advanced-settings {
+    background: #fff9e6;
+    border: 1px solid #f0d000;
+    border-radius: 5px;
+    padding: 20px;
+}
+
+#advanced-settings h1 {
+    color: #8a6d00;
+    margin-top: 0;
+}
+
+#advanced-settings h2 {
+    color: #5a4a00;
+    border-bottom: 1px solid #f0d000;
+}
+
+/* User autocomplete styling */
+.user-autocomplete-input {
+    width: 100%;
+    max-width: 350px;
+}
+
+.user-autocomplete-clear {
+    margin-left: 0.5em;
+}
+
+/* Form element improvements */
+input[type="url"], 
+input[type="text"], 
+input[type="email"] {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+select {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+/* Improve button spacing */
+.button {
+    margin-right: 10px;
+}
+
+/* Table improvements */
+.widefat th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.widefat td small {
+    color: #666;
+    font-style: italic;
+}

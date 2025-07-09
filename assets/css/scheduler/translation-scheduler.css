@@ -1,0 +1,67 @@
+/**
+ * Translation Scheduler Styles
+ */
+
+@keyframes polytrans-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.polytrans-loader .dashicons {
+    animation: polytrans-spin 1s linear infinite;
+}
+
+.polytrans-clear-translation {
+    border: none;
+    background: none;
+    padding: 2px;
+    cursor: pointer;
+    vertical-align: middle;
+    margin-left: 5px;
+}
+
+.polytrans-clear-translation:hover .dashicons {
+    color: #d63638;
+}
+
+.polytrans-edit-btn {
+    text-decoration: none;
+    margin-left: 5px;
+    padding: 2px;
+}
+
+.polytrans-edit-btn:hover {
+    text-decoration: none;
+}
+
+.polytrans-edit-btn:hover .dashicons {
+    color: #2271b1;
+}
+
+#polytrans-merged-list li {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#polytrans-merged-list {
+    margin: 0;
+    padding: 0;
+}
+
+.polytrans-merged-label {
+    flex-grow: 1;
+}
+
+.polytrans-check .dashicons {
+    color: #46b450;
+}
+
+.polytrans-loader .dashicons,
+.polytrans-check .dashicons,
+.polytrans-edit-btn .dashicons,
+.polytrans-clear-translation .dashicons {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
