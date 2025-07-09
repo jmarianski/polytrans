@@ -169,25 +169,6 @@ class PolyTrans
                 'settings' => $settings,
                 'translation_receiver_endpoint' => $settings['translation_receiver_endpoint'] ?? '',
             ]);
-
-            // Enqueue OpenAI integration script with proper nonce
-            wp_enqueue_script('polytrans-openai-integration', $plugin_url . 'assets/js/translator/openai-integration.js', ['jquery'], POLYTRANS_VERSION, true);
-            wp_enqueue_style('polytrans-openai-integration', $plugin_url . 'assets/css/translator/openai-integration.css', [], POLYTRANS_VERSION);
-
-            // Localize script for OpenAI integration with correct nonce
-            wp_localize_script('polytrans-openai-integration', 'polytrans_openai', [
-                'ajax_url' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('polytrans_openai_nonce'),
-                'strings' => [
-                    'validating' => __('Validating...', 'polytrans'),
-                    'valid' => __('API key is valid', 'polytrans'),
-                    'invalid' => __('API key is invalid', 'polytrans'),
-                    'error' => __('Error validating API key', 'polytrans'),
-                    'testing' => __('Testing translation...', 'polytrans'),
-                    'test_success' => __('Translation successful!', 'polytrans'),
-                    'test_failed' => __('Translation failed', 'polytrans'),
-                ]
-            ]);
         }
 
         // Load on post edit pages

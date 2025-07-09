@@ -249,7 +249,7 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         foreach ($this->get_required_js_files() as $js_file) {
             $handle = 'polytrans-openai-' . basename($js_file, '.js');
             if (file_exists(POLYTRANS_PLUGIN_DIR . $js_file)) {
-                wp_enqueue_script($handle, POLYTRANS_PLUGIN_URL . $js_file, ['jquery'], '1.0.0', true);
+                wp_enqueue_script($handle, POLYTRANS_PLUGIN_URL . $js_file, ['jquery'], POLYTRANS_VERSION, true);
             }
         }
 
@@ -257,12 +257,13 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         foreach ($this->get_required_css_files() as $css_file) {
             $handle = 'polytrans-openai-' . basename($css_file, '.css');
             if (file_exists(POLYTRANS_PLUGIN_DIR . $css_file)) {
-                wp_enqueue_style($handle, POLYTRANS_PLUGIN_URL . $css_file, [], '1.0.0');
+                wp_enqueue_style($handle, POLYTRANS_PLUGIN_URL . $css_file, [], POLYTRANS_VERSION);
             }
         }
 
         // Add AJAX URL and nonce for JavaScript
-        wp_localize_script('polytrans-openai-integration', 'polytrans_openai', [
+        $js_handle = 'polytrans-openai-' . basename($this->get_required_js_files()[0], '.js');
+        wp_localize_script($js_handle, 'polytrans_openai', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('polytrans_openai_nonce'),
             'strings' => [

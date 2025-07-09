@@ -8,40 +8,35 @@
     var OpenAIManager = {
         assistants: [],
         assistantsLoaded: false,
+        initialized: false,
 
         init: function () {
             this.bindEvents();
             this.checkInitialApiKey();
+            this.initialized = true;
         }, bindEvents: function () {
-            // API Key validation
-            $('#validate-openai-key').on('click', this.validateApiKey.bind(this));
-            $('#toggle-openai-key-visibility').on('click', this.toggleApiKeyVisibility.bind(this));
+            // API Key validation - use event delegation since elements might not exist yet
+            $(document).on('click', '#validate-openai-key', this.validateApiKey.bind(this));
+            $(document).on('click', '#toggle-openai-key-visibility', this.toggleApiKeyVisibility.bind(this));
 
             // Source language change
-            $('#openai-source-language').on('change', this.updateLanguagePairVisibility.bind(this));
+            $(document).on('change', '#openai-source-language', this.updateLanguagePairVisibility.bind(this));
 
             // Allowed source/target language changes
-            $('input[name="allowed_sources[]"], input[name="allowed_targets[]"]').on('change', this.updateLanguagePairVisibility.bind(this));
+            $(document).on('change', 'input[name="allowed_sources[]"], input[name="allowed_targets[]"]', this.updateLanguagePairVisibility.bind(this));
 
             // Section toggle buttons
-            $('#toggle-openai-section').on('click', this.toggleSection.bind(this, '#openai-config-section'));
-            $('#toggle-basic-settings').on('click', this.toggleSection.bind(this, '#basic-settings-section'));
-            $('#toggle-email-settings').on('click', this.toggleSection.bind(this, '#email-settings-section'));
-
-            // Assistant autocomplete clear buttons
-            // Note: Clear buttons removed in favor of select dropdown "Not selected" option
+            $(document).on('click', '#toggle-openai-section', this.toggleSection.bind(this, '#openai-config-section'));
+            $(document).on('click', '#toggle-basic-settings', this.toggleSection.bind(this, '#basic-settings-section'));
+            $(document).on('click', '#toggle-email-settings', this.toggleSection.bind(this, '#email-settings-section'));
         }, checkInitialApiKey: function () {
             var apiKey = $('#openai-api-key').val();
-            console.log('Checking initial API key:', apiKey ? 'Found key: ' + apiKey.substring(0, 7) + '...' : 'No key found');
 
             // Show/hide assistant mapping section based on API key (temporary testing override)
             this.updateAssistantMappingVisibility(apiKey);
 
             if (apiKey && apiKey.trim() !== '') {
-                console.log('API key detected, loading assistants...');
                 this.loadAssistants();
-            } else {
-                console.log('No API key, skipping assistant loading');
             }
 
             // Trigger initial language pair filtering
@@ -80,7 +75,6 @@
                     nonce: nonce
                 },
                 success: function (response) {
-                    console.log('Validate API key response:', response);
                     if (response.success) {
                         // response.data is the message string directly, not an object with .message property
                         this.showMessage($message, 'success', response.data);
@@ -103,8 +97,15 @@
 
         toggleApiKeyVisibility: function (e) {
             e.preventDefault();
+
             var $input = $('#openai-api-key');
             var $button = $('#toggle-openai-key-visibility');
+
+            if ($input.length === 0) {
+                console.error('API key input field not found!');
+                return;
+            }
+
             var currentType = $input.attr('type');
 
             if (currentType === 'password') {
@@ -131,7 +132,6 @@
             var $loading = $('#assistants-loading');
             var $error = $('#assistants-error');
 
-            console.log('Loading assistants...');
             $loading.show();
             $error.hide();
 
@@ -155,9 +155,6 @@
                 polytrans_openai.ajax_url :
                 (typeof ajaxurl !== 'undefined' ? ajaxurl : null);
 
-            console.log('AJAX data:', ajaxData);
-            console.log('ajaxurl:', ajaxUrl);
-
             if (!ajaxUrl) {
                 console.error('ajaxurl is not available');
                 $error.show().find('p').text('AJAX URL not available');
@@ -170,11 +167,9 @@
                 type: 'POST',
                 data: ajaxData,
                 success: function (response) {
-                    console.log('Assistant loading response:', response);
                     if (response.success) {
                         this.assistants = response.data;
                         this.assistantsLoaded = true;
-                        console.log('Loaded assistants:', this.assistants);
                         this.initializeAssistantAutocomplete();
                         this.updateAssistantLabels();
                     } else {
@@ -205,7 +200,6 @@
 
         populateAssistantSelects: function () {
             var assistants = this.assistants || [];
-            console.log('Populating assistant selects with', assistants.length, 'assistants');
 
             $('.assistant-select').each(function () {
                 var $select = $(this);
@@ -227,37 +221,28 @@
                     $select.val(selectedValue);
                     if ($select.val() !== selectedValue) {
                         // Value doesn't exist in the list, reset to "Not selected"
-                        console.log('Previously selected assistant', selectedValue, 'not found in current list');
                         $select.val('');
                     }
                 }
-
-                console.log('Populated select', $select.attr('id'), 'with', assistants.length, 'options, selected:', $select.val(), selectedValue);
             });
         },
 
         updateAssistantLabels: function () {
             // No longer needed with select fields - values are already correct
-            console.log('Assistant labels updated (select fields handle this automatically)');
         },
 
         clearAssistantSelection: function (e) {
             // No longer needed with select fields - users can select "Not selected" option
-            console.log('Clear function called (no longer needed with select fields)');
         },
 
         updateAssistantMappingVisibility: function (apiKey) {
             var $section = $('#openai-assistants-section');
-            console.log('Updating assistant mapping visibility. API key present:', !!apiKey);
-            console.log('Assistant section found:', $section.length > 0);
 
             // Temporary override for testing - remove "|| true" when ready for production
             if ((apiKey && apiKey.trim() !== '') || true) {
                 $section.show();
-                console.log('Showing assistant section');
             } else {
                 $section.hide();
-                console.log('Hiding assistant section');
             }
         },
 
@@ -335,9 +320,18 @@
 
     // Translation provider switching
     var TranslationProviderManager = {
+        initialized: false,
+
         init: function () {
+            if (this.initialized) {
+                console.log('Translation Provider Manager already initialized, skipping...');
+                return;
+            }
+            console.trace();
+
             this.bindEvents();
             this.updateProviderSection();
+            this.initialized = true;
         },
 
         bindEvents: function () {
@@ -355,7 +349,7 @@
                 $toggleButton.show();
 
                 // Initialize OpenAI manager if not already done
-                if (!OpenAIManager.assistantsLoaded) {
+                if (!OpenAIManager.initialized) {
                     OpenAIManager.init();
                 }
             } else {
@@ -367,11 +361,6 @@
 
     // Initialize everything when document is ready
     $(function () {
-        console.log('OpenAI Integration script loaded');
-        console.log('polytrans_openai available:', typeof polytrans_openai !== 'undefined');
-        console.log('ajaxurl available:', typeof ajaxurl !== 'undefined');
-        console.log('jQuery UI available:', typeof $.ui !== 'undefined');
-
         TranslationProviderManager.init();
 
         // Initialize section toggles
