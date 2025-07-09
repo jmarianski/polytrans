@@ -377,7 +377,7 @@ class polytrans_settings
             <option value="none" <?php selected($method, 'none'); ?>><?php esc_html_e('None (do not send secret)', 'polytrans-translation'); ?></option>
             <option value="get_param" <?php selected($method, 'get_param'); ?>><?php esc_html_e('GET parameter (?secret=...)', 'polytrans-translation'); ?></option>
             <option value="header_bearer" <?php selected($method, 'header_bearer'); ?>><?php esc_html_e('HTTP Header: Authorization: Bearer ...', 'polytrans-translation'); ?></option>
-            <option value="header_custom" <?php selected($method, 'header_custom'); ?>><?php esc_html_e('HTTP Header: X-Transinfo-Secret: ...', 'polytrans-translation'); ?></option>
+            <option value="header_custom" <?php selected($method, 'header_custom'); ?>><?php esc_html_e('HTTP Header: x-polytrans-secret: ...', 'polytrans-translation'); ?></option>
             <option value="post_param" <?php selected($method, 'post_param'); ?>><?php esc_html_e('POST body field (JSON: secret)', 'polytrans-translation'); ?></option>
         </select>
         <br><small><?php esc_html_e('Choose how the secret should be sent to the receiver endpoint. Select "None" to disable secret sending/checking.', 'polytrans-translation'); ?></small><br><br>

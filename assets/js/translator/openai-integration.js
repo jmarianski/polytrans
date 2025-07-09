@@ -32,12 +32,16 @@
             // Note: Clear buttons removed in favor of select dropdown "Not selected" option
         }, checkInitialApiKey: function () {
             var apiKey = $('#openai-api-key').val();
+            console.log('Checking initial API key:', apiKey ? 'Found key: ' + apiKey.substring(0, 7) + '...' : 'No key found');
 
             // Show/hide assistant mapping section based on API key (temporary testing override)
             this.updateAssistantMappingVisibility(apiKey);
 
             if (apiKey && apiKey.trim() !== '') {
+                console.log('API key detected, loading assistants...');
                 this.loadAssistants();
+            } else {
+                console.log('No API key, skipping assistant loading');
             }
 
             // Trigger initial language pair filtering
@@ -59,12 +63,12 @@
             $button.prop('disabled', true).text('Validating...');
             $message.empty();
 
-            var ajaxUrl = (typeof PolyTransAjax !== 'undefined' && PolyTransAjax.ajaxurl) ?
-                PolyTransAjax.ajaxurl :
+            var ajaxUrl = (typeof polytrans_openai !== 'undefined' && polytrans_openai.ajax_url) ?
+                polytrans_openai.ajax_url :
                 (typeof ajaxurl !== 'undefined' ? ajaxurl : null);
 
-            var nonce = (typeof PolyTransAjax !== 'undefined' && PolyTransAjax.nonce) ?
-                PolyTransAjax.nonce :
+            var nonce = (typeof polytrans_openai !== 'undefined' && polytrans_openai.nonce) ?
+                polytrans_openai.nonce :
                 $('input[name="_wpnonce"]').val();
 
             $.ajax({
@@ -76,12 +80,15 @@
                     nonce: nonce
                 },
                 success: function (response) {
+                    console.log('Validate API key response:', response);
                     if (response.success) {
-                        this.showMessage($message, 'success', response.data.message);
+                        // response.data is the message string directly, not an object with .message property
+                        this.showMessage($message, 'success', response.data);
                         this.updateAssistantMappingVisibility(apiKey);
                         this.loadAssistants();
                     } else {
-                        this.showMessage($message, 'error', response.data.message);
+                        // Handle error - response.data should be the error message string
+                        this.showMessage($message, 'error', response.data);
                         this.updateAssistantMappingVisibility('');
                     }
                 }.bind(this),
@@ -97,8 +104,16 @@
         toggleApiKeyVisibility: function (e) {
             e.preventDefault();
             var $input = $('#openai-api-key');
+            var $button = $('#toggle-openai-key-visibility');
             var currentType = $input.attr('type');
-            $input.attr('type', currentType === 'password' ? 'text' : 'password');
+
+            if (currentType === 'password') {
+                $input.attr('type', 'text');
+                $button.text('🔒'); // Lock icon for hidden state
+            } else {
+                $input.attr('type', 'password');
+                $button.text('👁'); // Eye icon for visible state
+            }
         },
 
         toggleSection: function (sectionSelector, e) {
@@ -120,15 +135,24 @@
             $loading.show();
             $error.hide();
 
+            var apiKey = $('#openai-api-key').val(); // Fixed ID selector - use hyphen not underscore
+            if (!apiKey) {
+                console.error('No API key provided');
+                $loading.hide();
+                $error.show().find('p').text('Please enter an API key first');
+                return;
+            }
+
             var ajaxData = {
                 action: 'polytrans_load_openai_assistants',
-                _ajax_nonce: (typeof PolyTransAjax !== 'undefined' && PolyTransAjax.nonce) ?
-                    PolyTransAjax.nonce :
-                    $('input[name="polytrans_settings"]').val()
+                api_key: apiKey,
+                nonce: (typeof polytrans_openai !== 'undefined' && polytrans_openai.nonce) ?
+                    polytrans_openai.nonce :
+                    $('input[name="_wpnonce"]').val() // Fixed nonce fallback
             };
 
-            var ajaxUrl = (typeof PolyTransAjax !== 'undefined' && PolyTransAjax.ajaxurl) ?
-                PolyTransAjax.ajaxurl :
+            var ajaxUrl = (typeof polytrans_openai !== 'undefined' && polytrans_openai.ajax_url) ?
+                polytrans_openai.ajax_url :
                 (typeof ajaxurl !== 'undefined' ? ajaxurl : null);
 
             console.log('AJAX data:', ajaxData);
@@ -148,14 +172,14 @@
                 success: function (response) {
                     console.log('Assistant loading response:', response);
                     if (response.success) {
-                        this.assistants = response.data.assistants;
+                        this.assistants = response.data;
                         this.assistantsLoaded = true;
                         console.log('Loaded assistants:', this.assistants);
                         this.initializeAssistantAutocomplete();
                         this.updateAssistantLabels();
                     } else {
                         console.error('Assistant loading failed:', response.data);
-                        $error.show().find('p').text(response.data.message || 'Unknown error');
+                        $error.show().find('p').text(response.data || 'Unknown error');
                     }
                 }.bind(this),
                 error: function (xhr, status, error) {
@@ -224,10 +248,16 @@
 
         updateAssistantMappingVisibility: function (apiKey) {
             var $section = $('#openai-assistants-section');
+            console.log('Updating assistant mapping visibility. API key present:', !!apiKey);
+            console.log('Assistant section found:', $section.length > 0);
 
             // Temporary override for testing - remove "|| true" when ready for production
             if ((apiKey && apiKey.trim() !== '') || true) {
                 $section.show();
+                console.log('Showing assistant section');
+            } else {
+                $section.hide();
+                console.log('Hiding assistant section');
             }
         },
 
@@ -338,7 +368,7 @@
     // Initialize everything when document is ready
     $(function () {
         console.log('OpenAI Integration script loaded');
-        console.log('PolyTransAjax available:', typeof PolyTransAjax !== 'undefined');
+        console.log('polytrans_openai available:', typeof polytrans_openai !== 'undefined');
         console.log('ajaxurl available:', typeof ajaxurl !== 'undefined');
         console.log('jQuery UI available:', typeof $.ui !== 'undefined');
 
