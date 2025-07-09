@@ -52,10 +52,12 @@ class polytrans_settings
         $registry = PolyTrans_Provider_Registry::get_instance();
 
         $settings['translation_provider'] = sanitize_text_field($_POST['translation_provider'] ?? 'google');
+        $settings['translation_transport_mode'] = sanitize_text_field($_POST['translation_transport_mode'] ?? 'external');
         $settings['translation_endpoint'] = esc_url_raw($_POST['translation_endpoint'] ?? '');
         $settings['translation_receiver_endpoint'] = esc_url_raw($_POST['translation_receiver_endpoint'] ?? '');
         $settings['translation_receiver_secret'] = sanitize_text_field($_POST['translation_receiver_secret'] ?? '');
         $settings['translation_receiver_secret_method'] = sanitize_text_field($_POST['translation_receiver_secret_method'] ?? 'header_bearer');
+        $settings['enable_db_logging'] = isset($_POST['enable_db_logging']) ? '1' : '0';
         $settings['allowed_sources'] = array_map('sanitize_text_field', $_POST['allowed_sources'] ?? []);
         $settings['allowed_targets'] = array_map('sanitize_text_field', $_POST['allowed_targets'] ?? []);
 
@@ -133,6 +135,7 @@ class polytrans_settings
                     </a>
                 <?php endforeach; ?>
                 <a href="#advanced-settings" class="nav-tab" id="advanced-tab"><?php esc_html_e('Advanced Settings', 'polytrans-translation'); ?></a>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-logs')); ?>" class="nav-tab" id="logs-tab"><?php esc_html_e('Logs', 'polytrans-translation'); ?></a>
             </div>
 
             <form method="post">
@@ -356,6 +359,21 @@ class polytrans_settings
     {
     ?>
         <h1><?php esc_html_e('Advanced Integration Settings', 'polytrans-translation'); ?></h1>
+
+        <h2><?php esc_html_e('Transport Options', 'polytrans-translation'); ?></h2>
+        <select name="translation_transport_mode" style="width:100%">
+            <?php $transport_mode = $settings['translation_transport_mode'] ?? 'external'; ?>
+            <option value="external" <?php selected($transport_mode, 'external'); ?>><?php esc_html_e('External Server (Default)', 'polytrans-translation'); ?></option>
+            <option value="internal" <?php selected($transport_mode, 'internal'); ?>><?php esc_html_e('Internal (Local Endpoint)', 'polytrans-translation'); ?></option>
+        </select>
+        <div style="margin-top:8px;">
+            <small>
+                <?php esc_html_e('Choose how to handle translation transport:', 'polytrans-translation'); ?><br>
+                <strong><?php esc_html_e('External Server:', 'polytrans-translation'); ?></strong> <?php esc_html_e('Sends data to the external endpoints specified below and expects the server to send data back to the specified receiver endpoint.', 'polytrans-translation'); ?><br>
+                <strong><?php esc_html_e('Internal:', 'polytrans-translation'); ?></strong> <?php esc_html_e('Uses local endpoints via the site URL, bypassing the need for external services. Data will be sent to self via the site\'s WordPress REST API.', 'polytrans-translation'); ?>
+            </small>
+        </div><br><br>
+
         <h2><?php esc_html_e('Translation Endpoint', 'polytrans-translation'); ?></h2>
         <input type="url" name="translation_endpoint" value="<?php echo esc_attr($translation_endpoint); ?>" style="width:100%" placeholder="https://example.com/translate-endpoint" />
         <br><small><?php esc_html_e('Specify the URL of the translation endpoint. The system will send JSON with source_language, target_language, title, and text to this endpoint.', 'polytrans-translation'); ?></small><br><br>
@@ -381,6 +399,18 @@ class polytrans_settings
             <option value="post_param" <?php selected($method, 'post_param'); ?>><?php esc_html_e('POST body field (JSON: secret)', 'polytrans-translation'); ?></option>
         </select>
         <br><small><?php esc_html_e('Choose how the secret should be sent to the receiver endpoint. Select "None" to disable secret sending/checking.', 'polytrans-translation'); ?></small><br><br>
+
+        <h2><?php esc_html_e('Logging Options', 'polytrans-translation'); ?></h2>
+        <div class="translation-logging-options">
+            <?php $enable_db_logging = isset($settings['enable_db_logging']) ? (bool)$settings['enable_db_logging'] : true; ?>
+            <p>
+                <input type="checkbox" id="enable-db-logging" name="enable_db_logging" value="1" <?php checked($enable_db_logging); ?>>
+                <label for="enable-db-logging"><strong><?php esc_html_e('Enable Database Logging', 'polytrans-translation'); ?></strong></label>
+            </p>
+            <small>
+                <?php esc_html_e('When enabled, logs will be stored in the database table. When disabled, logs will only be written to the WordPress error log and post meta. Disabling database logging can improve performance and reduce database size, but makes viewing logs from the admin panel more limited.', 'polytrans-translation'); ?>
+            </small>
+        </div><br>
 <?php
     }
 }
