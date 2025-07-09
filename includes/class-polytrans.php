@@ -47,10 +47,7 @@ class PolyTrans
 
         // AJAX handlers
         add_action('wp_ajax_polytrans_schedule_translation', [$this, 'ajax_schedule_translation']);
-        add_action('wp_ajax_polytrans_validate_openai_key', [$this, 'ajax_validate_openai_key']);
-        add_action('wp_ajax_polytrans_load_openai_assistants', [$this, 'ajax_load_openai_assistants']);
         add_action('wp_ajax_polytrans_search_users', [$this, 'ajax_search_users']);
-
         // Post status transition for notifications
         add_action('transition_post_status', [$this, 'handle_post_status_transition'], 10, 3);
     }
@@ -120,6 +117,19 @@ class PolyTrans
         // Initialize the advanced receiver extension
         $receiver_extension = new PolyTrans_Translation_Receiver_Extension();
         $receiver_extension->register();
+
+        // Initialize provider-specific AJAX handlers
+        $this->init_provider_ajax_handlers();
+    }
+
+    /**
+     * Initialize AJAX handlers for all registered providers
+     */
+    private function init_provider_ajax_handlers()
+    {
+        // Initialize provider registry and let it handle provider initialization
+        $registry = PolyTrans_Provider_Registry::get_instance();
+        $registry->init_providers();
     }
 
     /**
@@ -269,123 +279,6 @@ class PolyTrans
     {
         $handler = PolyTrans_Translation_Handler::get_instance();
         $handler->handle_schedule_translation();
-    }
-
-    /**
-     * AJAX handler for validating OpenAI API key
-     */
-    public function ajax_validate_openai_key()
-    {
-        // Check nonce - support both possible nonce names
-        $nonce_check = false;
-        if (isset($_POST['nonce'])) {
-            $nonce_check = wp_verify_nonce($_POST['nonce'], 'polytrans_openai_nonce');
-        }
-
-        if (!$nonce_check) {
-            wp_send_json_error(__('Security check failed.', 'polytrans'));
-        }
-
-        if (!current_user_can('manage_options')) {
-            wp_die(__('You do not have sufficient permissions to access this page.', 'polytrans'));
-        }
-
-        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
-
-        if (empty($api_key)) {
-            wp_send_json_error(__('API key is required.', 'polytrans'));
-        }
-
-        // Validate the OpenAI API key
-        $response = wp_remote_get('https://api.openai.com/v1/models', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $api_key,
-                'User-Agent' => 'PolyTrans/1.0'
-            ],
-            'timeout' => 10
-        ]);
-
-        if (is_wp_error($response)) {
-            wp_send_json_error(__('Failed to validate API key: ', 'polytrans') . $response->get_error_message());
-        }
-
-        $response_code = wp_remote_retrieve_response_code($response);
-
-        if ($response_code === 200) {
-            wp_send_json_success(__('API key is valid!', 'polytrans'));
-        } else {
-            $body = wp_remote_retrieve_body($response);
-            $error_data = json_decode($body, true);
-            $error_message = isset($error_data['error']['message']) ? $error_data['error']['message'] : __('Invalid API key.', 'polytrans');
-            wp_send_json_error($error_message);
-        }
-    }
-
-    /**
-     * AJAX handler for loading OpenAI assistants
-     */
-    public function ajax_load_openai_assistants()
-    {
-        // Check nonce - support both possible nonce names
-        $nonce_check = false;
-        if (isset($_POST['nonce'])) {
-            $nonce_check = wp_verify_nonce($_POST['nonce'], 'polytrans_openai_nonce');
-        }
-
-        if (!$nonce_check) {
-            wp_send_json_error(__('Security check failed.', 'polytrans'));
-        }
-
-        if (!current_user_can('manage_options')) {
-            wp_die(__('You do not have sufficient permissions to access this page.', 'polytrans'));
-        }
-
-        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
-
-        if (empty($api_key)) {
-            wp_send_json_error(__('API key is required.', 'polytrans'));
-        }
-
-        // Load assistants from OpenAI API
-        $response = wp_remote_get('https://api.openai.com/v1/assistants', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $api_key,
-                'User-Agent' => 'PolyTrans/1.0',
-                'OpenAI-Beta' => 'assistants=v2'
-            ],
-            'timeout' => 10
-        ]);
-
-        if (is_wp_error($response)) {
-            wp_send_json_error(__('Failed to load assistants: ', 'polytrans') . $response->get_error_message());
-        }
-
-        $response_code = wp_remote_retrieve_response_code($response);
-
-        if ($response_code === 200) {
-            $body = wp_remote_retrieve_body($response);
-            $data = json_decode($body, true);
-
-            if (isset($data['data']) && is_array($data['data'])) {
-                $assistants = array_map(function ($assistant) {
-                    return [
-                        'id' => $assistant['id'],
-                        'name' => $assistant['name'] ?? 'Unnamed Assistant',
-                        'description' => $assistant['description'] ?? '',
-                        'model' => $assistant['model'] ?? 'gpt-4'
-                    ];
-                }, $data['data']);
-
-                wp_send_json_success($assistants);
-            } else {
-                wp_send_json_error(__('No assistants found.', 'polytrans'));
-            }
-        } else {
-            $body = wp_remote_retrieve_body($response);
-            $error_data = json_decode($body, true);
-            $error_message = isset($error_data['error']['message']) ? $error_data['error']['message'] : __('Failed to load assistants.', 'polytrans');
-            wp_send_json_error($error_message);
-        }
     }
 
     /**

@@ -85,13 +85,32 @@ class PolyTrans_Provider_Registry
     }
 
     /**
+     * Initialize all registered providers
+     * This should be called during plugin initialization
+     */
+    public function init_providers()
+    {
+        foreach ($this->providers as $provider_id => $provider) {
+            $settings_provider_class = $provider->get_settings_provider_class();
+            
+            if ($settings_provider_class && class_exists($settings_provider_class)) {
+                // Register AJAX handlers if the provider supports it
+                if (method_exists($settings_provider_class, 'register_ajax_handlers')) {
+                    $settings_provider_instance = new $settings_provider_class();
+                    $settings_provider_instance->register_ajax_handlers();
+                }
+            }
+        }
+    }
+
+    /**
      * Get a specific provider by ID
-     * @param string $id
+     * @param string $provider_id
      * @return PolyTrans_Translation_Provider_Interface|null
      */
-    public function get_provider($id)
+    public function get_provider($provider_id)
     {
-        return $this->providers[$id] ?? null;
+        return isset($this->providers[$provider_id]) ? $this->providers[$provider_id] : null;
     }
 
     /**
