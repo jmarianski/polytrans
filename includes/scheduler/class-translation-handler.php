@@ -259,7 +259,7 @@ class PolyTrans_Translation_Handler
             // Get the provider registry and Google provider
             $registry = PolyTrans_Provider_Registry::get_instance();
             $google_provider = $registry->get_provider('google');
-            
+
             if (!$google_provider) {
                 throw new Exception('Google provider not found');
             }
@@ -339,7 +339,7 @@ class PolyTrans_Translation_Handler
             // Get the provider registry and OpenAI provider
             $registry = PolyTrans_Provider_Registry::get_instance();
             $openai_provider = $registry->get_provider('openai');
-            
+
             if (!$openai_provider) {
                 throw new Exception('OpenAI provider not found');
             }

@@ -12,40 +12,57 @@ PS. The description below may be bullshit as AI wrote it, let me check it later.
 - **Translation Status Tracking**: Monitor translation progress and logs
 - **Review Workflow**: Assign reviewers for translation quality control
 
-### Advanced Translation Receiver Architecture
-- **Modular Design**: Separated concerns with specialized manager classes
+### Translation Provider System
+The plugin uses a hot-pluggable provider architecture that supports:
+
+- **Google Translate**: Simple, fast machine translation using public API (no API key required)
+- **OpenAI Integration**: AI-powered translation with custom assistants
+  - API key configuration required
+  - Custom assistant mapping per language pair
+  - Multi-step translation support for complex language workflows
+
+### Advanced Translation Architecture
+- **Modular Receiver System**: Specialized manager classes for different aspects of translation processing
 - **Translation Coordinator**: Orchestrates the entire translation process
 - **Request Validation**: Comprehensive validation of incoming translation requests
 - **Post Creation**: Robust post creation with proper sanitization
 - **Metadata Management**: Intelligent copying and translation of post metadata
 - **Taxonomy Management**: Automatic category and tag translation mapping
 - **Language Management**: Polylang integration with translation relationships
-- **Notification System**: Email notifications for reviewers and authors
-- **Status Tracking**: Detailed status management and logging
-- **Security Management**: IP restrictions and authentication validation
+- **Security**: IP restrictions and authentication validation
 
-### Translation Providers
-- **Google Translate**: Simple, fast machine translation
-- **OpenAI Integration**: AI-powered translation with custom assistants
-  - API key validation
-  - Custom assistant mapping per language pair
-  - Intermediate translation support
-
-### Advanced Features
+### Communication Features
 - **REST API Endpoints**: Receive translated content from external services
-- **Email Notifications**: Notify reviewers and authors
-- **Tag Translation Management**: Manage multilingual taxonomy translations
+- **Email Notifications**: Notify reviewers and authors throughout the workflow
 - **User Assignment**: Autocomplete user search for reviewer assignment
-- **Security**: Configurable secret authentication for translation endpoints
 
-### Language Support
+### Additional Features
+- **Tag Translation Management**: Manage multilingual taxonomy translations
 - **Polylang Integration**: Full compatibility with Polylang plugin
 - **Flexible Language Configuration**: Configure allowed source and target languages
 - **Status Management**: Set post status after translation (publish, draft, pending, same as source)
 
+## Architecture
+
+### Multi-Server Support
+The plugin supports both single-server and multi-server translation workflows:
+
+1. **Single Server (Local)**: All translation processing happens on the same WordPress installation
+2. **Multi-Server**: Translation work can be distributed across multiple WordPress installations
+   - **Scheduler Server**: Manages translation requests
+   - **Translator Server**: Performs actual translation work
+   - **Receiver Server**: Processes completed translations
+
+### Provider System
+The plugin implements a hot-pluggable provider architecture:
+- **Translation Provider Interface**: Defines core translation functionality
+- **Settings Provider Interface**: Handles provider-specific configuration UI
+- **Provider Registry**: Automatic discovery and registration of translation providers
+- **Dynamic Settings UI**: Providers automatically appear in settings with their own configuration tabs
+
 ## Installation
 
-1. Upload the plugin files to `/wp-content/plugins/polytrans-translation/`
+1. Upload the plugin files to `/wp-content/plugins/polytrans/`
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Configure settings under **Settings > Translation Settings**
 
@@ -57,28 +74,33 @@ PS. The description below may be bullshit as AI wrote it, let me check it later.
 3. Configure allowed source and target languages
 4. Set up post status and reviewer settings for each language
 
+### Google Translate Configuration
+- **No setup required** - Google Translate works out of the box using the public API
+- Simply select "Google Translate" as your provider
+
 ### OpenAI Configuration
 1. Select "OpenAI" as translation provider
 2. Enter your OpenAI API key
 3. Choose your primary OpenAI language
-4. Map assistants to language pairs
-5. Configure translation workflow
+4. Map assistants to language pairs (e.g., "en_to_pl" → "asst_123")
+5. Test your configuration using the built-in testing interface
 
-### Advanced Settings
-1. Set up translation endpoint URLs
-2. Configure receiver endpoint for external translation services
-3. Set up authentication secrets
-4. Customize email templates
+### Multi-Server Setup
+1. Configure translation endpoint URLs for external translation services
+2. Set up receiver endpoint for incoming translated content
+3. Configure authentication secrets and methods
+4. Customize email templates for notifications
 
 ## Usage
 
 ### Scheduling Translations
 1. Edit any post or page
-2. Use the "Auto Translation Scheduler" meta box
-3. Select translation scope (Local, Regional, Global)
-4. Choose target languages for Regional scope
-5. Enable review if needed
-6. Click "Translate"
+2. Use the "Translation" meta box to mark translation type
+3. Use the "Translation Scheduler" meta box to:
+   - Select translation scope (Local, Regional, Global)
+   - Choose target languages for Regional scope
+   - Enable review if needed
+   - Click "Translate"
 
 ### Managing Tag Translations
 1. Go to **Posts > Tag Translations**
@@ -94,54 +116,37 @@ PS. The description below may be bullshit as AI wrote it, let me check it later.
 
 ## REST API Endpoints
 
-### Receive Translation
-- **Endpoint**: `/wp-json/polytrans/v1/translation/receive-post`
-- **Method**: POST
-- **Authentication**: Configurable secret
-- **Purpose**: Receive completed translations from external services
+### Translation Endpoints
+- **POST** `/wp-json/polytrans/v1/translation/translate` - Receive and process translation requests
+- **POST** `/wp-json/polytrans/v1/translation/receive-post` - Receive completed translations
+- **GET** `/wp-json/polytrans/v1/translation/status/{post_id}` - Check translation status
 
-### Get Translation Status
-- **Endpoint**: `/wp-json/polytrans/v1/translation/status/{post_id}`
-- **Method**: GET
-- **Authentication**: User login required
-- **Purpose**: Check translation status for a specific post
+### Authentication
+All endpoints support configurable authentication:
+- Bearer token in Authorization header
+- Custom header (x-polytrans-secret)
+- POST parameter
 
 ## Hooks and Filters
 
-The plugin provides various WordPress hooks for customization:
-
 ### Actions
-- `polytrans_translation_before_create`: Before creating translated post
-- `polytrans_translation_after_create`: After creating translated post
-- `polytrans_translation_status_updated`: When translation status changes
+- `polytrans_translation_before_create` - Before creating translated post
+- `polytrans_translation_after_create` - After creating translated post
+- `polytrans_translation_status_updated` - When translation status changes
 
 ### Filters
-- `polytrans_translation_allowed_meta_keys`: Modify allowed meta keys for translation
-- `polytrans_translation_post_data`: Modify post data before creating translation
-- `polytrans_translation_email_content`: Customize notification email content
+- `polytrans_register_providers` - Register custom translation providers
+- `polytrans_translation_allowed_meta_keys` - Modify allowed meta keys for translation
+- `polytrans_translation_post_data` - Modify post data before creating translation
+- `polytrans_translation_email_content` - Customize notification email content
 
 ## Requirements
 
 - WordPress 5.0 or higher
 - PHP 7.4 or higher
 - Polylang plugin (recommended for full multilingual support)
-
-## Changelog
-
-### Version 1.0.0
-- Initial release
-- Google Translate integration
-- OpenAI integration with custom assistants
-- Translation scheduling and status tracking
-- Review workflow with email notifications
-- Tag translation management
-- REST API endpoints
-- Comprehensive admin interface
-
-## Support
-
-For support and feature requests, please contact the Polytrans development team.
+- OpenAI API key (only if using OpenAI provider)
 
 ## License
 
-This plugin is proprietary software developed for the Polytrans platform.
+This plugin is proprietary software developed for the PolyTrans platform.
