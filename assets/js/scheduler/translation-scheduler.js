@@ -48,6 +48,14 @@ jQuery(function ($) {
                 $editBtn.show().attr('href', PolyTransScheduler.edit_url.replace('__ID__', info.post_id));
                 $clearBtn.show();
                 hasAny = true;
+            } else if (info && info.status === 'failed') {
+                $li.show();
+                $loader.hide();
+                $check.hide();
+                $failed.show();
+                $editBtn.hide();
+                $clearBtn.show();
+                hasAny = true;
             } else {
                 console.log('[PolyTrans] Hiding status for:', lang, 'info status:', info ? info.status : 'no info');
                 $li.hide();
