@@ -39,7 +39,7 @@ class PolyTrans
     private function init_hooks()
     {
         add_action('init', [$this, 'init']);
-        add_action('admin_menu', [$this, 'add_admin_menu']);
+        add_action('admin_menu', [$this, 'add_admin_menus']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_scripts']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_public_scripts']);
         add_action('add_meta_boxes', [$this, 'add_meta_boxes']);
@@ -50,6 +50,9 @@ class PolyTrans
         add_action('wp_ajax_polytrans_search_users', [$this, 'ajax_search_users']);
         // Post status transition for notifications
         add_action('transition_post_status', [$this, 'handle_post_status_transition'], 10, 3);
+
+        // Dashboard widget
+        add_action('wp_dashboard_setup', [$this, 'add_dashboard_widgets']);
     }
 
     /**
@@ -120,6 +123,10 @@ class PolyTrans
 
         // Initialize provider-specific AJAX handlers
         $this->init_provider_ajax_handlers();
+
+        if (is_admin() && isset($_GET['check_stuck']) && current_user_can('manage_options')) {
+            $this->handle_check_stuck_translations();
+        }
     }
 
     /**
@@ -133,27 +140,155 @@ class PolyTrans
     }
 
     /**
-     * Add admin menu
+     * Add admin menus
      */
-    public function add_admin_menu()
+    public function add_admin_menus()
     {
-        add_submenu_page(
-            'options-general.php',
-            __('PolyTrans Settings', 'polytrans'),
+        // Main menu item
+        add_menu_page(
+            __('PolyTrans', 'polytrans'),
             __('PolyTrans', 'polytrans'),
             'manage_options',
-            'polytrans-settings',
-            [$this, 'admin_page']
+            'polytrans',
+            [$this, 'render_dashboard'],
+            'dashicons-translation',
+            80
         );
+
+        // Settings submenu
+        add_submenu_page(
+            'polytrans',
+            __('Settings', 'polytrans'),
+            __('Settings', 'polytrans'),
+            'manage_options',
+            'polytrans-settings',
+            [$this, 'render_settings']
+        );
+        
+        // Logs submenu
+        add_submenu_page(
+            'polytrans',
+            __('Logs', 'polytrans'),
+            __('Logs', 'polytrans'),
+            'manage_options',
+            'polytrans-logs',
+            [$this, 'render_logs']
+        );
+
+        // Rename the first submenu item
+        global $submenu;
+        if (isset($submenu['polytrans'])) {
+            $submenu['polytrans'][0][0] = __('Dashboard', 'polytrans');
+        }
     }
 
     /**
-     * Admin page callback
+     * Render dashboard page
      */
-    public function admin_page()
+    public function render_dashboard()
     {
-        $settings_page = new polytrans_settings();
-        $settings_page->render();
+        // Get translation status summary
+        require_once POLYTRANS_PLUGIN_DIR . 'includes/scheduler/class-translation-handler.php';
+        $handler = PolyTrans_Translation_Handler::get_instance();
+        $summary = $handler->get_translation_status_summary();
+        
+        // Dashboard content
+        echo '<div class="wrap">';
+        echo '<h1>' . esc_html__('PolyTrans Dashboard', 'polytrans') . '</h1>';
+        echo '<p>' . esc_html__('Welcome to PolyTrans, the advanced multilingual translation management system.', 'polytrans') . '</p>';
+        
+        // Translation status summary
+        echo '<div class="card" style="max-width:800px; margin-top:20px; padding:20px;">';
+        echo '<h2>' . esc_html__('Translation Status Summary', 'polytrans') . '</h2>';
+        
+        echo '<div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:20px;">';
+        
+        // Total translations
+        echo '<div style="flex:1; min-width:200px;">';
+        echo '<h3>' . esc_html__('Total Translations', 'polytrans') . '</h3>';
+        echo '<p style="font-size:24px;">' . esc_html($summary['total']) . '</p>';
+        echo '</div>';
+        
+        // Status breakdown
+        echo '<div style="flex:2; min-width:300px;">';
+        echo '<h3>' . esc_html__('By Status', 'polytrans') . '</h3>';
+        echo '<ul style="list-style:none; padding:0;">';
+        foreach ($summary['by_status'] as $status => $count) {
+            $status_label = ucfirst($status);
+            $status_class = '';
+            
+            switch ($status) {
+                case 'completed':
+                    $status_class = 'color:green;';
+                    break;
+                case 'failed':
+                    $status_class = 'color:red;';
+                    break;
+                case 'started':
+                case 'translating':
+                case 'processing':
+                case 'in-progress':
+                    $status_class = 'color:orange;';
+                    break;
+            }
+            
+            echo '<li style="margin-bottom:8px;"><span style="font-weight:bold;' . $status_class . '">' . esc_html($status_label) . ':</span> ' . esc_html($count) . '</li>';
+        }
+        echo '</ul>';
+        echo '</div>';
+        
+        echo '</div>';
+        
+        // Potentially stuck translations
+        if (!empty($summary['potentially_stuck'])) {
+            echo '<h3 style="color:red;">' . esc_html__('Potentially Stuck Translations', 'polytrans') . '</h3>';
+            echo '<table class="widefat" style="margin-top:10px;">';
+            echo '<thead><tr>';
+            echo '<th>' . esc_html__('Post', 'polytrans') . '</th>';
+            echo '<th>' . esc_html__('Language', 'polytrans') . '</th>';
+            echo '<th>' . esc_html__('Status', 'polytrans') . '</th>';
+            echo '<th>' . esc_html__('Hours Since Activity', 'polytrans') . '</th>';
+            echo '<th>' . esc_html__('Actions', 'polytrans') . '</th>';
+            echo '</tr></thead>';
+            echo '<tbody>';
+            
+            foreach ($summary['potentially_stuck'] as $stuck) {
+                echo '<tr>';
+                echo '<td><a href="' . esc_url(admin_url('post.php?post=' . $stuck['post_id'] . '&action=edit')) . '">' . esc_html($stuck['post_title']) . '</a></td>';
+                echo '<td>' . esc_html(strtoupper($stuck['language'])) . '</td>';
+                echo '<td>' . esc_html($stuck['status']) . '</td>';
+                echo '<td>' . esc_html($stuck['hours_since_activity']) . '</td>';
+                echo '<td>';
+                echo '<a href="#" class="button" onclick="alert(\'' . esc_js(__('This feature is coming soon!', 'polytrans')) . '\'); return false;">' . esc_html__('Fix', 'polytrans') . '</a>';
+                echo '</td>';
+                echo '</tr>';
+            }
+            
+            echo '</tbody></table>';
+        }
+        
+        echo '</div>'; // card
+        
+        echo '</div>'; // wrap
+    }
+
+    /**
+     * Render settings page
+     */
+    public function render_settings()
+    {
+        require_once POLYTRANS_PLUGIN_DIR . 'includes/settings/class-translation-settings.php';
+        $settings = new polytrans_settings();
+        $settings->render();
+    }
+    
+    /**
+     * Render logs page
+     */
+    public function render_logs()
+    {
+        require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-logs-manager.php';
+        PolyTrans_Logs_Manager::admin_logs_page();
     }
 
     /**
@@ -300,6 +435,77 @@ class PolyTrans
     }
 
     /**
+     * Add dashboard widgets
+     */
+    public function add_dashboard_widgets()
+    {
+        wp_add_dashboard_widget(
+            'polytrans_status_dashboard_widget',
+            __('PolyTrans Translation Status', 'polytrans'),
+            [$this, 'render_dashboard_widget']
+        );
+    }
+    
+    /**
+     * Render the dashboard widget showing translation status
+     */
+    public function render_dashboard_widget()
+    {
+        // Load the status manager class if not already loaded
+        if (!class_exists('PolyTrans_Translation_Status_Manager')) {
+            require_once POLYTRANS_PLUGIN_DIR . 'includes/receiver/managers/class-translation-status-manager.php';
+        }
+        
+        $status_manager = new PolyTrans_Translation_Status_Manager();
+        $summary = $status_manager->get_status_summary();
+        
+        echo '<div class="polytrans-dashboard-widget">';
+        echo '<h4>' . __('Translation Status Summary', 'polytrans') . '</h4>';
+        
+        echo '<table class="widefat fixed" style="margin-bottom: 10px;">';
+        echo '<thead><tr>';
+        echo '<th>' . __('Status', 'polytrans') . '</th>';
+        echo '<th>' . __('Count', 'polytrans') . '</th>';
+        echo '</tr></thead><tbody>';
+        
+        $statuses = [
+            'started' => __('Started', 'polytrans'),
+            'translating' => __('Translating', 'polytrans'),
+            'processing' => __('Processing', 'polytrans'),
+            'completed' => __('Completed', 'polytrans'),
+            'failed' => __('Failed', 'polytrans')
+        ];
+        
+        foreach ($statuses as $status_key => $status_label) {
+            $count = $summary[$status_key] ?? 0;
+            echo '<tr>';
+            echo '<td>' . $status_label . '</td>';
+            echo '<td>' . $count . '</td>';
+            echo '</tr>';
+        }
+        
+        echo '</tbody></table>';
+        
+        // Check for potentially stuck translations
+        $non_terminal_count = ($summary['started'] ?? 0) + ($summary['translating'] ?? 0) + ($summary['processing'] ?? 0);
+        if ($non_terminal_count > 0) {
+            echo '<div class="notice notice-warning inline"><p>';
+            echo sprintf(
+                __('There are %d translations in a non-terminal state that might be stuck. <a href="%s">Check now</a>.', 'polytrans'),
+                $non_terminal_count,
+                admin_url('admin.php?page=polytrans-logs&check_stuck=1')
+            );
+            echo '</p></div>';
+        }
+        
+        echo '<p><a href="' . admin_url('admin.php?page=polytrans-logs') . '" class="button">';
+        echo __('View Translation Logs', 'polytrans');
+        echo '</a></p>';
+        
+        echo '</div>';
+    }
+
+    /**
      * Get plugin version
      */
     public function get_version()
@@ -321,5 +527,117 @@ class PolyTrans
     public function get_plugin_url()
     {
         return POLYTRANS_PLUGIN_URL;
+    }
+
+    /**
+     * Handle checking stuck translations from admin
+     */
+    private function handle_check_stuck_translations()
+    {
+        global $wpdb;
+        
+        $timeout_hours = 24; // Consider translations stuck after 24 hours
+        $timeout_seconds = $timeout_hours * 3600;
+        $now = time();
+        $fixed = 0;
+        $checked = 0;
+        $stuck = [];
+        
+        // Query for all post meta entries with non-terminal statuses
+        $non_terminal_states = ['started', 'translating', 'processing'];
+        $meta_query = $wpdb->prepare(
+            "SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} 
+            WHERE meta_key LIKE %s 
+            AND meta_value IN ('started', 'translating', 'processing')",
+            '_polytrans_translation_status_%'
+        );
+        
+        $stuck_translations = $wpdb->get_results($meta_query);
+        $checked = count($stuck_translations);
+        
+        if ($checked === 0) {
+            // No translations in non-terminal state
+            add_action('admin_notices', function() {
+                echo '<div class="notice notice-success is-dismissible"><p>' . 
+                    esc_html__('No stuck translations found.', 'polytrans') . 
+                    '</p></div>';
+            });
+            return;
+        }
+        
+        foreach ($stuck_translations as $item) {
+            // Extract language from meta key
+            preg_match('/_polytrans_translation_status_(.+)$/', $item->meta_key, $matches);
+            if (empty($matches[1])) continue;
+            
+            $language = $matches[1];
+            $post_id = $item->post_id;
+            
+            // Get the log to check when this translation was started
+            $log_key = '_polytrans_translation_log_' . $language;
+            $log = get_post_meta($post_id, $log_key, true);
+            
+            if (!is_array($log) || empty($log)) continue;
+            
+            // Get the first log timestamp
+            $first_log = reset($log);
+            $start_time = $first_log['timestamp'] ?? 0;
+            
+            if ($start_time > 0 && ($now - $start_time) > $timeout_seconds) {
+                // This translation has been stuck for too long
+                $status_key = '_polytrans_translation_status_' . $language;
+                $error_message = sprintf(
+                    __('Translation timed out after %d hours in "%s" status.', 'polytrans'),
+                    $timeout_hours,
+                    $item->meta_value
+                );
+                
+                // Update status to failed
+                update_post_meta($post_id, $status_key, 'failed');
+                
+                // Add error details
+                update_post_meta(
+                    $post_id, 
+                    '_polytrans_translation_error_' . $language, 
+                    $error_message
+                );
+                
+                // Add to log
+                $log[] = [
+                    'timestamp' => $now,
+                    'msg' => $error_message
+                ];
+                update_post_meta($post_id, $log_key, $log);
+                
+                $fixed++;
+                $stuck[] = [
+                    'post_id' => $post_id,
+                    'language' => $language,
+                    'status' => $item->meta_value,
+                    'stuck_for_hours' => round(($now - $start_time) / 3600, 1)
+                ];
+                
+                // Optional: Log to WordPress error log
+                error_log(sprintf(
+                    '[polytrans] Marked stuck translation as failed: Post ID %d, Language %s, Previous Status %s',
+                    $post_id,
+                    $language,
+                    $item->meta_value
+                ));
+            }
+        }
+        
+        // Show admin notice with results
+        $message = sprintf(
+            __('Checked %d translations, fixed %d stuck translations.', 'polytrans'),
+            $checked,
+            $fixed
+        );
+        
+        add_action('admin_notices', function() use ($message) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . 
+                esc_html($message) . 
+                '</p></div>';
+        });
     }
 }

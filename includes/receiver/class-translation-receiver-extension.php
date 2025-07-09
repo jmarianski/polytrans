@@ -34,17 +34,31 @@ class PolyTrans_Translation_Receiver_Extension
             return new WP_REST_Response(['error' => 'Invalid JSON data'], 400);
         }
 
+        // Extract key parameters for logging
+        $original_post_id = $params['original_post_id'] ?? 0;
+        $target_language = $params['target_language'] ?? '';
+        $source_language = $params['source_language'] ?? '';
+
+        error_log("[polytrans] Received translation data for post $original_post_id from $source_language to $target_language");
+
         // Process the translation using the coordinator
         $result = $this->coordinator->process_translation($params);
 
         if (!$result['success']) {
             $status_code = (isset($result['code']) && $result['code'] === 'missing_data') ? 400 : 500;
+            error_log("[polytrans] Translation processing failed: " . $result['error']);
             return new WP_REST_Response(['error' => $result['error']], $status_code);
         }
 
+        error_log("[polytrans] Translation processing succeeded, created post ID: " . $result['created_post_id']);
+
+        // Include detailed information in the response for the sender to update status
         return new WP_REST_Response([
             'created_post_id' => $result['created_post_id'],
-            'status' => $result['status']
+            'status' => $result['status'],
+            'original_post_id' => $original_post_id,
+            'target_language' => $target_language,
+            'message' => sprintf(__('Translation successfully created with post ID %d', 'polytrans'), $result['created_post_id'])
         ], 201);
     }
 

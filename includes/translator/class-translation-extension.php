@@ -96,6 +96,30 @@ class PolyTrans_Translation_Extension
             return new WP_REST_Response(['error' => 'target_endpoint required'], 400);
         }
 
+        // Update original post's status and log for external translation tracking
+        // This ensures consistent meta updates between local and external pathways
+        if ($original_post_id) {
+            // Status and log keys for the target language
+            $status_key = '_polytrans_translation_status_' . $target_lang;
+            $log_key = '_polytrans_translation_log_' . $target_lang;
+            
+            // Set status to 'translating' to indicate it's being processed remotely
+            update_post_meta($original_post_id, $status_key, 'translating');
+            
+            // Initialize log if needed
+            $log = get_post_meta($original_post_id, $log_key, true);
+            if (!is_array($log)) $log = [];
+            
+            // Add a status update log entry
+            $log[] = [
+                'timestamp' => time(),
+                'msg' => __('External translation process started.', 'polytrans-translation')
+            ];
+            update_post_meta($original_post_id, $log_key, $log);
+            
+            error_log("[polytrans] External translation process started for post $original_post_id from $source_lang to $target_lang");
+        }
+
         // Get settings and determine provider
         $settings = get_option('polytrans_settings', []);
         $translation_provider = $settings['translation_provider'] ?? 'google';
@@ -105,12 +129,22 @@ class PolyTrans_Translation_Extension
         // Get the provider
         $provider = $this->get_provider($translation_provider);
         if (!$provider) {
+            // Update error status for external translation
+            if ($original_post_id) {
+                $this->update_translation_failure($original_post_id, $target_lang, "Unknown translation provider: $translation_provider");
+            }
+            
             error_log("[polytrans] Unknown translation provider: $translation_provider");
             return new WP_REST_Response(['error' => "Unknown translation provider: $translation_provider"], 400);
         }
 
         // Check if provider is configured
         if (!$provider->is_configured($settings)) {
+            // Update error status for external translation
+            if ($original_post_id) {
+                $this->update_translation_failure($original_post_id, $target_lang, "Translation provider $translation_provider is not properly configured");
+            }
+            
             error_log("[polytrans] Translation provider $translation_provider is not properly configured");
             return new WP_REST_Response(['error' => "Translation provider $translation_provider is not properly configured"], 400);
         }
@@ -119,6 +153,11 @@ class PolyTrans_Translation_Extension
         $result = $provider->translate($to_translate, $source_lang, $target_lang, $settings);
 
         if (!$result['success']) {
+            // Update error status for external translation
+            if ($original_post_id) {
+                $this->update_translation_failure($original_post_id, $target_lang, $result['error']);
+            }
+            
             error_log("[polytrans] Translation failed: " . $result['error']);
             return new WP_REST_Response(['error' => $result['error']], 500);
         }
@@ -131,18 +170,68 @@ class PolyTrans_Translation_Extension
             'translated' => $result['translated_content']
         ];
 
-        $this->post_to_target($target_endpoint, $payload);
+        $response = $this->post_to_target($target_endpoint, $payload);
+        
+        // Check if the response from the target endpoint indicates success
+        $response_code = wp_remote_retrieve_response_code($response);
+        $response_success = ($response_code >= 200 && $response_code < 300);
+        
+        // If we're handling an actual post (not just content) and the response failed, mark as failed
+        if ($original_post_id && !$response_success && !is_wp_error($response)) {
+            $error = wp_remote_retrieve_body($response);
+            $this->update_translation_failure($original_post_id, $target_lang, "Failed to deliver translation: $error (HTTP $response_code)");
+        }
+        // If it's a WP_Error, also mark as failed
+        else if ($original_post_id && is_wp_error($response)) {
+            $this->update_translation_failure($original_post_id, $target_lang, "Failed to deliver translation: " . $response->get_error_message());
+        }
 
         error_log("[polytrans] Translation finished for $source_lang->$target_lang using $translation_provider");
         return new WP_REST_Response(['status' => 'sent', 'result' => $payload]);
     }
+    
+    /**
+     * Helper method to update post meta for failed translations
+     * 
+     * @param int $post_id Original post ID
+     * @param string $target_lang Target language
+     * @param string $error_message Error message
+     */
+    private function update_translation_failure($post_id, $target_lang, $error_message)
+    {
+        $status_key = '_polytrans_translation_status_' . $target_lang;
+        $log_key = '_polytrans_translation_log_' . $target_lang;
+        
+        // Update status to failed
+        update_post_meta($post_id, $status_key, 'failed');
+        
+        // Add failure log entry
+        $log = get_post_meta($post_id, $log_key, true);
+        if (!is_array($log)) $log = [];
+        
+        $log[] = [
+            'timestamp' => time(),
+            'msg' => sprintf(__('Translation failed: %s', 'polytrans-translation'), $error_message)
+        ];
+        
+        update_post_meta($post_id, $log_key, $log);
+        error_log("[polytrans] External translation failed for post $post_id: $error_message");
+    }
 
     /**
      * POST translated data to target endpoint
+     * 
+     * @param string $endpoint Target endpoint URL
+     * @param array $payload Translation payload
+     * @return mixed Response from wp_remote_post
      */
     private function post_to_target($endpoint, $payload)
     {
         error_log("[polytrans] postToTarget: endpoint=$endpoint, payload=" . json_encode($payload));
+        
+        // Extract data from payload for potential status updates
+        $original_post_id = $payload['original_post_id'] ?? null;
+        $target_language = $payload['target_language'] ?? null;
 
         $settings = get_option('polytrans_settings', []);
         $secret = $settings['translation_receiver_secret'] ?? '';
@@ -181,8 +270,62 @@ class PolyTrans_Translation_Extension
 
         if (is_wp_error($result)) {
             error_log("[polytrans] postToTarget error: " . $result->get_error_message());
+            
+            // Update the original post's status if we have post ID and language info
+            if ($original_post_id && $target_language) {
+                $this->update_translation_failure($original_post_id, $target_language, "Network error: " . $result->get_error_message());
+            }
         } else {
-            error_log("[polytrans] postToTarget success: " . wp_remote_retrieve_response_code($result));
+            $response_code = wp_remote_retrieve_response_code($result);
+            $response_body = wp_remote_retrieve_body($result);
+            $success = ($response_code >= 200 && $response_code < 300);
+            
+            error_log("[polytrans] postToTarget " . ($success ? "success" : "failed") . ": " . $response_code);
+            
+            // If successful response from receiver endpoint (201 Created)
+            if ($success && $original_post_id && $target_language) {
+                try {
+                    // Try to parse the response body for more detailed info
+                    $response_data = json_decode($response_body, true);
+                    $created_post_id = $response_data['created_post_id'] ?? 0;
+                    
+                    if ($created_post_id) {
+                        // Update status key to completed
+                        $status_key = '_polytrans_translation_status_' . $target_language;
+                        update_post_meta($original_post_id, $status_key, 'completed');
+                        
+                        // Set a completion timestamp
+                        update_post_meta($original_post_id, '_polytrans_translation_completed_' . $target_language, time());
+                        
+                        // Store the translated post ID reference (both keys for compatibility)
+                        update_post_meta($original_post_id, '_polytrans_translation_target_' . $target_language, $created_post_id);
+                        update_post_meta($original_post_id, '_polytrans_translation_post_id_' . $target_language, $created_post_id);
+                        
+                        // Add completion log entry
+                        $log_key = '_polytrans_translation_log_' . $target_language;
+                        $log = get_post_meta($original_post_id, $log_key, true);
+                        if (!is_array($log)) $log = [];
+                        
+                        $log[] = [
+                            'timestamp' => time(),
+                            'msg' => sprintf(
+                                __('Translation completed successfully. New post ID: <a href="%s">%d</a>', 'polytrans-translation'),
+                                esc_url(admin_url('post.php?post=' . $created_post_id . '&action=edit')),
+                                $created_post_id
+                            )
+                        ];
+                        
+                        update_post_meta($original_post_id, $log_key, $log);
+                        error_log("[polytrans] External translation completed successfully for post $original_post_id -> $created_post_id");
+                    }
+                } catch (Exception $e) {
+                    error_log("[polytrans] Error processing translation response: " . $e->getMessage());
+                }
+            }
+            // If failed response, update the failure status
+            else if (!$success && $original_post_id && $target_language) {
+                $this->update_translation_failure($original_post_id, $target_language, "Failed to deliver translation: HTTP $response_code - $response_body");
+            }
         }
 
         return $result;
