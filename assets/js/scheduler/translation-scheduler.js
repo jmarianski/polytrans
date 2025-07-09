@@ -32,7 +32,7 @@ jQuery(function ($) {
             var $check = $li.find('.polytrans-check');
             var $editBtn = $li.find('.polytrans-edit-btn');
             var $clearBtn = $li.find('.polytrans-clear-translation');
-            if (info && info.status === 'started') {
+            if (info && (info.status === 'started' || info.status === 'translating')) {
                 console.log('[PolyTrans] Showing started status for:', lang);
                 $li.show();
                 $loader.show();
@@ -40,7 +40,7 @@ jQuery(function ($) {
                 $editBtn.hide();
                 $clearBtn.show();
                 hasAny = true;
-            } else if (info && info.status === 'finished' && info.post_id) {
+            } else if (info && (info.status === 'finished' || info.status === 'completed') && info.post_id) {
                 console.log('[PolyTrans] Showing finished status for:', lang, 'post_id:', info.post_id);
                 $li.show();
                 $loader.hide();

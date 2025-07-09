@@ -126,27 +126,27 @@ class PolyTrans_Translation_Handler
     {
         // Get the transport mode from settings
         $transport_mode = isset($settings['translation_transport_mode']) ? $settings['translation_transport_mode'] : 'external';
-        
+
         // Update translation status
         $status_key = '_polytrans_translation_status_' . $target_lang;
         $log_key = '_polytrans_translation_log_' . $target_lang;
-        
+
         // Set status to 'started' to indicate the translation has been scheduled
         update_post_meta($post_id, $status_key, 'started');
 
         // Prepare log entry
         $log = get_post_meta($post_id, $log_key, true);
         if (!is_array($log)) $log = [];
-        
+
         // Add a status update log entry
         $log[] = [
             'timestamp' => time(),
             'msg' => sprintf(__('Translation process scheduled (mode: %s).', 'polytrans-translation'), $transport_mode)
         ];
         update_post_meta($post_id, $log_key, $log);
-        
+
         error_log("[polytrans] Translation scheduled for post $post_id from $source_lang to $target_lang (mode: $transport_mode)");
-        
+
         if ($transport_mode === 'internal') {
             // For internal mode, use the background processor
             $this->process_with_background_processor($post_id, $source_lang, $target_lang, $log, $log_key, $status_key);
@@ -155,7 +155,7 @@ class PolyTrans_Translation_Handler
             $this->process_with_external_endpoint($post_id, $source_lang, $target_lang, $settings, $log, $log_key, $status_key);
         }
     }
-    
+
     /**
      * Process translation using local background processor
      * 
@@ -170,10 +170,10 @@ class PolyTrans_Translation_Handler
     {
         // Require the background processor class
         require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-background-processor.php';
-        
+
         // Update status to 'translating' to indicate it's being processed via background
         update_post_meta($post_id, $status_key, 'translating');
-        
+
         // Add a log entry about spawning the background process
         $log[] = [
             'timestamp' => time(),
@@ -194,7 +194,7 @@ class PolyTrans_Translation_Handler
         if ($result) {
             // Get the logs page URL
             $logs_url = admin_url('admin.php?page=polytrans-logs');
-            
+
             // Add a link to the logs
             $log[] = [
                 'timestamp' => time(),
@@ -203,12 +203,12 @@ class PolyTrans_Translation_Handler
                     esc_url($logs_url)
                 )
             ];
-            
+
             error_log("[polytrans] Translation request queued in background process for post $post_id from $source_lang to $target_lang");
             update_post_meta($post_id, $log_key, $log);
             return;
         }
-        
+
         // If background process spawning failed, log the error
         $log[] = [
             'timestamp' => time(),
@@ -218,7 +218,7 @@ class PolyTrans_Translation_Handler
         update_post_meta($post_id, $status_key, 'failed');
         update_post_meta($post_id, $log_key, $log);
     }
-    
+
     /**
      * Process translation using external endpoint
      * 
@@ -235,7 +235,7 @@ class PolyTrans_Translation_Handler
         // Get the external endpoint URL
         $translation_endpoint = isset($settings['translation_endpoint']) ? $settings['translation_endpoint'] : '';
         $translation_receiver_endpoint = isset($settings['translation_receiver_endpoint']) ? $settings['translation_receiver_endpoint'] : '';
-        
+
         if (empty($translation_endpoint)) {
             // Log error if no endpoint is configured
             $log[] = [
@@ -247,23 +247,23 @@ class PolyTrans_Translation_Handler
             update_post_meta($post_id, $log_key, $log);
             return;
         }
-        
+
         if (empty($translation_receiver_endpoint)) {
             // Use default receiver endpoint if none is configured
             $translation_receiver_endpoint = site_url('/wp-json/polytrans/v1/translation/receive-post');
             error_log("[polytrans] Using default receiver endpoint: $translation_receiver_endpoint");
         }
-        
+
         // Update status to 'translating' to indicate it's actively being sent to external service
         update_post_meta($post_id, $status_key, 'translating');
-        
+
         // Add log entry about sending to external service
         $log[] = [
             'timestamp' => time(),
             'msg' => sprintf(__('Sending translation request to external endpoint: %s', 'polytrans-translation'), $translation_endpoint)
         ];
         update_post_meta($post_id, $log_key, $log);
-        
+
         // Prepare the post content for translation
         $post = get_post($post_id);
         if (!$post) {
@@ -276,18 +276,18 @@ class PolyTrans_Translation_Handler
             update_post_meta($post_id, $log_key, $log);
             return;
         }
-        
+
         // Prepare metadata
         $meta = get_post_meta($post_id);
         $allowed_meta_keys = defined('POLYTRANS_ALLOWED_RANK_MATH_META_KEYS') ? POLYTRANS_ALLOWED_RANK_MATH_META_KEYS : [];
         $meta = array_intersect_key($meta, array_flip($allowed_meta_keys));
-        
+
         foreach ($meta as $k => $v) {
             if (is_array($v) && count($v) === 1) {
                 $meta[$k] = $v[0];
             }
         }
-        
+
         // Prepare payload for the external translation request
         $payload = [
             'source_language' => $source_lang,
@@ -301,20 +301,21 @@ class PolyTrans_Translation_Handler
                 'meta' => json_decode(json_encode($meta), true)
             ]
         ];
-        
+
         // Add authentication if needed
         $secret = isset($settings['translation_receiver_secret']) ? $settings['translation_receiver_secret'] : '';
         $secret_method = isset($settings['translation_receiver_secret_method']) ? $settings['translation_receiver_secret_method'] : 'header_bearer';
-        
+
         $args = [
             'headers' => [
                 'Content-Type' => 'application/json',
             ],
             'body' => wp_json_encode($payload),
-            'timeout' => 30,
+            'timeout' => 0.1,
+            'blocking' => false,
             'sslverify' => (getenv('WP_ENV') === 'prod') ? true : false,
         ];
-        
+
         if ($secret && $secret_method !== 'none') {
             switch ($secret_method) {
                 case 'get_param':
@@ -334,41 +335,18 @@ class PolyTrans_Translation_Handler
                     break;
             }
         }
-        
+
         // Make the request
-        $response = wp_remote_post($translation_endpoint, $args);
-        
-        if (is_wp_error($response)) {
-            // Log error if request failed
-            $log[] = [
-                'timestamp' => time(),
-                'msg' => sprintf(__('Failed to send translation request: %s', 'polytrans-translation'), $response->get_error_message())
-            ];
-            error_log("[polytrans] Failed to send external translation request for post $post_id: " . $response->get_error_message());
-            update_post_meta($post_id, $status_key, 'failed');
-        } else {
-            $response_code = wp_remote_retrieve_response_code($response);
-            $success = ($response_code >= 200 && $response_code < 300);
-            
-            if ($success) {
-                // Log success if request was accepted
-                $log[] = [
-                    'timestamp' => time(),
-                    'msg' => sprintf(__('Translation request sent successfully to external endpoint (HTTP %d). Awaiting response.', 'polytrans-translation'), $response_code)
-                ];
-                error_log("[polytrans] External translation request sent successfully for post $post_id (HTTP $response_code)");
-            } else {
-                // Log error if request was rejected
-                $response_body = wp_remote_retrieve_body($response);
-                $log[] = [
-                    'timestamp' => time(),
-                    'msg' => sprintf(__('Failed to send translation request: HTTP %d - %s', 'polytrans-translation'), $response_code, $response_body)
-                ];
-                error_log("[polytrans] Failed to send external translation request for post $post_id: HTTP $response_code - $response_body");
-                update_post_meta($post_id, $status_key, 'failed');
-            }
-        }
-        
+        wp_remote_post($translation_endpoint, $args);
+
+        // Log success if request was accepted
+        $log[] = [
+            'timestamp' => time(),
+            'msg' => sprintf(__('Translation request sent successfully to external endpoint. Awaiting response.', 'polytrans-translation'))
+        ];
+        error_log("[polytrans] External translation request sent successfully for post $post_id");
+
+
         // Update the log
         update_post_meta($post_id, $log_key, $log);
     }
@@ -682,7 +660,7 @@ class PolyTrans_Translation_Handler
     {
         global $wpdb;
         $fixed = 0;
-        
+
         // Get posts with translation metadata
         $posts = $wpdb->get_results("
             SELECT post_id, meta_key, meta_value
@@ -690,40 +668,40 @@ class PolyTrans_Translation_Handler
             WHERE meta_key LIKE '_polytrans_translation_status_%'
             AND (meta_value = 'started' OR meta_value = 'translating' OR meta_value = 'processing' OR meta_value = 'in-progress')
         ");
-        
+
         if (empty($posts)) {
             return 0;
         }
-        
+
         $current_time = time();
         $timeout = $timeout_hours * 3600; // Convert hours to seconds
-        
+
         foreach ($posts as $post) {
             $post_id = $post->post_id;
             $meta_key = $post->meta_key;
             $lang = str_replace('_polytrans_translation_status_', '', $meta_key);
             $log_key = '_polytrans_translation_log_' . $lang;
-            
+
             // Get the logs to check the last activity time
             $logs = get_post_meta($post_id, $log_key, true);
-            
+
             if (!is_array($logs) || empty($logs)) {
                 continue;
             }
-            
+
             // Sort logs by timestamp (descending)
-            usort($logs, function($a, $b) {
+            usort($logs, function ($a, $b) {
                 return $b['timestamp'] - $a['timestamp'];
             });
-            
+
             // Get the latest log entry's timestamp
             $last_activity = $logs[0]['timestamp'] ?? 0;
-            
+
             // Check if the translation has been stuck for too long
             if (($current_time - $last_activity) > $timeout) {
                 // Mark as failed
                 update_post_meta($post_id, $meta_key, 'failed');
-                
+
                 // Add a log entry
                 $logs[] = [
                     'timestamp' => $current_time,
@@ -732,12 +710,12 @@ class PolyTrans_Translation_Handler
                         $timeout_hours
                     )
                 ];
-                
+
                 update_post_meta($post_id, $log_key, $logs);
                 $fixed++;
             }
         }
-        
+
         return $fixed;
     }
 
@@ -749,14 +727,14 @@ class PolyTrans_Translation_Handler
     public function get_translation_status_summary()
     {
         global $wpdb;
-        
+
         $summary = [
             'total' => 0,
             'by_status' => [],
             'by_language' => [],
             'potentially_stuck' => []
         ];
-        
+
         // Get all translation statuses
         $statuses = $wpdb->get_results("
             SELECT meta_key, meta_value, COUNT(*) as count
@@ -764,25 +742,25 @@ class PolyTrans_Translation_Handler
             WHERE meta_key LIKE '_polytrans_translation_status_%'
             GROUP BY meta_key, meta_value
         ");
-        
+
         if (empty($statuses)) {
             return $summary;
         }
-        
+
         foreach ($statuses as $status) {
             $lang = str_replace('_polytrans_translation_status_', '', $status->meta_key);
             $status_value = $status->meta_value;
             $count = (int)$status->count;
-            
+
             // Add to total
             $summary['total'] += $count;
-            
+
             // Add to status counts
             if (!isset($summary['by_status'][$status_value])) {
                 $summary['by_status'][$status_value] = 0;
             }
             $summary['by_status'][$status_value] += $count;
-            
+
             // Add to language counts
             if (!isset($summary['by_language'][$lang])) {
                 $summary['by_language'][$lang] = [
@@ -791,12 +769,12 @@ class PolyTrans_Translation_Handler
                 ];
             }
             $summary['by_language'][$lang]['total'] += $count;
-            
+
             if (!isset($summary['by_language'][$lang]['by_status'][$status_value])) {
                 $summary['by_language'][$lang]['by_status'][$status_value] = 0;
             }
             $summary['by_language'][$lang]['by_status'][$status_value] += $count;
-            
+
             // Check for potentially stuck translations
             if (in_array($status_value, ['started', 'translating', 'processing', 'in-progress'])) {
                 // Get posts with this status
@@ -805,24 +783,24 @@ class PolyTrans_Translation_Handler
                     FROM {$wpdb->postmeta}
                     WHERE meta_key = %s AND meta_value = %s
                 ", $status->meta_key, $status_value));
-                
+
                 foreach ($posts as $post_id) {
                     $log_key = '_polytrans_translation_log_' . $lang;
                     $logs = get_post_meta($post_id, $log_key, true);
-                    
+
                     if (!is_array($logs) || empty($logs)) {
                         continue;
                     }
-                    
+
                     // Sort logs by timestamp (descending)
-                    usort($logs, function($a, $b) {
+                    usort($logs, function ($a, $b) {
                         return $b['timestamp'] - $a['timestamp'];
                     });
-                    
+
                     // Get the latest log entry's timestamp
                     $last_activity = $logs[0]['timestamp'] ?? 0;
                     $hours_since = (time() - $last_activity) / 3600;
-                    
+
                     if ($hours_since > 1) { // More than 1 hour of inactivity
                         $summary['potentially_stuck'][] = [
                             'post_id' => $post_id,
@@ -835,7 +813,7 @@ class PolyTrans_Translation_Handler
                 }
             }
         }
-        
+
         return $summary;
     }
 }
