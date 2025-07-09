@@ -88,4 +88,17 @@ interface PolyTrans_Settings_Provider_Interface
      * @return void
      */
     public function enqueue_assets();
+
+    /**
+     * Get AJAX handlers that this provider needs to register
+     * @return array Array of AJAX handler definitions [action => [callback, is_static]]
+     */
+    public function get_ajax_handlers();
+
+    /**
+     * Register provider-specific AJAX handlers
+     * This method is called during plugin initialization
+     * @return void
+     */
+    public function register_ajax_handlers();
 }
