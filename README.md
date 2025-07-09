@@ -2,6 +2,8 @@
 
 A comprehensive WordPress plugin for managing multilingual content translation workflows with AI-powered translation support.
 
+PS. The description below may be bullshit as AI wrote it, let me check it later.
+
 ## Features
 
 ### Core Translation Management
