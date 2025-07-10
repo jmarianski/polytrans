@@ -135,7 +135,6 @@ class polytrans_settings
                     </a>
                 <?php endforeach; ?>
                 <a href="#advanced-settings" class="nav-tab" id="advanced-tab"><?php esc_html_e('Advanced Settings', 'polytrans-translation'); ?></a>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-logs')); ?>" class="nav-tab" id="logs-tab"><?php esc_html_e('Logs', 'polytrans-translation'); ?></a>
             </div>
 
             <form method="post">
