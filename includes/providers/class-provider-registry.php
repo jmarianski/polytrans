@@ -72,7 +72,6 @@ class PolyTrans_Provider_Registry
     public function register_provider(PolyTrans_Translation_Provider_Interface $provider)
     {
         $this->providers[$provider->get_id()] = $provider;
-        error_log("[polytrans] Registered translation provider: " . $provider->get_id());
     }
 
     /**
@@ -92,7 +91,7 @@ class PolyTrans_Provider_Registry
     {
         foreach ($this->providers as $provider_id => $provider) {
             $settings_provider_class = $provider->get_settings_provider_class();
-            
+
             if ($settings_provider_class && class_exists($settings_provider_class)) {
                 // Register AJAX handlers if the provider supports it
                 if (method_exists($settings_provider_class, 'register_ajax_handlers')) {
