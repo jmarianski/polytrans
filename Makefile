@@ -26,6 +26,10 @@ phpcs-relaxed: ## Run PHP CodeSniffer with relaxed rules (no indentation)
 	@echo "Running PHP CodeSniffer (relaxed)..."
 	@docker compose run --rm polytrans-dev composer run phpcs-relaxed
 
+phpcs-syntax: ## Run PHP CodeSniffer syntax check only
+	@echo "Running PHP CodeSniffer (syntax only)..."
+	@docker compose run --rm polytrans-dev composer run phpcs-syntax
+
 phpcbf: ## Fix coding standards automatically
 	@echo "Running PHP Code Beautifier..."
 	@docker compose run --rm polytrans-dev composer run phpcbf

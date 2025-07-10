@@ -32,6 +32,8 @@
     },
     "scripts": {
         "phpcs": "phpcs -d memory_limit=512M --standard=phpcs.xml",
+        "phpcs-relaxed": "phpcs -d memory_limit=512M --standard=phpcs-relaxed.xml",
+        "phpcs-syntax": "phpcs -d memory_limit=512M --standard=phpcs-syntax-only.xml",
         "phpcbf": "phpcbf -d memory_limit=512M --standard=phpcs.xml",
         "phpmd": "phpmd includes text cleancode,codesize,controversial,design,naming,unusedcode",
         "test": "phpunit",
