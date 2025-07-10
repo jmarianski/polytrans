@@ -1,0 +1,38 @@
+# Vendor
+vendor/
+node_modules/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+/build/
+/dist/
+
+# Testing
+/coverage/
+/tests/_output/
+phpunit.xml
+
+# Logs
+*.log
+error_log
+
+# WordPress
+wp-config.php
+wp-content/uploads/
+
+# Plugin specific
+.env
+.env.local

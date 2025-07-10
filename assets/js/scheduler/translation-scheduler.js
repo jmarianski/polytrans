@@ -30,6 +30,7 @@ jQuery(function ($) {
             var $li = $(this);
             var $loader = $li.find('.polytrans-loader');
             var $check = $li.find('.polytrans-check');
+            var $failed = $li.find('.polytrans-failed');
             var $editBtn = $li.find('.polytrans-edit-btn');
             var $clearBtn = $li.find('.polytrans-clear-translation');
             if (info && (info.status === 'started' || info.status === 'translating')) {
