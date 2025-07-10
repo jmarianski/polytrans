@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  polytrans-dev:
+    build: .
+    container_name: polytrans-dev
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - COMPOSER_CACHE_DIR=/tmp/composer-cache
+    user: "1000:1000"  # Use host user permissions
