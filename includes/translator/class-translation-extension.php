@@ -80,7 +80,7 @@ class PolyTrans_Translation_Extension
      */
     public function handle_translate($request)
     {
-        error_log("[polytrans] handleTranslate called");
+        PolyTrans_Logs_Manager::log("[polytrans] handleTranslate called", "info");
 
         $params = $request->get_json_params();
         $source_lang = $params['source_language'] ?? 'auto';
@@ -90,7 +90,7 @@ class PolyTrans_Translation_Extension
         $target_endpoint = $params['target_endpoint'] ?? null;
 
         if (!$target_endpoint) {
-            error_log("[polytrans] handleTranslate error: target_endpoint required");
+            PolyTrans_Logs_Manager::log("[polytrans] handleTranslate error: target_endpoint required", "info");
             return new WP_REST_Response(['error' => 'target_endpoint required'], 400);
         }
 
@@ -115,14 +115,14 @@ class PolyTrans_Translation_Extension
             ];
             update_post_meta($original_post_id, $log_key, $log);
 
-            error_log("[polytrans] External translation process started for post $original_post_id from $source_lang to $target_lang");
+            PolyTrans_Logs_Manager::log("[polytrans] External translation process started for post $original_post_id from $source_lang to $target_lang", "info");
         }
 
         // Get settings and determine provider
         $settings = get_option('polytrans_settings', []);
         $translation_provider = $settings['translation_provider'] ?? 'google';
 
-        error_log("[polytrans] Using translation provider: $translation_provider");
+        PolyTrans_Logs_Manager::log("[polytrans] Using translation provider: $translation_provider", "info");
 
         // Get the provider
         $provider = $this->get_provider($translation_provider);
@@ -132,7 +132,7 @@ class PolyTrans_Translation_Extension
                 $this->update_translation_failure($original_post_id, $target_lang, "Unknown translation provider: $translation_provider");
             }
 
-            error_log("[polytrans] Unknown translation provider: $translation_provider");
+            PolyTrans_Logs_Manager::log("[polytrans] Unknown translation provider: $translation_provider", "info");
             return new WP_REST_Response(['error' => "Unknown translation provider: $translation_provider"], 400);
         }
 
@@ -143,7 +143,7 @@ class PolyTrans_Translation_Extension
                 $this->update_translation_failure($original_post_id, $target_lang, "Translation provider $translation_provider is not properly configured");
             }
 
-            error_log("[polytrans] Translation provider $translation_provider is not properly configured");
+            PolyTrans_Logs_Manager::log("[polytrans] Translation provider $translation_provider is not properly configured", "info");
             return new WP_REST_Response(['error' => "Translation provider $translation_provider is not properly configured"], 400);
         }
 
@@ -184,7 +184,7 @@ class PolyTrans_Translation_Extension
             $this->update_translation_failure($original_post_id, $target_lang, "Failed to deliver translation: " . $response->get_error_message());
         }
 
-        error_log("[polytrans] Translation finished for $source_lang->$target_lang using $translation_provider");
+        PolyTrans_Logs_Manager::log("[polytrans] Translation finished for $source_lang->$target_lang using $translation_provider", "info");
         return new WP_REST_Response(['status' => 'sent', 'result' => $payload]);
     }
 
@@ -213,7 +213,7 @@ class PolyTrans_Translation_Extension
         ];
 
         update_post_meta($post_id, $log_key, $log);
-        error_log("[polytrans] External translation failed for post $post_id: $error_message");
+        PolyTrans_Logs_Manager::log("[polytrans] External translation failed for post $post_id: $error_message", "info");
     }
 
     /**
@@ -278,8 +278,6 @@ class PolyTrans_Translation_Extension
             $response_body = wp_remote_retrieve_body($result);
             $success = ($response_code >= 200 && $response_code < 300);
 
-            error_log("[polytrans] postToTarget " . ($success ? "success" : "failed") . ": " . $response_code);
-
             // If successful response from receiver endpoint (201 Created)
             if ($success && $original_post_id && $target_language) {
                 try {
@@ -314,7 +312,7 @@ class PolyTrans_Translation_Extension
                         ];
 
                         update_post_meta($original_post_id, $log_key, $log);
-                        error_log("[polytrans] External translation completed successfully for post $original_post_id -> $created_post_id");
+                        PolyTrans_Logs_Manager::log("[polytrans] External translation completed successfully for post $original_post_id -> $created_post_id", "info");
                     }
                 } catch (Exception $e) {
                     error_log("[polytrans] Error processing translation response: " . $e->getMessage());
@@ -365,7 +363,7 @@ class PolyTrans_Translation_Extension
         }
 
         if (!$received_secret || $received_secret !== $expected_secret) {
-            error_log('[polytrans] Invalid or missing translation receiver secret (permission callback)');
+            PolyTrans_Logs_Manager::log("[polytrans] Invalid or missing translation receiver secret (permission callback)", "info");
             return false;
         }
 

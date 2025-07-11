@@ -289,17 +289,17 @@ class PolyTrans_Tag_Translation
      */
     public function ajax_export_tag_csv()
     {
-        error_log('Export CSV called');
+        PolyTrans_Logs_Manager::log("Export CSV called", "info");
 
         // Check if user is logged in and has permissions
         if (!is_user_logged_in() || !current_user_can('manage_options')) {
-            error_log('Export CSV: Unauthorized');
+            PolyTrans_Logs_Manager::log("Export CSV: Unauthorized", "info");
             wp_die('Unauthorized', 403);
         }
 
         // Verify nonce if provided
         if (isset($_GET['nonce']) && !wp_verify_nonce($_GET['nonce'], 'polytrans_tag_translation')) {
-            error_log('Export CSV: Invalid nonce');
+            PolyTrans_Logs_Manager::log("Export CSV: Invalid nonce", "info");
             wp_die('Invalid nonce', 403);
         }
 
@@ -319,11 +319,11 @@ class PolyTrans_Tag_Translation
         $tag_names = array_filter(array_map('trim', preg_split('/[\r\n,]+/', $tag_list_raw)));
 
         if (empty($tag_names)) {
-            error_log('Export CSV: No tags found');
+            PolyTrans_Logs_Manager::log("Export CSV: No tags found", "info");
             wp_die('No tags found to export', 400);
         }
 
-        error_log('Export CSV: Found ' . count($tag_names) . ' tags');
+        PolyTrans_Logs_Manager::log("Export CSV: Found ' . count($tag_names) . ' tags", "info");
 
         $csv_data = [];
         $csv_data[] = array_merge([strtoupper($source_language)], array_map('strtoupper', array_filter($langs, function ($lang) use ($source_language) {
@@ -345,7 +345,7 @@ class PolyTrans_Tag_Translation
         }
 
         // Output CSV
-        error_log('Export CSV: Outputting CSV with ' . count($csv_data) . ' rows');
+        PolyTrans_Logs_Manager::log("Export CSV: Outputting CSV with ' . count($csv_data) . ' rows", "info");
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="tag-translations.csv"');
         $output = fopen('php://output', 'w');
@@ -423,7 +423,7 @@ class PolyTrans_Tag_Translation
 
                 // Skip if empty translation or if this is the source language column (contains " tag" at the end)
                 if (empty($translation_name) || preg_match('/\s+tag\s*$/i', $header[$j])) {
-                    error_log("Skipping: empty or source column");
+                    PolyTrans_Logs_Manager::log("Skipping: empty or source column", "info");
                     continue;
                 }
 

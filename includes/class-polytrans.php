@@ -72,6 +72,7 @@ class PolyTrans
         require_once $includes_dir . 'core/class-translation-notifications.php';
         require_once $includes_dir . 'core/class-tag-translation.php';
         require_once $includes_dir . 'core/class-user-autocomplete.php';
+        require_once $includes_dir . '/core/class-logs-manager.php';
 
 
         // Translation scheduler
@@ -187,7 +188,6 @@ class PolyTrans
      */
     public function render_logs()
     {
-        require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-logs-manager.php';
         PolyTrans_Logs_Manager::admin_logs_page();
     }
 

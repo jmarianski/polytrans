@@ -39,7 +39,7 @@ class PolyTrans_Translation_Metadata_Manager
         update_post_meta($new_post_id, 'polytrans_translation_source', $original_post_id);
         update_post_meta($new_post_id, 'polytrans_translation_lang', $source_language);
 
-        error_log("[polytrans] Set translation markers for post $new_post_id (source: $original_post_id, lang: $source_language)");
+        PolyTrans_Logs_Manager::log("[polytrans] Set translation markers for post $new_post_id (source: $original_post_id, lang: $source_language)", "info");
     }
 
     /**
@@ -52,7 +52,6 @@ class PolyTrans_Translation_Metadata_Manager
     private function copy_original_metadata($new_post_id, $original_post_id, array $translated)
     {
         $original_meta = get_post_meta($original_post_id);
-        error_log("[polytrans] Copying meta from original post $original_post_id to new post $new_post_id");
 
         foreach ($original_meta as $key => $value) {
             // Skip translation status meta to avoid conflicts
@@ -63,7 +62,6 @@ class PolyTrans_Translation_Metadata_Manager
             if (isset($translated['meta'][$key])) {
                 // Use translated value for specific keys (like rank_math)
                 update_post_meta($new_post_id, $key, $translated['meta'][$key]);
-                error_log("[polytrans] Used translated meta for key: $key");
             } else {
                 // Use original value for other keys
                 $meta_value = $this->process_meta_value($value);

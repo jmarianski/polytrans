@@ -65,13 +65,13 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
      */
     public function translate(array $content, string $source_lang, string $target_lang, array $settings)
     {
-        error_log("[polytrans] OpenAI: translating from $source_lang to $target_lang");
+        PolyTrans_Logs_Manager::log("[polytrans] OpenAI: translating from $source_lang to $target_lang", "info");
 
         $openai_api_key = $settings['openai_api_key'] ?? '';
         $openai_source_language = $settings['openai_source_language'] ?? 'en';
         $openai_assistants = $settings['openai_assistants'] ?? [];
 
-        error_log("[polytrans] OpenAI settings - Source language: $openai_source_language");
+        PolyTrans_Logs_Manager::log("[polytrans] OpenAI settings - Source language: $openai_source_language", "info");
         error_log("[polytrans] OpenAI assistants configuration: " . json_encode($openai_assistants));
 
         if (!$openai_api_key) {
@@ -88,7 +88,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
         try {
             // Handle multi-step translation if needed
             if ($source_lang !== $openai_source_language) {
-                error_log("[polytrans] Multi-step translation required: $source_lang -> $openai_source_language -> $target_lang");
+                PolyTrans_Logs_Manager::log("[polytrans] Multi-step translation required: $source_lang -> $openai_source_language -> $target_lang", "info");
 
                 // For the intermediate step, look for the specific translation direction
                 $intermediate_key = $source_lang . '_to_' . $openai_source_language;
@@ -103,7 +103,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                     if (!empty($available_assistants)) {
                         $intermediate_assistant_id = reset($available_assistants);
                         $used_direction = array_search($intermediate_assistant_id, $openai_assistants);
-                        error_log("[polytrans] No specific assistant for $intermediate_key, using fallback: $used_direction ($intermediate_assistant_id)");
+                        PolyTrans_Logs_Manager::log("[polytrans] No specific assistant for $intermediate_key, using fallback: $used_direction ($intermediate_assistant_id)", "info");
                     } else {
                         return [
                             'success' => false,
@@ -112,7 +112,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                         ];
                     }
                 } else {
-                    error_log("[polytrans] Using specific assistant for $intermediate_key: $intermediate_assistant_id");
+                    PolyTrans_Logs_Manager::log("[polytrans] Using specific assistant for $intermediate_key: $intermediate_assistant_id", "info");
                 }
 
                 error_log("[polytrans] Using assistant for intermediate translation: " . $intermediate_assistant_id);
@@ -128,14 +128,14 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                 $content_to_translate = $intermediate_result['translated_content'];
                 $effective_source_lang = $openai_source_language;
 
-                error_log("[polytrans] Intermediate translation completed: $source_lang -> $openai_source_language");
+                PolyTrans_Logs_Manager::log("[polytrans] Intermediate translation completed: $source_lang -> $openai_source_language", "info");
             } else {
-                error_log("[polytrans] Direct translation: $source_lang -> $target_lang (source matches OpenAI source language)");
+                PolyTrans_Logs_Manager::log("[polytrans] Direct translation: $source_lang -> $target_lang (source matches OpenAI source language)", "info");
             }
 
             // Check if we need final translation (target different from current effective source)
             if ($effective_source_lang === $target_lang) {
-                error_log("[polytrans] No final translation needed: effective source language ($effective_source_lang) matches target language");
+                PolyTrans_Logs_Manager::log("[polytrans] No final translation needed: effective source language ($effective_source_lang) matches target language", "info");
                 return [
                     'success' => true,
                     'translated_content' => $content_to_translate,
@@ -156,7 +156,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                 if (!empty($available_assistants)) {
                     $assistant_id = reset($available_assistants);
                     $used_direction = array_search($assistant_id, $openai_assistants);
-                    error_log("[polytrans] No specific assistant for $final_key, using fallback: $used_direction ($assistant_id)");
+                    PolyTrans_Logs_Manager::log("[polytrans] No specific assistant for $final_key, using fallback: $used_direction ($assistant_id)", "info");
                 } else {
                     return [
                         'success' => false,
@@ -165,11 +165,11 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                     ];
                 }
             } else {
-                error_log("[polytrans] Using specific assistant for $final_key: $assistant_id");
+                PolyTrans_Logs_Manager::log("[polytrans] Using specific assistant for $final_key: $assistant_id", "info");
             }
 
             // Final translation to target language
-            error_log("[polytrans] Performing final translation: $effective_source_lang -> $target_lang");
+            PolyTrans_Logs_Manager::log("[polytrans] Performing final translation: $effective_source_lang -> $target_lang", "info");
             $final_result = $this->translate_with_openai($content_to_translate, $effective_source_lang, $target_lang, $assistant_id, $openai_api_key);
             if (!$final_result['success']) {
                 return [
@@ -330,7 +330,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
             $status_data = json_decode(wp_remote_retrieve_body($status_response), true);
             $status = $status_data['status'] ?? 'unknown';
 
-            error_log("[polytrans] OpenAI run status: $status (attempt $attempts)");
+            PolyTrans_Logs_Manager::log("[polytrans] OpenAI run status: $status (attempt $attempts)", "info");
 
             if ($status === 'completed') {
                 break;

@@ -39,7 +39,7 @@ class PolyTrans_Translation_Receiver_Extension
         $target_language = $params['target_language'] ?? '';
         $source_language = $params['source_language'] ?? '';
 
-        error_log("[polytrans] Received translation data for post $original_post_id from $source_language to $target_language");
+        PolyTrans_Logs_Manager::log("[polytrans] Received translation data for post $original_post_id from $source_language to $target_language", "info");
 
         // Process the translation using the coordinator
         $result = $this->coordinator->process_translation($params);
