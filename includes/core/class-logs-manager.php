@@ -78,7 +78,7 @@ class PolyTrans_Logs_Manager
     private static function check_and_adapt_table_structure($table_name)
     {
         global $wpdb;
-        $existing_columns = self::get_table_columns($table_name);
+        $existing_columns = self::get_table_column_details($table_name);
 
         // If we have an empty array, something went wrong with the table
         if (empty($existing_columns)) {
@@ -86,67 +86,360 @@ class PolyTrans_Logs_Manager
             return;
         }
 
-        // Check for id column (should be auto-increment primary key)
-        if (!in_array('id', $existing_columns)) {
-            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST");
-            error_log("[polytrans] Added missing id column to logs table");
+        // Define expected schema
+        $expected_schema = [
+            'id' => [
+                'type' => 'bigint(20) unsigned',
+                'null' => 'NO',
+                'extra' => 'auto_increment'
+            ],
+            'created_at' => [
+                'type' => 'datetime',
+                'null' => 'NO'
+            ],
+            'level' => [
+                'type' => 'varchar(20)',
+                'null' => 'NO',
+                'default' => 'info'
+            ],
+            'message' => [
+                'type' => 'text',
+                'null' => 'NO'
+            ],
+            'context' => [
+                'type' => 'text',
+                'null' => 'YES'
+            ],
+            'process_id' => [
+                'type' => 'int(11)',
+                'null' => 'YES'
+            ],
+            'source' => [
+                'type' => 'varchar(20)',
+                'null' => 'YES'
+            ],
+            'user_id' => [
+                'type' => 'bigint(20) unsigned',
+                'null' => 'YES'
+            ],
+            'post_id' => [
+                'type' => 'bigint(20) unsigned',
+                'null' => 'YES'
+            ]
+        ];
+
+        $data_corrupted = false;
+
+        // Check each expected column
+        foreach ($expected_schema as $column_name => $expected) {
+            if (!isset($existing_columns[$column_name])) {
+                // Column doesn't exist - add it
+                $sql = self::build_add_column_sql($table_name, $column_name, $expected);
+                $wpdb->query($sql);
+                error_log("[polytrans] Added missing column '$column_name' to logs table");
+            } else {
+                // Column exists - check if type matches
+                $existing = $existing_columns[$column_name];
+                
+                // Normalize types for comparison
+                $expected_type = self::normalize_column_type($expected['type']);
+                $existing_type = self::normalize_column_type($existing['type']);
+                
+                if ($expected_type !== $existing_type) {
+                    // Type mismatch detected - this indicates corrupted data
+                    $data_corrupted = true;
+                    error_log("[polytrans] Type mismatch detected for column '$column_name': expected '$expected_type', found '$existing_type'");
+                }
+                
+                // Check if NULL constraint matches
+                if ($expected['null'] !== $existing['null']) {
+                    $data_corrupted = true;
+                    error_log("[polytrans] NULL constraint mismatch for column '$column_name': expected '{$expected['null']}', found '{$existing['null']}'");
+                }
+            }
         }
 
-        // Check for created_at column
-        if (!in_array('created_at', $existing_columns)) {
-            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `created_at` datetime NOT NULL");
-            error_log("[polytrans] Added missing created_at column to logs table");
+        // If data corruption detected, clean and recreate table
+        if ($data_corrupted) {
+            error_log("[polytrans] Data corruption detected in logs table. Cleaning and recreating table structure.");
+            self::clean_and_recreate_logs_table($table_name);
+        } else {
+            // Add indexes if they don't exist
+            self::ensure_table_indexes($table_name);
+        }
+    }
+
+    /**
+     * Clean corrupted data and recreate the logs table with proper structure
+     * 
+     * @param string $table_name The table name
+     * @return void
+     */
+    private static function clean_and_recreate_logs_table($table_name)
+    {
+        global $wpdb;
+
+        try {
+            // Backup any existing data that might be salvageable
+            $backup_data = [];
+            $salvage_query = "SELECT * FROM `$table_name` ORDER BY id DESC LIMIT 1000";
+            $existing_data = $wpdb->get_results($salvage_query, ARRAY_A);
+            
+            if ($existing_data) {
+                error_log("[polytrans] Attempting to salvage " . count($existing_data) . " recent log entries");
+                $backup_data = $existing_data;
+            }
+
+            // Drop the corrupted table
+            $wpdb->query("DROP TABLE IF EXISTS `$table_name`");
+            error_log("[polytrans] Dropped corrupted logs table");
+
+            // Get charset collate
+            $charset_collate = $wpdb->get_charset_collate();
+
+            // Recreate table with correct structure
+            $sql = "CREATE TABLE $table_name (
+                id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                created_at datetime NOT NULL,
+                level varchar(20) NOT NULL DEFAULT 'info',
+                message text NOT NULL,
+                context text,
+                process_id int(11),
+                source varchar(20),
+                user_id bigint(20) unsigned,
+                post_id bigint(20) unsigned,
+                PRIMARY KEY  (id),
+                KEY level (level),
+                KEY created_at (created_at),
+                KEY source (source),
+                KEY user_id (user_id),
+                KEY post_id (post_id)
+            ) $charset_collate;";
+
+            $result = $wpdb->query($sql);
+            
+            if ($result !== false) {
+                error_log("[polytrans] Successfully recreated logs table with correct structure");
+                
+                // Try to restore salvageable data
+                if (!empty($backup_data)) {
+                    self::restore_salvageable_data($table_name, $backup_data);
+                }
+            } else {
+                error_log("[polytrans] Failed to recreate logs table: " . $wpdb->last_error);
+            }
+
+        } catch (Exception $e) {
+            error_log("[polytrans] Error during table cleanup and recreation: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Restore salvageable data to the recreated table
+     * 
+     * @param string $table_name The table name
+     * @param array $backup_data The data to restore
+     * @return void
+     */
+    private static function restore_salvageable_data($table_name, $backup_data)
+    {
+        global $wpdb;
+        
+        $restored_count = 0;
+        $failed_count = 0;
+
+        foreach ($backup_data as $row) {
+            try {
+                // Clean and validate the data
+                $clean_data = [
+                    'created_at' => self::clean_datetime_value($row['created_at'] ?? null),
+                    'level' => self::clean_varchar_value($row['level'] ?? 'info', 20),
+                    'message' => self::clean_text_value($row['message'] ?? ''),
+                    'context' => self::clean_text_value($row['context'] ?? null),
+                    'process_id' => self::clean_int_value($row['process_id'] ?? null),
+                    'source' => self::clean_varchar_value($row['source'] ?? null, 20),
+                    'user_id' => self::clean_bigint_value($row['user_id'] ?? null),
+                    'post_id' => self::clean_bigint_value($row['post_id'] ?? null)
+                ];
+
+                // Remove null values for columns that don't allow them
+                if (empty($clean_data['message'])) {
+                    $clean_data['message'] = 'Restored log entry';
+                }
+                
+                if (empty($clean_data['created_at'])) {
+                    $clean_data['created_at'] = current_time('mysql');
+                }
+
+                // Insert the cleaned data
+                $result = $wpdb->insert($table_name, $clean_data);
+                
+                if ($result !== false) {
+                    $restored_count++;
+                } else {
+                    $failed_count++;
+                }
+
+            } catch (Exception $e) {
+                $failed_count++;
+                error_log("[polytrans] Failed to restore log entry: " . $e->getMessage());
+            }
         }
 
-        // Check for level column
-        if (!in_array('level', $existing_columns)) {
-            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `level` varchar(20) NOT NULL DEFAULT 'info'");
-            error_log("[polytrans] Added missing level column to logs table");
-        }
+        error_log("[polytrans] Data restoration complete: $restored_count entries restored, $failed_count failed");
+    }
 
-        // Check for message column
-        if (!in_array('message', $existing_columns)) {
-            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `message` text NOT NULL");
-            error_log("[polytrans] Added missing message column to logs table");
-        }
+    /**
+     * Ensure all required indexes exist on the table
+     * 
+     * @param string $table_name The table name
+     * @return void
+     */
+    private static function ensure_table_indexes($table_name)
+    {
+        global $wpdb;
 
-        // Check for context column
-        if (!in_array('context', $existing_columns)) {
-            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `context` text");
-            error_log("[polytrans] Added missing context column to logs table");
-        }
+        // Define expected indexes
+        $indexes = [
+            'level' => 'level',
+            'created_at' => 'created_at', 
+            'source' => 'source',
+            'user_id' => 'user_id',
+            'post_id' => 'post_id'
+        ];
 
-        // Check for process_id column
-        if (!in_array('process_id', $existing_columns)) {
-            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `process_id` int(11)");
-            error_log("[polytrans] Added missing process_id column to logs table");
+        foreach ($indexes as $index_name => $column_name) {
+            // Try to add index - MySQL will ignore if it already exists
+            $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `$index_name` (`$column_name`)");
         }
+    }
 
-        // Check for source column
-        if (!in_array('source', $existing_columns)) {
-            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `source` varchar(20)");
-            error_log("[polytrans] Added missing source column to logs table");
+    /**
+     * Build SQL for adding a column
+     * 
+     * @param string $table_name The table name
+     * @param string $column_name The column name
+     * @param array $column_def The column definition
+     * @return string The SQL statement
+     */
+    private static function build_add_column_sql($table_name, $column_name, $column_def)
+    {
+        $sql = "ALTER TABLE `$table_name` ADD COLUMN `$column_name` {$column_def['type']}";
+        
+        if ($column_def['null'] === 'NO') {
+            $sql .= ' NOT NULL';
         }
-
-        // Check for user_id column
-        if (!in_array('user_id', $existing_columns)) {
-            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `user_id` bigint(20) unsigned");
-            error_log("[polytrans] Added missing user_id column to logs table");
+        
+        if (isset($column_def['default'])) {
+            $sql .= " DEFAULT '{$column_def['default']}'";
         }
-
-        // Check for post_id column
-        if (!in_array('post_id', $existing_columns)) {
-            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `post_id` bigint(20) unsigned");
-            error_log("[polytrans] Added missing post_id column to logs table");
+        
+        if (isset($column_def['extra']) && $column_def['extra'] === 'auto_increment') {
+            $sql .= ' AUTO_INCREMENT';
+            if ($column_name === 'id') {
+                $sql .= ' PRIMARY KEY FIRST';
+            }
         }
+        
+        return $sql;
+    }
 
-        // Add indexes if they don't exist (this is more complex to check, so we'll try to add them)
-        // MySQL will ignore if they already exist
-        $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `level` (`level`)");
-        $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `created_at` (`created_at`)");
-        $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `source` (`source`)");
-        $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `user_id` (`user_id`)");
-        $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `post_id` (`post_id`)");
+    /**
+     * Normalize column type for comparison
+     * 
+     * @param string $type The column type
+     * @return string Normalized type
+     */
+    private static function normalize_column_type($type)
+    {
+        // Remove whitespace and convert to lowercase
+        $type = strtolower(trim($type));
+        
+        // Handle common variations
+        $type = str_replace([' unsigned', ' signed'], ['_unsigned', '_signed'], $type);
+        
+        return $type;
+    }
+
+    /**
+     * Clean datetime value
+     * 
+     * @param mixed $value The value to clean
+     * @return string|null Clean datetime or null
+     */
+    private static function clean_datetime_value($value)
+    {
+        if (empty($value)) {
+            return current_time('mysql');
+        }
+        
+        $timestamp = strtotime($value);
+        if ($timestamp === false) {
+            return current_time('mysql');
+        }
+        
+        return date('Y-m-d H:i:s', $timestamp);
+    }
+
+    /**
+     * Clean varchar value
+     * 
+     * @param mixed $value The value to clean
+     * @param int $max_length Maximum length
+     * @return string|null Clean varchar or null
+     */
+    private static function clean_varchar_value($value, $max_length)
+    {
+        if ($value === null) {
+            return null;
+        }
+        
+        return substr(sanitize_text_field($value), 0, $max_length);
+    }
+
+    /**
+     * Clean text value
+     * 
+     * @param mixed $value The value to clean
+     * @return string|null Clean text or null
+     */
+    private static function clean_text_value($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        
+        return sanitize_textarea_field($value);
+    }
+
+    /**
+     * Clean integer value
+     * 
+     * @param mixed $value The value to clean
+     * @return int|null Clean integer or null
+     */
+    private static function clean_int_value($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        
+        return intval($value);
+    }
+
+    /**
+     * Clean bigint value
+     * 
+     * @param mixed $value The value to clean
+     * @return int|null Clean bigint or null
+     */
+    private static function clean_bigint_value($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        
+        return intval($value);
     }
 
     /**
@@ -762,6 +1055,45 @@ class PolyTrans_Logs_Manager
 
         // Return empty array if table doesn't exist or has no columns
         $columns_cache[$table] = [];
+        return [];
+    }
+
+    /**
+     * Get detailed column information for a table
+     * 
+     * @param string $table Table name
+     * @return array Array with column details including types
+     */
+    private static function get_table_column_details($table)
+    {
+        global $wpdb;
+        static $details_cache = [];
+
+        // Return from cache if available
+        if (isset($details_cache[$table])) {
+            return $details_cache[$table];
+        }
+
+        // Get detailed column information
+        $column_details = [];
+        $cols = $wpdb->get_results("SHOW COLUMNS FROM `$table`");
+
+        if ($cols) {
+            foreach ($cols as $col) {
+                $column_details[$col->Field] = [
+                    'type' => $col->Type,
+                    'null' => $col->Null,
+                    'key' => $col->Key,
+                    'default' => $col->Default,
+                    'extra' => $col->Extra
+                ];
+            }
+            $details_cache[$table] = $column_details;
+            return $column_details;
+        }
+
+        // Return empty array if table doesn't exist or has no columns
+        $details_cache[$table] = [];
         return [];
     }
 
