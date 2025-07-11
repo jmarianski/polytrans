@@ -86,29 +86,67 @@ class PolyTrans_Logs_Manager
             return;
         }
 
-        // Check if the table has either timestamp or created_at column
-        $has_time_column = in_array('timestamp', $existing_columns) || in_array('created_at', $existing_columns);
-        if (!$has_time_column) {
-            // Try to add created_at column
+        // Check for id column (should be auto-increment primary key)
+        if (!in_array('id', $existing_columns)) {
+            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST");
+            error_log("[polytrans] Added missing id column to logs table");
+        }
+
+        // Check for created_at column
+        if (!in_array('created_at', $existing_columns)) {
             $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `created_at` datetime NOT NULL");
             error_log("[polytrans] Added missing created_at column to logs table");
         }
 
-        // Check for a message column
-        $has_message_column = in_array('message', $existing_columns);
-        if (!$has_message_column) {
-            // Try to add message column
+        // Check for level column
+        if (!in_array('level', $existing_columns)) {
+            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `level` varchar(20) NOT NULL DEFAULT 'info'");
+            error_log("[polytrans] Added missing level column to logs table");
+        }
+
+        // Check for message column
+        if (!in_array('message', $existing_columns)) {
             $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `message` text NOT NULL");
             error_log("[polytrans] Added missing message column to logs table");
         }
 
-        // Check for a post_id column to relate logs to posts
-        $has_post_id_column = in_array('post_id', $existing_columns);
-        if (!$has_post_id_column) {
-            // Try to add post_id column
+        // Check for context column
+        if (!in_array('context', $existing_columns)) {
+            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `context` text");
+            error_log("[polytrans] Added missing context column to logs table");
+        }
+
+        // Check for process_id column
+        if (!in_array('process_id', $existing_columns)) {
+            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `process_id` int(11)");
+            error_log("[polytrans] Added missing process_id column to logs table");
+        }
+
+        // Check for source column
+        if (!in_array('source', $existing_columns)) {
+            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `source` varchar(20)");
+            error_log("[polytrans] Added missing source column to logs table");
+        }
+
+        // Check for user_id column
+        if (!in_array('user_id', $existing_columns)) {
+            $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `user_id` bigint(20) unsigned");
+            error_log("[polytrans] Added missing user_id column to logs table");
+        }
+
+        // Check for post_id column
+        if (!in_array('post_id', $existing_columns)) {
             $wpdb->query("ALTER TABLE `$table_name` ADD COLUMN `post_id` bigint(20) unsigned");
             error_log("[polytrans] Added missing post_id column to logs table");
         }
+
+        // Add indexes if they don't exist (this is more complex to check, so we'll try to add them)
+        // MySQL will ignore if they already exist
+        $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `level` (`level`)");
+        $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `created_at` (`created_at`)");
+        $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `source` (`source`)");
+        $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `user_id` (`user_id`)");
+        $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `post_id` (`post_id`)");
     }
 
     /**
