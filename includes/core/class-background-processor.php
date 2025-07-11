@@ -439,10 +439,10 @@ class PolyTrans_Background_Processor
 
             // Update success status and log
             update_post_meta($post_id, $status_key, 'completed');
-            
+
             // Set a completion timestamp
             update_post_meta($post_id, '_polytrans_translation_completed_' . $target_lang, time());
-            
+
             $log[] = [
                 'timestamp' => time(),
                 'msg' => sprintf(
@@ -464,10 +464,10 @@ class PolyTrans_Background_Processor
         } catch (Exception $e) {
             // Update error status and log
             update_post_meta($post_id, $status_key, 'failed');
-            
+
             // Store error details
             update_post_meta($post_id, '_polytrans_translation_error_' . $target_lang, $e->getMessage());
-            
+
             $log[] = [
                 'timestamp' => time(),
                 'msg' => sprintf(__('Translation failed: %s', 'polytrans-translation'), $e->getMessage())
@@ -509,323 +509,29 @@ class PolyTrans_Background_Processor
         if (!class_exists('PolyTrans_Logs_Manager')) {
             require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-logs-manager.php';
         }
-        
+
         // Extract post ID and languages from context if available
         $post_id = isset($context['post_id']) ? intval($context['post_id']) : 0;
         $source_lang = isset($context['source_lang']) ? $context['source_lang'] : '';
         $target_lang = isset($context['target_lang']) ? $context['target_lang'] : '';
-        
+
         // Use the logs manager to log (it will handle both error_log and DB)
         PolyTrans_Logs_Manager::log($message, $level, $context);
-        
+
         // Also log to post meta for this specific translation if we have a post ID
         if ($post_id && $target_lang) {
             $log_key = '_polytrans_translation_log_' . $target_lang;
             $log = get_post_meta($post_id, $log_key, true);
             if (!is_array($log)) $log = [];
-            
+
             $log[] = [
                 'timestamp' => time(),
                 'msg' => $message,
                 'level' => $level
             ];
-            
+
             update_post_meta($post_id, $log_key, $log);
         }
-    }
-
-    /**
-     * Store a log entry in the database
-     * 
-     * @param string $message The log message
-     * @param string $level The log level (info, warning, error)
-     * @param array $context Additional context data
-     * @return void
-     */
-    private static function store_log($message, $level = 'info', $context = [])
-    {
-        global $wpdb;
-
-        try {
-            $table_name = $wpdb->prefix . 'polytrans_logs';
-
-            // Check if the table exists
-            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
-            if (!$table_exists) {
-                error_log("[polytrans] Cannot log to database: table $table_name doesn't exist");
-                return;
-            }
-
-            // First, let's detect what columns we have in the table
-            $columns_query = $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s",
-                DB_NAME,
-                $table_name
-            );
-
-            $columns = $wpdb->get_col($columns_query);
-
-            if (empty($columns)) {
-                error_log("[polytrans] Cannot detect columns for table $table_name");
-                return;
-            }
-
-            // Prepare data based on available columns
-            $data = [];
-            $formats = [];
-
-            // Required fields for old table structure (from the original plugin)
-            if (in_array('post_id', $columns) && !empty($context['post_id'])) {
-                $data['post_id'] = intval($context['post_id']);
-                $formats[] = '%d';
-            }
-
-            if (in_array('source_language', $columns) && !empty($context['source_lang'])) {
-                $data['source_language'] = $context['source_lang'];
-                $formats[] = '%s';
-            }
-
-            if (in_array('target_language', $columns) && !empty($context['target_lang'])) {
-                $data['target_language'] = $context['target_lang'];
-                $formats[] = '%s';
-            }
-
-            if (in_array('status', $columns)) {
-                $data['status'] = $level === 'error' ? 'error' : 'info';
-                $formats[] = '%s';
-            }
-
-            if (in_array('message', $columns)) {
-                $data['message'] = $message;
-                $formats[] = '%s';
-            }
-
-            // Fields for new structure (if available)
-            if (in_array('timestamp', $columns)) {
-                $data['timestamp'] = current_time('mysql');
-                $formats[] = '%s';
-            }
-
-            if (in_array('level', $columns)) {
-                $data['level'] = $level;
-                $formats[] = '%s';
-            }
-
-            if (in_array('context', $columns)) {
-                $data['context'] = !empty($context) ? wp_json_encode($context) : null;
-                $formats[] = '%s';
-            }
-
-            if (in_array('process_id', $columns)) {
-                $data['process_id'] = getmypid() ?: 0;
-                $formats[] = '%d';
-            }
-
-            if (in_array('source', $columns)) {
-                $data['source'] = defined('WP_CLI') ? 'cli' : (wp_doing_ajax() ? 'ajax' : (wp_doing_cron() ? 'cron' : 'web'));
-                $formats[] = '%s';
-            }
-
-            if (in_array('user_id', $columns)) {
-                $data['user_id'] = get_current_user_id();
-                $formats[] = '%d';
-            }
-
-            // Only proceed if we have data to insert
-            if (empty($data)) {
-                error_log("[polytrans] No valid columns found for logging in table $table_name");
-                return;
-            }
-
-            // Insert the log entry
-            $wpdb->insert($table_name, $data, $formats);
-
-            if ($wpdb->last_error) {
-                error_log("[polytrans] Database error when storing log: " . $wpdb->last_error);
-            }
-        } catch (Exception $e) {
-            error_log("[polytrans] Exception when storing log: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * Log to the existing table structure
-     * This is a simplified logging method that uses only the most basic fields
-     * that should exist in the table based on the original plugin structure
-     * 
-     * @param string $message The message to log
-     * @param string $status The status (info, error)
-     * @param int $post_id The post ID
-     * @param string $source_lang Source language
-     * @param string $target_lang Target language
-     * @return bool Whether the log was inserted successfully
-     */
-    public static function log_to_existing_table($message, $status = 'info', $post_id = 0, $source_lang = '', $target_lang = '')
-    {
-        global $wpdb;
-
-        $table_name = $wpdb->prefix . 'polytrans_logs';
-
-        // Check if the table exists
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
-        if (!$table_exists) {
-            error_log("[polytrans] Cannot log to database: table $table_name doesn't exist");
-            return false;
-        }
-
-        // Insert a log with minimal fields (based on original structure)
-        $result = $wpdb->insert(
-            $table_name,
-            [
-                'post_id' => $post_id,
-                'source_language' => $source_lang,
-                'target_language' => $target_lang,
-                'status' => $status,
-                'message' => $message,
-                // 'created_at' is automatically set to CURRENT_TIMESTAMP if it exists
-            ],
-            ['%d', '%s', '%s', '%s', '%s']
-        );
-
-        if ($wpdb->last_error) {
-            error_log("[polytrans] Database error when logging to existing table: " . $wpdb->last_error);
-            return false;
-        }
-
-        return ($result !== false);
-    }
-
-    /**
-     * Ensure the log table exists
-     * 
-     * @return bool True if the table exists or was created successfully
-     */
-    private static function ensure_log_table_exists()
-    {
-        global $wpdb;
-
-        $table_name = $wpdb->prefix . 'polytrans_logs';
-
-        // Check if the table already exists
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
-
-        // If the table exists, it's fine - we'll adapt to whatever structure it has
-        if ($table_exists) {
-            return true;
-        }
-
-        // Since the table doesn't exist, let's see what the original plugin setup would create
-        // Check if the function exists in the PolyTrans_Logs_Manager
-        if (class_exists('PolyTrans_Logs_Manager') && method_exists('PolyTrans_Logs_Manager', 'create_logs_table')) {
-            // Let the original manager create the table
-            return PolyTrans_Logs_Manager::create_logs_table();
-        }
-
-        // If we can't create the table through the logs manager, we'll create a simple one
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-
-        $charset_collate = $wpdb->get_charset_collate();
-
-        // Simple structure with basic fields that we need
-        $sql = "CREATE TABLE $table_name (
-            id mediumint(9) NOT NULL AUTO_INCREMENT,
-            post_id bigint(20) NOT NULL,
-            source_language varchar(10) DEFAULT '',
-            target_language varchar(10) DEFAULT '',
-            status varchar(20) NOT NULL,
-            message text,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY post_id (post_id),
-            KEY languages (source_language, target_language),
-            KEY status (status)
-        ) $charset_collate;";
-
-        dbDelta($sql);
-
-        // Check if table was created successfully
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
-
-        if ($table_exists) {
-            // Clear the flag if it exists
-            delete_option('polytrans_logs_table_needed');
-            return true;
-        }
-
-        // If we couldn't create the table, set a flag for later
-        update_option('polytrans_logs_table_needed', true);
-
-        return false;
-    }
-
-    /**
-     * Check log table structure and report
-     * This is a utility method for debugging purposes
-     * 
-     * @return array Information about the logs table structure
-     */
-    public static function check_logs_table()
-    {
-        global $wpdb;
-
-        $table_name = $wpdb->prefix . 'polytrans_logs';
-        $info = [
-            'table_exists' => false,
-            'columns' => []
-        ];
-
-        // Check if table exists
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
-        $info['table_exists'] = $table_exists;
-
-        if (!$table_exists) {
-            return $info;
-        }
-
-        // Get column information
-        $columns_query = $wpdb->prepare(
-            "SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_KEY 
-            FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s
-            ORDER BY ORDINAL_POSITION",
-            DB_NAME,
-            $table_name
-        );
-
-        $columns = $wpdb->get_results($columns_query);
-
-        if ($columns) {
-            foreach ($columns as $column) {
-                $info['columns'][$column->COLUMN_NAME] = [
-                    'type' => $column->DATA_TYPE,
-                    'nullable' => $column->IS_NULLABLE,
-                    'key' => $column->COLUMN_KEY
-                ];
-            }
-        }
-
-        // Log the structure information
-        error_log("[polytrans] Logs table structure check: " . wp_json_encode($info));
-
-        return $info;
-    }
-
-    /**
-     * Get the URL to the logs admin page
-     * 
-     * @param array $args Optional query args to add to the URL
-     * @return string The URL to the logs admin page
-     */
-    public static function get_logs_admin_url($args = [])
-    {
-        $base_url = admin_url('admin.php?page=polytrans-logs');
-
-        if (!empty($args)) {
-            $base_url = add_query_arg($args, $base_url);
-        }
-
-        return $base_url;
     }
 
     /**
@@ -840,22 +546,22 @@ class PolyTrans_Background_Processor
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'polytrans_logs';
-        
+
         // Load the logs manager
         if (!class_exists('PolyTrans_Logs_Manager')) {
             require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-logs-manager.php';
         }
-        
+
         // Check if the logs table exists
         $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
-        
+
         if ($table_exists) {
             error_log("[polytrans] Logs table exists: $table_name");
-            
+
             // Check the table columns
             $columns = $wpdb->get_results("SHOW COLUMNS FROM `$table_name`");
             $column_names = [];
-            
+
             if ($columns) {
                 foreach ($columns as $col) {
                     $column_names[] = $col->Field;
@@ -864,16 +570,15 @@ class PolyTrans_Background_Processor
             } else {
                 error_log("[polytrans] Could not retrieve logs table columns");
             }
-            
+
             // Add a test log entry
             self::log("Plugin activated - test log entry from Background Processor", "info", [
                 'source' => 'activation_check'
             ]);
-            
         } else {
             error_log("[polytrans] Logs table does not exist, using postmeta only");
         }
-        
+
         // Test post meta logging
         $test_post_id = $wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_type = 'post' ORDER BY ID DESC LIMIT 1");
         if ($test_post_id) {

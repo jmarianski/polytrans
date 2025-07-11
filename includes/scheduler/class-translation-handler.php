@@ -83,9 +83,10 @@ class PolyTrans_Translation_Handler
             $status_key = '_polytrans_translation_status_' . $lang;
             $log_key = '_polytrans_translation_log_' . $lang;
             $needs_review_key = '_polytrans_translation_needs_review_' . $lang;
-            $current_status = get_post_meta($post_id, $status_key, true);
+            // TODO: in theory we shouldn't translate to target language, but it seems stuck
+            //$current_status = get_post_meta($post_id, $status_key, true);
 
-            if ($current_status === 'started') continue; // Already scheduled
+            //if ($current_status === 'started') continue; // Already scheduled
 
             // Schedule translation
             update_post_meta($post_id, $status_key, 'started');
@@ -105,7 +106,12 @@ class PolyTrans_Translation_Handler
         }
 
         update_post_meta($post_id, $langs_key, $scheduled_langs);
-        error_log("[polytrans] Translation scheduling finished for post $post_id");
+        PolyTrans_Logs_Manager::log("[polytrans] Translation scheduling finished for post $post_id", "info", [
+            'post_id' => $post_id,
+            'scheduled_langs' => $scheduled_langs,
+            'scope' => $scope,
+            'targets' => $targets,
+        ]);
 
         wp_send_json_success([
             'message' => 'Translation scheduled (' . esc_html($scope) . ').',
@@ -144,8 +150,7 @@ class PolyTrans_Translation_Handler
             'msg' => sprintf(__('Translation process scheduled (mode: %s).', 'polytrans-translation'), $transport_mode)
         ];
         update_post_meta($post_id, $log_key, $log);
-
-        error_log("[polytrans] Translation scheduled for post $post_id from $source_lang to $target_lang (mode: $transport_mode)");
+        PolyTrans_Logs_Manager::log("Translation scheduled for post $post_id from $source_lang to $target_lang (mode: $transport_mode)", "info");
 
         if ($transport_mode === 'internal') {
             // For internal mode, use the background processor
@@ -204,7 +209,7 @@ class PolyTrans_Translation_Handler
                 )
             ];
 
-            error_log("[polytrans] Translation request queued in background process for post $post_id from $source_lang to $target_lang");
+            PolyTrans_Logs_Manager::log("[polytrans] Translation request queued in background process for post $post_id from $source_lang to $target_lang", "info");
             update_post_meta($post_id, $log_key, $log);
             return;
         }
@@ -214,7 +219,7 @@ class PolyTrans_Translation_Handler
             'timestamp' => time(),
             'msg' => __('Failed to start background process. Please check server configuration.', 'polytrans-translation')
         ];
-        error_log("[polytrans] Failed to spawn background process for post $post_id translation");
+        PolyTrans_Logs_Manager::log("[polytrans] Failed to spawn background process for post $post_id translation", "info");
         update_post_meta($post_id, $status_key, 'failed');
         update_post_meta($post_id, $log_key, $log);
     }
@@ -242,7 +247,7 @@ class PolyTrans_Translation_Handler
                 'timestamp' => time(),
                 'msg' => __('Failed to send translation request: No translation endpoint configured.', 'polytrans-translation')
             ];
-            error_log("[polytrans] Failed to send external translation request for post $post_id: No endpoint configured");
+            PolyTrans_Logs_Manager::log("[polytrans] Failed to send external translation request for post $post_id: No endpoint configured", "info");
             update_post_meta($post_id, $status_key, 'failed');
             update_post_meta($post_id, $log_key, $log);
             return;
@@ -251,7 +256,7 @@ class PolyTrans_Translation_Handler
         if (empty($translation_receiver_endpoint)) {
             // Use default receiver endpoint if none is configured
             $translation_receiver_endpoint = site_url('/wp-json/polytrans/v1/translation/receive-post');
-            error_log("[polytrans] Using default receiver endpoint: $translation_receiver_endpoint");
+            PolyTrans_Logs_Manager::log("[polytrans] Using default receiver endpoint: $translation_receiver_endpoint", "info");
         }
 
         // Update status to 'translating' to indicate it's actively being sent to external service
@@ -271,7 +276,7 @@ class PolyTrans_Translation_Handler
                 'timestamp' => time(),
                 'msg' => __('Failed to send translation request: Post not found.', 'polytrans-translation')
             ];
-            error_log("[polytrans] Failed to send external translation request for post $post_id: Post not found");
+            PolyTrans_Logs_Manager::log("[polytrans] Failed to send external translation request for post $post_id: Post not found", "info");
             update_post_meta($post_id, $status_key, 'failed');
             update_post_meta($post_id, $log_key, $log);
             return;
@@ -344,7 +349,7 @@ class PolyTrans_Translation_Handler
             'timestamp' => time(),
             'msg' => sprintf(__('Translation request sent successfully to external endpoint. Awaiting response.', 'polytrans-translation'))
         ];
-        error_log("[polytrans] External translation request sent successfully for post $post_id");
+        PolyTrans_Logs_Manager::log("[polytrans] External translation request sent successfully for post $post_id", "info");
 
 
         // Update the log
@@ -358,7 +363,7 @@ class PolyTrans_Translation_Handler
      */
     private function handle_google_translate_direct($post_id, $source_lang, $target_lang, $settings)
     {
-        error_log("[polytrans] Starting direct Google Translate for post $post_id from $source_lang to $target_lang");
+        PolyTrans_Logs_Manager::log("[polytrans] Starting direct Google Translate for post $post_id from $source_lang to $target_lang", "info");
 
         // Update status to processing
         $status_key = '_polytrans_translation_status_' . $target_lang;
@@ -415,7 +420,7 @@ class PolyTrans_Translation_Handler
                 'msg' => sprintf(__('Google Translate translation completed successfully. Post ID: %d', 'polytrans'), $result['created_post_id'])
             ];
 
-            error_log("[polytrans] Google Translate translation completed successfully for post $post_id -> {$result['created_post_id']}");
+            PolyTrans_Logs_Manager::log("[polytrans] Google Translate translation completed successfully for post $post_id -> {$result['created_post_id']}", "info");
         } catch (Exception $e) {
             // Update error status
             update_post_meta($post_id, $status_key, 'failed');
@@ -438,7 +443,7 @@ class PolyTrans_Translation_Handler
      */
     private function handle_openai_direct($post_id, $source_lang, $target_lang, $settings)
     {
-        error_log("[polytrans] Starting direct OpenAI translation for post $post_id from $source_lang to $target_lang");
+        PolyTrans_Logs_Manager::log("[polytrans] Starting direct OpenAI translation for post $post_id from $source_lang to $target_lang", "info");
 
         // Update status to processing
         $status_key = '_polytrans_translation_status_' . $target_lang;
@@ -522,7 +527,7 @@ class PolyTrans_Translation_Handler
                 'msg' => sprintf(__('OpenAI translation completed successfully. Post ID: %d', 'polytrans'), $result['created_post_id'])
             ];
 
-            error_log("[polytrans] OpenAI translation completed successfully for post $post_id -> {$result['created_post_id']}");
+            PolyTrans_Logs_Manager::log("[polytrans] OpenAI translation completed successfully for post $post_id -> {$result['created_post_id']}", "info");
         } catch (Exception $e) {
             // Update error status
             update_post_meta($post_id, $status_key, 'failed');
@@ -641,7 +646,7 @@ class PolyTrans_Translation_Handler
             update_post_meta($post_id, $langs_key, $scheduled_langs);
             delete_post_meta($post_id, '_polytrans_translation_status_' . $lang);
             delete_post_meta($post_id, '_polytrans_translation_log_' . $lang);
-            error_log("[polytrans] Cleared translation status for $lang on post $post_id");
+            PolyTrans_Logs_Manager::log("[polytrans] Cleared translation status for $lang on post $post_id", "info");
             wp_send_json_success(['scheduled_langs' => $scheduled_langs]);
         }
 

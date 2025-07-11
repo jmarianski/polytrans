@@ -113,15 +113,15 @@ function polytrans_activate()
 
     // Load the logs manager class for table creation
     require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-logs-manager.php';
-    
+
     // Create database tables if needed and enabled in settings
     if (PolyTrans_Logs_Manager::is_db_logging_enabled()) {
         PolyTrans_Logs_Manager::create_logs_table();
-        
+
         // Try to log an activation message
         PolyTrans_Logs_Manager::log(
-            "PolyTrans plugin activated", 
-            "info", 
+            "PolyTrans plugin activated",
+            "info",
             [
                 'version' => POLYTRANS_VERSION,
                 'source' => 'activation'
@@ -131,12 +131,12 @@ function polytrans_activate()
         // Just log to error_log
         error_log("[polytrans] Plugin activated, database logging disabled in settings");
     }
-    
+
     // Check the logs table structure for debugging
     if (class_exists('PolyTrans_Background_Processor')) {
         PolyTrans_Background_Processor::check_on_activation();
     }
-    
+
     // Schedule cron job to check for stuck translations (daily)
     if (!wp_next_scheduled('polytrans_check_stuck_translations')) {
         wp_schedule_event(time(), 'daily', 'polytrans_check_stuck_translations');
@@ -163,17 +163,17 @@ function polytrans_create_tables()
     // Load the settings to check if database logging is enabled
     $settings = get_option('polytrans_settings', []);
     $db_logging_enabled = isset($settings['enable_db_logging']) ? (bool)$settings['enable_db_logging'] : true;
-    
+
     // Create logs table using the Logs Manager if database logging is enabled
     if ($db_logging_enabled) {
         require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-logs-manager.php';
-        
+
         // This will handle creation and structure adaptation
         PolyTrans_Logs_Manager::create_logs_table();
     } else {
         error_log("[polytrans] Database logging is disabled, skipping logs table creation");
     }
-    
+
     // Any additional tables can be created here
 }
 
@@ -205,7 +205,7 @@ function polytrans_run_cleanup()
     // Fix stuck translations
     $handler = PolyTrans_Translation_Handler::get_instance();
     $fixed = $handler->fix_stuck_translations(24); // 24 hours timeout
-    
+
     if ($fixed > 0) {
         error_log("[polytrans] Fixed $fixed stuck translations");
     }
@@ -221,10 +221,10 @@ function polytrans_check_stuck_translations()
     if (!class_exists('PolyTrans_Translation_Status_Manager')) {
         require_once POLYTRANS_PLUGIN_DIR . 'includes/receiver/managers/class-translation-status-manager.php';
     }
-    
+
     $status_manager = new PolyTrans_Translation_Status_Manager();
     $results = $status_manager->check_stuck_translations(24); // Check translations stuck for > 24 hours
-    
+
     if ($results['fixed'] > 0) {
         error_log("[polytrans] Fixed {$results['fixed']} stuck translations out of {$results['checked']} checked");
     }
