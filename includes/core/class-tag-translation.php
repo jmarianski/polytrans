@@ -359,7 +359,7 @@ class PolyTrans_Tag_Translation
 
         // Output CSV
         error_log('Export CSV: Outputting CSV with ' . count($csv_data) . ' rows');
-        header('Content-Type: text/csv');
+        header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="tag-translations.csv"');
         $output = fopen('php://output', 'w');
         foreach ($csv_data as $row) {
@@ -380,41 +380,65 @@ class PolyTrans_Tag_Translation
             wp_die('Unauthorized', 403);
         }
 
-        $csv_content = sanitize_textarea_field($_POST['csv'] ?? '');
+        $csv_content =  $_POST['csv'] ?? '';
         if (empty($csv_content)) {
             wp_send_json_error(['message' => __('No CSV data provided.', 'polytrans-translation')]);
         }
 
-        $lines = str_getcsv($csv_content, "\n");
-        if (empty($lines)) {
-            wp_send_json_error(['message' => __('Invalid CSV format.', 'polytrans-translation')]);
+        // Get source language from settings
+        $settings = get_option('polytrans_settings', []);
+        $source_language = $settings['source_language'] ?? 'pl';
+
+        // Use a more robust CSV parsing that handles newlines inside cells
+        $temp_data = str_replace(["\r\n", "\r"], "\n", $csv_content);
+        $temp_lines = explode("\n", $temp_data);
+
+        foreach ($temp_lines as $i => $line) {
+            $temp_lines[$i] = str_getcsv($line, ",", '"', "\\");
         }
 
-        $header = str_getcsv($lines[0]);
+
+        $csv_data = $temp_lines;
+
+        if (empty($csv_data) || count($csv_data) < 2) {
+            wp_send_json_error(['message' => __('Invalid CSV format or no data rows.', 'polytrans-translation')]);
+        }
+
+        $header = $csv_data[0];
         $imported_count = 0;
 
-        for ($i = 1; $i < count($lines); $i++) {
-            $row = str_getcsv($lines[$i]);
+        for ($i = 1; $i < count($csv_data); $i++) {
+            $row = $csv_data[$i];
             if (empty($row[0])) continue;
 
-            $polish_tag_name = trim($row[0]);
-            $tag = get_term_by('name', $polish_tag_name, 'post_tag');
+            $source_tag_name = trim(stripslashes($row[0]), " \t\n\r\0\x0B\"");
+            error_log("Processing tag: " . $source_tag_name);
+            $tag = $this->get_term_by_name_and_lang($source_tag_name, $source_language);
 
             if (!$tag) {
-                $new_tag = wp_insert_term($polish_tag_name, 'post_tag');
+                $new_tag = wp_insert_term($source_tag_name, 'post_tag', [
+                    'slug' => sanitize_title($source_tag_name) . '-' . $source_language
+                ]);
                 if (is_wp_error($new_tag)) continue;
                 $tag = get_term($new_tag['term_id']);
                 if (function_exists('pll_set_term_language')) {
-                    pll_set_term_language($tag->term_id, 'pl');
+                    pll_set_term_language($tag->term_id, $source_language);
                 }
             }
 
             // Process translations
             for ($j = 1; $j < count($header) && $j < count($row); $j++) {
                 $lang = strtolower(trim($header[$j]));
-                $translation_name = trim($row[$j]);
+                $translation_name = str_replace('"', '', stripslashes($row[$j]));
 
-                if (empty($translation_name) || $lang === 'polish tag') continue;
+
+                error_log("Processing translation: header='" . $header[$j] . "', lang='$lang', translation='$translation_name'");
+
+                // Skip if empty translation or if this is the source language column (contains " tag" at the end)
+                if (empty($translation_name) || preg_match('/\s+tag\s*$/i', $header[$j])) {
+                    error_log("Skipping: empty or source column");
+                    continue;
+                }
 
                 // Create or update translation
                 if (function_exists('pll_set_term_language') && function_exists('pll_save_term_translations')) {
