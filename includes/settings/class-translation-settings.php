@@ -60,6 +60,8 @@ class polytrans_settings
         $settings['enable_db_logging'] = isset($_POST['enable_db_logging']) ? '1' : '0';
         $settings['allowed_sources'] = array_map('sanitize_text_field', $_POST['allowed_sources'] ?? []);
         $settings['allowed_targets'] = array_map('sanitize_text_field', $_POST['allowed_targets'] ?? []);
+        $settings['source_language'] = sanitize_text_field($_POST['source_language'] ?? 'pl');
+        $settings['base_tags'] = sanitize_textarea_field($_POST['base_tags'] ?? '');
 
         // Handle provider-specific settings
         $selected_provider = $registry->get_provider($settings['translation_provider']);
@@ -99,6 +101,8 @@ class polytrans_settings
         $translation_receiver_endpoint = $settings['translation_receiver_endpoint'] ?? '';
         $allowed_sources = $settings['allowed_sources'] ?? [];
         $allowed_targets = $settings['allowed_targets'] ?? [];
+        $source_language = $settings['source_language'] ?? 'pl';
+        $base_tags = $settings['base_tags'] ?? '';
         $reviewer_email = $settings['reviewer_email'] ?? '';
         $reviewer_email_title = $settings['reviewer_email_title'] ?? '';
         $author_email = $settings['author_email'] ?? '';
@@ -128,6 +132,7 @@ class polytrans_settings
             <div class="nav-tab-wrapper">
                 <a href="#provider-settings" class="nav-tab nav-tab-active" id="provider-tab"><?php esc_html_e('Translation Provider', 'polytrans-translation'); ?></a>
                 <a href="#basic-settings" class="nav-tab" id="basic-tab"><?php esc_html_e('Basic Settings', 'polytrans-translation'); ?></a>
+                <a href="#tag-settings" class="nav-tab" id="tag-tab"><?php esc_html_e('Tag Settings', 'polytrans-translation'); ?></a>
                 <a href="#email-settings" class="nav-tab" id="email-tab"><?php esc_html_e('Email Settings', 'polytrans-translation'); ?></a>
                 <?php foreach ($settings_providers as $provider_id => $settings_provider): ?>
                     <a href="#<?php echo esc_attr($provider_id); ?>-settings" class="nav-tab provider-settings-tab" id="<?php echo esc_attr($provider_id); ?>-tab" style="<?php echo ($translation_provider !== $provider_id) ? 'display:none;' : ''; ?>">
@@ -182,6 +187,11 @@ class polytrans_settings
                     </div>
 
                     <?php $this->render_language_config_table($settings); ?>
+                </div>
+
+                <!-- Tag Settings Tab -->
+                <div id="tag-settings" class="tab-content" style="display:none;">
+                    <?php $this->render_tag_settings($source_language, $base_tags); ?>
                 </div>
 
                 <!-- Email Settings Tab -->
@@ -410,6 +420,31 @@ class polytrans_settings
                 <?php esc_html_e('When enabled, logs will be stored in the database table. When disabled, logs will only be written to the WordPress error log and post meta. Disabling database logging can improve performance and reduce database size, but makes viewing logs from the admin panel more limited.', 'polytrans-translation'); ?>
             </small>
         </div><br>
+<?php
+    }
+
+    /**
+     * Render tag settings section
+     */
+    private function render_tag_settings($source_language, $base_tags)
+    {
+?>
+        <h2><?php esc_html_e('Source (Main) Language', 'polytrans-translation'); ?></h2>
+        <p><?php esc_html_e('Select the primary language that will appear in the first column of tag translations. This language will be considered the source for tag translations.', 'polytrans-translation'); ?></p>
+        <select name="source_language" style="width:100%;max-width:300px;">
+            <?php foreach ($this->langs as $i => $lang): ?>
+                <option value="<?php echo esc_attr($lang); ?>" <?php selected($source_language, $lang); ?>>
+                    <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <br><br>
+
+        <h2><?php esc_html_e('Base Tags List', 'polytrans-translation'); ?></h2>
+        <p><?php esc_html_e('Enter the tags that you want to manage for translation (one per line or comma separated). These tags will appear in the tag translation table where you can set translations for each language.', 'polytrans-translation'); ?></p>
+        <label for="base-tags-textarea"><strong><?php esc_html_e('Tags to translate:', 'polytrans-translation'); ?></strong></label><br />
+        <textarea id="base-tags-textarea" name="base_tags" style="width:100%;min-height:150px;font-family:monospace;" placeholder="<?php esc_attr_e('Enter tags separated by new lines or commas...', 'polytrans-translation'); ?>"><?php echo esc_textarea($base_tags); ?></textarea>
+        <br><small><?php esc_html_e('These tags will be used for automatic translation and tag mapping between languages. You can add tags that you want to translate now or that you want to use in future automatic translations.', 'polytrans-translation'); ?></small>
 <?php
     }
 }

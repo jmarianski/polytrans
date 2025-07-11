@@ -1,21 +1,6 @@
 // JavaScript for Tag Translation Admin Page
 jQuery(document).ready(function ($) {
-    // Save tag list
-    $('#save-tag-list').on('click', function () {
-        var tagList = $('#tag-list-textarea').val();
-        $.post(ajaxurl, {
-            action: 'polytrans_save_tag_list',
-            tag_list: tagList,
-            nonce: PolyTransTagTranslation.nonce
-        }, function (resp) {
-            if (resp.success) {
-                $('#tag-list-saved').show().delay(1500).fadeOut();
-                location.reload();
-            } else {
-                alert('Failed to save tag list');
-            }
-        });
-    });
+    // Save individual tag translations
     $(".tag-translation-input").on("change", function () {
         var tag = $(this).data("tag");
         var lang = $(this).data("lang");
@@ -76,8 +61,5 @@ jQuery(document).ready(function ($) {
             });
         };
         reader.readAsText(file);
-    });
-    $('#toggle-tag-list').on('click', function () {
-        $('#tag-list-area').toggle();
     });
 });
