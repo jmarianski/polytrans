@@ -331,7 +331,7 @@ class PolyTrans_Tag_Translation
         })));
 
         foreach ($tag_names as $tag_name) {
-            $tag = get_term_by('name', $tag_name, 'post_tag');
+            $tag = $this->get_term_by_name_and_lang($tag_name, $source_language);
             if ($tag) {
                 $row = [$tag->name];
                 foreach ($langs as $lang) {
