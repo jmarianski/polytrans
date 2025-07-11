@@ -7,28 +7,6 @@
     margin-bottom: 1.5em;
 }
 
-#tag-list-area {
-    margin-bottom: 2em;
-    padding: 1em;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-#tag-list-textarea {
-    width: 100%;
-    min-height: 120px;
-    font-family: monospace;
-    margin-bottom: 0.5em;
-}
-
-#tag-list-saved {
-    color: #46b450;
-    font-weight: bold;
-    margin-left: 0.5em;
-    display: none;
-}
-
 #import-csv-area {
     display: none;
     margin-left: 1em;
