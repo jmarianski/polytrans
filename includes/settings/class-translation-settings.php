@@ -420,7 +420,7 @@ class polytrans_settings
                 <?php esc_html_e('When enabled, logs will be stored in the database table. When disabled, logs will only be written to the WordPress error log and post meta. Disabling database logging can improve performance and reduce database size, but makes viewing logs from the admin panel more limited.', 'polytrans-translation'); ?>
             </small>
         </div><br>
-<?php
+    <?php
     }
 
     /**
@@ -428,7 +428,7 @@ class polytrans_settings
      */
     private function render_tag_settings($source_language, $base_tags)
     {
-?>
+    ?>
         <h2><?php esc_html_e('Source (Main) Language', 'polytrans-translation'); ?></h2>
         <p><?php esc_html_e('Select the primary language that will appear in the first column of tag translations. This language will be considered the source for tag translations.', 'polytrans-translation'); ?></p>
         <select name="source_language" style="width:100%;max-width:300px;">
