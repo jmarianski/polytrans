@@ -313,19 +313,6 @@ class PolyTrans_Tag_Translation
         $settings = get_option('polytrans_settings', []);
         $source_language = $settings['source_language'] ?? 'pl';
 
-        // Get source language name for header
-        $source_lang_name = '';
-        if (function_exists('pll_languages_list')) {
-            $lang_names = pll_languages_list(['fields' => 'name']);
-        } else {
-            $lang_names = ['Polish', 'English', 'Italian'];
-        }
-        foreach ($langs as $i => $lang) {
-            if ($lang === $source_language) {
-                $source_lang_name = $lang_names[$i] ?? strtoupper($lang);
-                break;
-            }
-        }
 
         // Get tag list from settings
         $tag_list_raw = $settings['base_tags'] ?? '';
@@ -339,7 +326,7 @@ class PolyTrans_Tag_Translation
         error_log('Export CSV: Found ' . count($tag_names) . ' tags');
 
         $csv_data = [];
-        $csv_data[] = array_merge([$source_lang_name . ' Tag'], array_map('strtoupper', array_filter($langs, function ($lang) use ($source_language) {
+        $csv_data[] = array_merge([strtoupper($source_language)], array_map('strtoupper', array_filter($langs, function ($lang) use ($source_language) {
             return $lang !== $source_language;
         })));
 
