@@ -17,7 +17,7 @@ class PolyTrans_Translation_Meta_Box
     /**
      * Get singleton instance
      */
-    public static function get_instance()
+    public static function get_instance(): self
     {
         if (self::$instance === null) {
             self::$instance = new self();

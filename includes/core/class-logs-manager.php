@@ -740,108 +740,108 @@ class PolyTrans_Logs_Manager
 
             <div id="logs-table-container">
                 <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th scope="col" class="manage-column column-created_at"><?php esc_html_e('Time', 'polytrans'); ?></th>
-                        <th scope="col" class="manage-column column-level"><?php esc_html_e('Level', 'polytrans'); ?></th>
-                        <th scope="col" class="manage-column column-message"><?php esc_html_e('Message', 'polytrans'); ?></th>
-                        <th scope="col" class="manage-column column-context"><?php esc_html_e('Context', 'polytrans'); ?></th>
-                        <th scope="col" class="manage-column column-source"><?php esc_html_e('Source', 'polytrans'); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($logs_data['logs'])): ?>
+                    <thead>
                         <tr>
-                            <td colspan="5"><?php esc_html_e('No logs found.', 'polytrans'); ?></td>
+                            <th scope="col" class="manage-column column-created_at"><?php esc_html_e('Time', 'polytrans'); ?></th>
+                            <th scope="col" class="manage-column column-level"><?php esc_html_e('Level', 'polytrans'); ?></th>
+                            <th scope="col" class="manage-column column-message"><?php esc_html_e('Message', 'polytrans'); ?></th>
+                            <th scope="col" class="manage-column column-context"><?php esc_html_e('Context', 'polytrans'); ?></th>
+                            <th scope="col" class="manage-column column-source"><?php esc_html_e('Source', 'polytrans'); ?></th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($logs_data['logs'] as $log): ?>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($logs_data['logs'])): ?>
                             <tr>
-                                <td>
-                                    <?php echo esc_html(mysql2date('Y-m-d H:i:s', $log->created_at)); ?>
-                                </td>
-                                <td>
-                                    <?php
-                                    $level_class = '';
-                                    switch ($log->level) {
-                                        case 'error':
-                                            $level_class = 'error';
-                                            break;
-                                        case 'warning':
-                                            $level_class = 'warning';
-                                            break;
-                                        case 'info':
-                                        default:
-                                            $level_class = 'info';
-                                            break;
-                                    }
-                                    ?>
-                                    <span class="log-level log-level-<?php echo esc_attr($level_class); ?>">
-                                        <?php echo esc_html(ucfirst($log->level)); ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <?php echo esc_html($log->message); ?>
-                                </td>
-                                <td>
-                                    <?php if (!empty($log->context)): ?>
-                                        <button type="button" class="button toggle-context" data-context-id="context-<?php echo esc_attr($log->id); ?>">
-                                            <?php esc_html_e('Show Context', 'polytrans'); ?>
-                                        </button>
-                                        <div class="context-data" id="context-<?php echo esc_attr($log->id); ?>" style="display:none;">
-                                            <pre><?php echo esc_html(json_encode($log->context, JSON_PRETTY_PRINT)); ?></pre>
-                                        </div>
-                                    <?php else: ?>
-                                        <em><?php esc_html_e('No context data', 'polytrans'); ?></em>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php
-                                    $source = $log->source;
-                                    $process_id = $log->process_id;
-                                    $user_id = $log->user_id;
-
-                                    if ($source) {
-                                        echo esc_html(ucfirst($source));
-                                        if ($process_id) {
-                                            echo ' (' . esc_html($process_id) . ')';
-                                        }
-                                    }
-
-                                    if ($user_id) {
-                                        $user = get_user_by('id', $user_id);
-                                        if ($user) {
-                                            echo '<br>';
-                                            echo esc_html($user->display_name);
-                                        }
-                                    }
-                                    ?>
-                                </td>
+                                <td colspan="5"><?php esc_html_e('No logs found.', 'polytrans'); ?></td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($logs_data['logs'] as $log): ?>
+                                <tr>
+                                    <td>
+                                        <?php echo esc_html(mysql2date('Y-m-d H:i:s', $log->created_at)); ?>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        $level_class = '';
+                                        switch ($log->level) {
+                                            case 'error':
+                                                $level_class = 'error';
+                                                break;
+                                            case 'warning':
+                                                $level_class = 'warning';
+                                                break;
+                                            case 'info':
+                                            default:
+                                                $level_class = 'info';
+                                                break;
+                                        }
+                                        ?>
+                                        <span class="log-level log-level-<?php echo esc_attr($level_class); ?>">
+                                            <?php echo esc_html(ucfirst($log->level)); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php echo esc_html($log->message); ?>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($log->context)): ?>
+                                            <button type="button" class="button toggle-context" data-context-id="context-<?php echo esc_attr($log->id); ?>">
+                                                <?php esc_html_e('Show Context', 'polytrans'); ?>
+                                            </button>
+                                            <div class="context-data" id="context-<?php echo esc_attr($log->id); ?>" style="display:none;">
+                                                <pre><?php echo esc_html(json_encode($log->context, JSON_PRETTY_PRINT)); ?></pre>
+                                            </div>
+                                        <?php else: ?>
+                                            <em><?php esc_html_e('No context data', 'polytrans'); ?></em>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        $source = $log->source;
+                                        $process_id = $log->process_id;
+                                        $user_id = $log->user_id;
 
-            <div class="tablenav bottom">
-                <div class="alignleft actions">
-                    <form method="post">
-                        <?php wp_nonce_field('polytrans_clear_logs'); ?>
-                        <input type="number" name="days" min="1" value="30" style="width: 60px;">
-                        <label for="days"><?php esc_html_e('days', 'polytrans'); ?></label>
-                        <input type="submit" name="polytrans_clear_logs" class="button" value="<?php esc_attr_e('Clear Old Logs', 'polytrans'); ?>">
-                    </form>
-                </div>
+                                        if ($source) {
+                                            echo esc_html(ucfirst($source));
+                                            if ($process_id) {
+                                                echo ' (' . esc_html($process_id) . ')';
+                                            }
+                                        }
 
-                <div class="tablenav-pages">
-                    <?php
-                    if ($page_links) {
-                        echo '<span class="pagination-links">' . $page_links . '</span>';
-                    }
-                    ?>
+                                        if ($user_id) {
+                                            $user = get_user_by('id', $user_id);
+                                            if ($user) {
+                                                echo '<br>';
+                                                echo esc_html($user->display_name);
+                                            }
+                                        }
+                                        ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+
+                <div class="tablenav bottom">
+                    <div class="alignleft actions">
+                        <form method="post">
+                            <?php wp_nonce_field('polytrans_clear_logs'); ?>
+                            <input type="number" name="days" min="1" value="30" style="width: 60px;">
+                            <label for="days"><?php esc_html_e('days', 'polytrans'); ?></label>
+                            <input type="submit" name="polytrans_clear_logs" class="button" value="<?php esc_attr_e('Clear Old Logs', 'polytrans'); ?>">
+                        </form>
+                    </div>
+
+                    <div class="tablenav-pages">
+                        <?php
+                        if ($page_links) {
+                            echo '<span class="pagination-links">' . $page_links . '</span>';
+                        }
+                        ?>
+                    </div>
+                    <br class="clear">
                 </div>
-                <br class="clear">
-            </div>
             </div> <!-- End logs-table-container -->
         </div>
 
@@ -911,7 +911,7 @@ class PolyTrans_Logs_Manager
                 let autoRefreshInterval = null;
                 let isPaused = false;
                 let currentInterval = parseInt(localStorage.getItem('polytrans_logs_refresh_interval')) || 10; // Default to 10 seconds or saved preference
-                
+
                 // Context toggle functionality
                 $('.toggle-context').on('click', function() {
                     var contextId = $(this).data('context-id');
@@ -940,7 +940,7 @@ class PolyTrans_Logs_Manager
                     if (autoRefreshInterval) {
                         clearInterval(autoRefreshInterval);
                     }
-                    
+
                     if (currentInterval > 0 && !isPaused) {
                         autoRefreshInterval = setInterval(function() {
                             refreshLogsTable();
@@ -951,10 +951,10 @@ class PolyTrans_Logs_Manager
                 function refreshLogsTable() {
                     // Get current form data to maintain filters
                     const formData = $('#logs-filter-form').serialize();
-                    
+
                     // Show loading indicator
                     $('#autorefresh-status').text('<?php esc_html_e('Refreshing...', 'polytrans'); ?>');
-                    
+
                     $.ajax({
                         url: ajaxurl,
                         type: 'POST',
@@ -1014,10 +1014,10 @@ class PolyTrans_Logs_Manager
                     if (currentInterval === 0) {
                         return; // Do nothing if auto-refresh is disabled
                     }
-                    
+
                     isPaused = !isPaused;
                     $(this).text(isPaused ? '<?php esc_html_e('Resume', 'polytrans'); ?>' : '<?php esc_html_e('Pause', 'polytrans'); ?>');
-                    
+
                     if (isPaused) {
                         if (autoRefreshInterval) {
                             clearInterval(autoRefreshInterval);
@@ -1039,7 +1039,7 @@ class PolyTrans_Logs_Manager
                 updateStatus();
             });
         </script>
-<?php
+    <?php
     }
 
     /**
@@ -1367,7 +1367,7 @@ class PolyTrans_Logs_Manager
             'total' => $logs_data['pages'],
             'current' => $current_page,
         ]);
-        ?>
+    ?>
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -1471,6 +1471,6 @@ class PolyTrans_Logs_Manager
             </div>
             <br class="clear">
         </div>
-        <?php
+<?php
     }
 }
