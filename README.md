@@ -119,7 +119,6 @@ The plugin implements a hot-pluggable provider architecture:
 ### Translation Endpoints
 - **POST** `/wp-json/polytrans/v1/translation/translate` - Receive and process translation requests
 - **POST** `/wp-json/polytrans/v1/translation/receive-post` - Receive completed translations
-- **GET** `/wp-json/polytrans/v1/translation/status/{post_id}` - Check translation status
 
 ### Authentication
 All endpoints support configurable authentication:

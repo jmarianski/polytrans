@@ -74,8 +74,7 @@ class PolyTrans_Translation_Coordinator
             $final_status = $this->notification_manager->handle_notifications(
                 $new_post_id,
                 $original_post_id,
-                $target_language,
-                $translated
+                $target_language
             );
 
             // Update translation status
