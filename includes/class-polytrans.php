@@ -71,7 +71,6 @@ class PolyTrans
         // Core WordPress integration classes
         require_once $includes_dir . 'core/class-translation-meta-box.php';
         require_once $includes_dir . 'core/class-translation-notifications.php';
-        require_once $includes_dir . 'core/class-tag-translation.php';
         require_once $includes_dir . 'core/class-user-autocomplete.php';
         require_once $includes_dir . '/core/class-logs-manager.php';
 
@@ -97,6 +96,11 @@ class PolyTrans
         require_once $includes_dir . 'receiver/managers/class-translation-security-manager.php';
         require_once $includes_dir . 'receiver/class-translation-coordinator.php';
         require_once $includes_dir . 'receiver/class-translation-receiver-extension.php';
+
+        //menu
+        require_once $includes_dir . 'menu/class-settings-menu.php';
+        require_once $includes_dir . 'menu/class-logs-menu.php';
+        require_once $includes_dir . 'menu/class-tag-translation.php';
     }
 
     /**
@@ -142,103 +146,27 @@ class PolyTrans
      */
     public function add_admin_menus()
     {
-        // Main menu item
-        add_menu_page(
-            __('PolyTrans', 'polytrans'),
-            __('PolyTrans', 'polytrans'),
-            'manage_options',
-            'polytrans',
-            [$this, 'render_settings'],
-            'dashicons-translation',
-            80
-        );
-
-        // Logs submenu
-        add_submenu_page(
-            'polytrans',
-            __('Logs', 'polytrans'),
-            __('Logs', 'polytrans'),
-            'manage_options',
-            'polytrans-logs',
-            [$this, 'render_logs']
-        );
+        PolyTrans_Settings_Menu::get_instance()->add_admin_menu();
+        PolyTrans_Tag_Translation::get_instance()->add_admin_menu();
+        PolyTrans_Logs_Menu::get_instance()->add_logs_submenu();
 
         // Rename the first submenu item
         global $submenu;
         if (isset($submenu['polytrans'])) {
-            $submenu['polytrans'][0][0] = __('PolyTrans Settings', 'polytrans');
+            $submenu['polytrans'][0][0] = __('Settings', 'polytrans');
         }
     }
 
-    /**
-     * Render settings page
-     */
-    public function render_settings()
-    {
-        require_once POLYTRANS_PLUGIN_DIR . 'includes/settings/class-translation-settings.php';
-        $settings = new polytrans_settings();
-        $settings->render();
-    }
-
-    /**
-     * Render logs page
-     */
-    public function render_logs()
-    {
-        PolyTrans_Logs_Manager::admin_logs_page();
-    }
 
     /**
      * Enqueue admin scripts and styles
      */
     public function enqueue_admin_scripts($hook)
     {
-        $plugin_url = POLYTRANS_PLUGIN_URL;
-
-        // Load on translation settings page
-        if ($hook === 'toplevel_page_polytrans') {
-            wp_enqueue_script('polytrans-settings', $plugin_url . 'assets/js/settings/translation-settings-admin.js', ['jquery'], POLYTRANS_VERSION, true);
-            wp_enqueue_script('polytrans-user-autocomplete', $plugin_url . 'assets/js/core/user-autocomplete.js', ['jquery-ui-autocomplete'], POLYTRANS_VERSION, true);
-
-            wp_enqueue_style('polytrans-settings', $plugin_url . 'assets/css/settings/translation-settings-admin.css', [], POLYTRANS_VERSION);
-            wp_enqueue_style('jquery-ui-autocomplete');
-
-            // Localize script for main settings
-            $settings = get_option('polytrans_settings', []);
-            wp_localize_script('polytrans-settings', 'PolyTransAjax', [
-                'ajaxurl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('polytrans_nonce'),
-                'settings' => $settings,
-                'translation_receiver_endpoint' => $settings['translation_receiver_endpoint'] ?? '',
-            ]);
-        }
-
-        // Load on logs page
-        if ($hook === 'polytrans_page_polytrans-logs') {
-            wp_enqueue_script('jquery');
-            // Add inline script to make ajaxurl available
-            wp_add_inline_script('jquery', 'var ajaxurl = "' . admin_url('admin-ajax.php') . '";');
-        }
-
-        // Load on post edit pages
-        if (in_array($hook, ['post.php', 'post-new.php'])) {
-            wp_enqueue_script('polytrans-scheduler', $plugin_url . 'assets/js/scheduler/translation-scheduler.js', ['jquery'], POLYTRANS_VERSION, true);
-            wp_enqueue_style('polytrans-scheduler', $plugin_url . 'assets/css/scheduler/translation-scheduler.css', [], POLYTRANS_VERSION);
-
-            $settings = get_option('polytrans_settings', []);
-            $langs = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'slug']) : ['pl', 'en', 'it'];
-            $lang_names = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'name']) : ['Polish', 'English', 'Italian'];
-
-            wp_localize_script('polytrans-scheduler', 'PolyTransScheduler', [
-                'ajax_url' => admin_url('admin-ajax.php'),
-                'settings' => $settings,
-                'langs' => $langs,
-                'lang_names' => $lang_names,
-                'postId' => get_the_ID(),
-                'nonce' => wp_create_nonce('polytrans_schedule_translation'),
-                'edit_url' => admin_url('post.php?post=__ID__&action=edit'),
-            ]);
-        }
+        PolyTrans_Settings_Menu::get_instance()->add_scripts($hook);
+        PolyTrans_Logs_Menu::get_instance()->add_scripts($hook);
+        PolyTrans_Tag_Translation::get_instance()->enqueue_admin_scripts($hook);
+        PolyTrans_Translation_Scheduler::get_instance()->enqueue_admin_scripts($hook);
     }
 
     /**
@@ -338,76 +266,6 @@ class PolyTrans
         $notifications->handle_post_status_transition($new_status, $old_status, $post);
     }
 
-    /**
-     * Add dashboard widgets
-     */
-    public function add_dashboard_widgets()
-    {
-        wp_add_dashboard_widget(
-            'polytrans_status_dashboard_widget',
-            __('PolyTrans Translation Status', 'polytrans'),
-            [$this, 'render_dashboard_widget']
-        );
-    }
-
-    /**
-     * Render the dashboard widget showing translation status
-     */
-    public function render_dashboard_widget()
-    {
-        // Load the status manager class if not already loaded
-        if (!class_exists('PolyTrans_Translation_Status_Manager')) {
-            require_once POLYTRANS_PLUGIN_DIR . 'includes/receiver/managers/class-translation-status-manager.php';
-        }
-
-        $status_manager = new PolyTrans_Translation_Status_Manager();
-        $summary = $status_manager->get_status_summary();
-
-        echo '<div class="polytrans-dashboard-widget">';
-        echo '<h4>' . __('Translation Status Summary', 'polytrans') . '</h4>';
-
-        echo '<table class="widefat fixed" style="margin-bottom: 10px;">';
-        echo '<thead><tr>';
-        echo '<th>' . __('Status', 'polytrans') . '</th>';
-        echo '<th>' . __('Count', 'polytrans') . '</th>';
-        echo '</tr></thead><tbody>';
-
-        $statuses = [
-            'started' => __('Started', 'polytrans'),
-            'translating' => __('Translating', 'polytrans'),
-            'processing' => __('Processing', 'polytrans'),
-            'completed' => __('Completed', 'polytrans'),
-            'failed' => __('Failed', 'polytrans')
-        ];
-
-        foreach ($statuses as $status_key => $status_label) {
-            $count = $summary[$status_key] ?? 0;
-            echo '<tr>';
-            echo '<td>' . $status_label . '</td>';
-            echo '<td>' . $count . '</td>';
-            echo '</tr>';
-        }
-
-        echo '</tbody></table>';
-
-        // Check for potentially stuck translations
-        $non_terminal_count = ($summary['started'] ?? 0) + ($summary['translating'] ?? 0) + ($summary['processing'] ?? 0);
-        if ($non_terminal_count > 0) {
-            echo '<div class="notice notice-warning inline"><p>';
-            echo sprintf(
-                __('There are %d translations in a non-terminal state that might be stuck. <a href="%s">Check now</a>.', 'polytrans'),
-                $non_terminal_count,
-                admin_url('admin.php?page=polytrans-logs&check_stuck=1')
-            );
-            echo '</p></div>';
-        }
-
-        echo '<p><a href="' . admin_url('admin.php?page=polytrans-logs') . '" class="button">';
-        echo __('View Translation Logs', 'polytrans');
-        echo '</a></p>';
-
-        echo '</div>';
-    }
 
     /**
      * Get plugin version

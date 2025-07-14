@@ -16,7 +16,7 @@ class PolyTrans_Tag_Translation
     /**
      * Get singleton instance
      */
-    public static function get_instance()
+    public static function get_instance(): self
     {
         if (self::$instance === null) {
             self::$instance = new self();
@@ -29,8 +29,6 @@ class PolyTrans_Tag_Translation
      */
     private function __construct()
     {
-        add_action('admin_menu', [$this, 'add_admin_menu']);
-        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_scripts']);
         add_action('wp_ajax_polytrans_save_tag_translation', [$this, 'ajax_save_tag_translation']);
         add_action('wp_ajax_polytrans_search_tags', [$this, 'ajax_search_tags']);
         add_action('wp_ajax_polytrans_export_tag_csv', [$this, 'ajax_export_tag_csv']);
@@ -43,13 +41,13 @@ class PolyTrans_Tag_Translation
     public function add_admin_menu()
     {
         add_submenu_page(
-            'edit.php', // Parent: Posts
+            'polytrans',
             __('Tag Translations', 'polytrans-translation'),
             __('Tag Translations', 'polytrans-translation'),
             'manage_options',
             'polytrans-tag-translation',
             [$this, 'admin_page'],
-            11
+            20
         );
     }
 
@@ -58,7 +56,7 @@ class PolyTrans_Tag_Translation
      */
     public function enqueue_admin_scripts($hook)
     {
-        if ($hook !== 'posts_page_polytrans-tag-translation') return;
+        if ($hook !== 'polytrans_page_polytrans-tag-translation') return;
 
         $plugin_url = POLYTRANS_PLUGIN_URL;
         wp_enqueue_script('polytrans-tag-translation', $plugin_url . 'assets/js/core/tag-translation-admin.js', ['jquery'], POLYTRANS_VERSION, true);

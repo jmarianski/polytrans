@@ -19,7 +19,7 @@ class PolyTrans_Translation_Scheduler
     /**
      * Get singleton instance
      */
-    public static function get_instance()
+    public static function get_instance(): self
     {
         if (self::$instance === null) {
             self::$instance = new self();
@@ -37,12 +37,33 @@ class PolyTrans_Translation_Scheduler
         $this->lang_names = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'name']) : ['Polish', 'English', 'Italian'];
     }
 
+    public function enqueue_admin_scripts($hook)
+    {
+        if (in_array($hook, ['post.php', 'post-new.php'])) {
+            wp_enqueue_script('polytrans-scheduler', POLYTRANS_PLUGIN_URL . 'assets/js/scheduler/translation-scheduler.js', ['jquery'], POLYTRANS_VERSION, true);
+            wp_enqueue_style('polytrans-scheduler', POLYTRANS_PLUGIN_URL . 'assets/css/scheduler/translation-scheduler.css', [], POLYTRANS_VERSION);
+
+            $settings = get_option('polytrans_settings', []);
+            $langs = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'slug']) : ['pl', 'en', 'it'];
+            $lang_names = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'name']) : ['Polish', 'English', 'Italian'];
+
+            wp_localize_script('polytrans-scheduler', 'PolyTransScheduler', [
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'settings' => $settings,
+                'langs' => $langs,
+                'lang_names' => $lang_names,
+                'postId' => get_the_ID(),
+                'nonce' => wp_create_nonce('polytrans_schedule_translation'),
+                'edit_url' => admin_url('post.php?post=__ID__&action=edit'),
+            ]);
+        }
+    }
+
     /**
      * Render scheduler meta box
      */
     public function render($post)
     {
-        error_log('[polytrans] Rendering translation scheduler meta box for post ' . $post->ID);
         $current_lang = function_exists('pll_get_post_language') ? pll_get_post_language($post->ID) : ($this->langs[0] ?? 'pl');
         $allowed_sources = $this->settings['allowed_sources'] ?? $this->langs;
         $allowed_targets = $this->settings['allowed_targets'] ?? $this->langs;
