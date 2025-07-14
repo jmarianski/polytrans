@@ -19,7 +19,7 @@ class PolyTrans_Translation_Notification_Manager
      * @param array $translated Translated content data
      * @return string Final post status
      */
-    public function handle_notifications($new_post_id, $original_post_id, $target_language, array $translated)
+    public function handle_notifications($new_post_id, $original_post_id, $target_language)
     {
         $settings = get_option('polytrans_settings', []);
         $lang_settings = isset($settings[$target_language]) ? $settings[$target_language] : [];
@@ -38,13 +38,13 @@ class PolyTrans_Translation_Notification_Manager
      * 
      * @param int $new_post_id New translated post ID
      * @param string $target_language Target language code
-     * @param string $reviewer_user_login Reviewer username
+     * @param string $reviewer_user_id Reviewer id
      */
-    private function send_reviewer_notification($new_post_id, $target_language, $reviewer_user_login)
+    private function send_reviewer_notification($new_post_id, $target_language, $reviewer_user_id)
     {
-        $reviewer = get_user_by('login', $reviewer_user_login);
+        $reviewer = get_user_by('id', $reviewer_user_id);
         if (!$reviewer) {
-            PolyTrans_Logs_Manager::log("[polytrans] Reviewer not found: $reviewer_user_login", "info");
+            PolyTrans_Logs_Manager::log("[polytrans] Reviewer not found: $reviewer_user_id", "info");
             return;
         }
 

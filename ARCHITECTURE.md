@@ -241,7 +241,6 @@ The multi-server architecture is configured via the `polytrans_settings` option:
 
 - **POST** `/wp-json/polytrans/v1/translation/translate` - Receive and process translation requests
 - **POST** `/wp-json/polytrans/v1/translation/receive-post` - Receive completed translations
-- **GET** `/wp-json/polytrans/v1/translation/status/{post_id}` - Check translation status
 
 ## Benefits of This Architecture
 
