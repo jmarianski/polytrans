@@ -35,14 +35,53 @@ class PolyTrans_Translation_Notification_Manager
 
     private function get_post_placeholders($post, $target_language)
     {
+        $settings = get_option('polytrans_settings', []);
+        $edit_link = $this->get_edit_link($post->ID, $settings);
+
         return [
             '{title}' => $post->post_title,
             '{language}' => $target_language,
-            '{link}' => get_edit_post_link($post->ID),
-            '{edit_link}' => get_edit_post_link($post->ID),
-            '{view_link}' => get_permalink($post->ID),
+            '{link}' => $edit_link,
+            '{edit_link}' => $edit_link,
             '{author_name}' => get_the_author_meta('display_name', $post->post_author)
         ];
+    }
+
+    /**
+     * Generate edit link for a post, using custom base URL if configured
+     * 
+     * @param int $post_id Post ID
+     * @param array $settings Plugin settings
+     * @return string Edit link URL
+     */
+    private function get_edit_link($post_id, $settings)
+    {
+        $edit_link_base_url = $settings['edit_link_base_url'] ?? '';
+
+        if (!empty($edit_link_base_url)) {
+            // Use custom base URL for edit links
+            $edit_link = rtrim($edit_link_base_url, '/') . '/post.php?post=' . $post_id . '&action=edit';
+            PolyTrans_Logs_Manager::log("Using custom edit link base URL: $edit_link", "info", [
+                'post_id' => $post_id,
+                'base_url' => $edit_link_base_url
+            ]);
+            return $edit_link;
+        } else {
+            // Fall back to WordPress default (may not work in background processes)
+            $edit_link = get_edit_post_link($post_id);
+            if (!$edit_link) {
+                // If get_edit_post_link fails (background context), construct manually
+                $edit_link = admin_url('post.php?post=' . $post_id . '&action=edit');
+                PolyTrans_Logs_Manager::log("get_edit_post_link failed, using admin_url fallback: $edit_link", "info", [
+                    'post_id' => $post_id
+                ]);
+            } else {
+                PolyTrans_Logs_Manager::log("Using WordPress generated edit link: $edit_link", "info", [
+                    'post_id' => $post_id
+                ]);
+            }
+            return $edit_link;
+        }
     }
 
     /**

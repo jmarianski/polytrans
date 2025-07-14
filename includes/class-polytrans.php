@@ -48,6 +48,7 @@ class PolyTrans
         // AJAX handlers
         add_action('wp_ajax_polytrans_schedule_translation', [$this, 'ajax_schedule_translation']);
         add_action('wp_ajax_polytrans_search_users', [$this, 'ajax_search_users']);
+        add_action('wp_ajax_polytrans_refresh_logs', [PolyTrans_Logs_Manager::class, 'ajax_refresh_logs']);
         // Post status transition for notifications
         add_action('transition_post_status', [$this, 'handle_post_status_transition'], 10, 3);
 
@@ -210,6 +211,13 @@ class PolyTrans
                 'settings' => $settings,
                 'translation_receiver_endpoint' => $settings['translation_receiver_endpoint'] ?? '',
             ]);
+        }
+
+        // Load on logs page
+        if ($hook === 'polytrans_page_polytrans-logs') {
+            wp_enqueue_script('jquery');
+            // Add inline script to make ajaxurl available
+            wp_add_inline_script('jquery', 'var ajaxurl = "' . admin_url('admin-ajax.php') . '";');
         }
 
         // Load on post edit pages

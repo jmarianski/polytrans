@@ -57,6 +57,7 @@ class polytrans_settings
         $settings['translation_receiver_endpoint'] = esc_url_raw($_POST['translation_receiver_endpoint'] ?? '');
         $settings['translation_receiver_secret'] = sanitize_text_field($_POST['translation_receiver_secret'] ?? '');
         $settings['translation_receiver_secret_method'] = sanitize_text_field($_POST['translation_receiver_secret_method'] ?? 'header_bearer');
+        $settings['edit_link_base_url'] = esc_url_raw($_POST['edit_link_base_url'] ?? '');
         $settings['enable_db_logging'] = isset($_POST['enable_db_logging']) ? '1' : '0';
         $settings['allowed_sources'] = array_map('sanitize_text_field', $_POST['allowed_sources'] ?? []);
         $settings['allowed_targets'] = array_map('sanitize_text_field', $_POST['allowed_targets'] ?? []);
@@ -343,7 +344,7 @@ class polytrans_settings
                 ];
                 wp_editor($reviewer_email, $editor_id, $editor_settings);
                 ?>
-                <small><?php esc_html_e('Email sent to reviewer when translation is ready for review. Use {link} for the edit link and {title} for the post title.', 'polytrans-translation'); ?></small>
+                <small><?php esc_html_e('Email sent to reviewer when translation is ready for review. Use {link} for the edit link and {title} for the post title. Note: Edit links will use the "Edit Link Base URL" from Advanced Settings if configured, which is recommended for background processes.', 'polytrans-translation'); ?></small>
             </div>
             <div class="translation-email-col">
                 <h2><?php esc_html_e('Author Email Template (when translation is published)', 'polytrans-translation'); ?></h2>
@@ -355,7 +356,7 @@ class polytrans_settings
                 $editor_settings['textarea_name'] = 'author_email';
                 wp_editor($author_email, $editor_id, $editor_settings);
                 ?>
-                <small><?php esc_html_e('Email sent to the author when translation is published. Use {link} for the edit link and {title} for the post title.', 'polytrans-translation'); ?></small>
+                <small><?php esc_html_e('Email sent to the author when translation is published. Use {link} for the edit link and {title} for the post title. Note: Edit links will use the "Edit Link Base URL" from Advanced Settings if configured, which is recommended for background processes.', 'polytrans-translation'); ?></small>
             </div>
         </div>
     <?php
@@ -408,6 +409,10 @@ class polytrans_settings
             <option value="post_param" <?php selected($method, 'post_param'); ?>><?php esc_html_e('POST body field (JSON: secret)', 'polytrans-translation'); ?></option>
         </select>
         <br><small><?php esc_html_e('Choose how the secret should be sent to the receiver endpoint. Select "None" to disable secret sending/checking.', 'polytrans-translation'); ?></small><br><br>
+
+        <h2><?php esc_html_e('Edit Link Base URL', 'polytrans-translation'); ?></h2>
+        <input type="url" name="edit_link_base_url" value="<?php echo esc_attr($settings['edit_link_base_url'] ?? ''); ?>" style="width:100%" placeholder="https://example.com/wp-admin" />
+        <br><small><?php esc_html_e('Base URL for edit links in email notifications (e.g., https://example.com/wp-admin). If left empty, the system will attempt to use the default WordPress admin URL. This is useful when notifications are sent from background processes or external services that don\'t have proper WordPress context.', 'polytrans-translation'); ?></small><br><br>
 
         <h2><?php esc_html_e('Logging Options', 'polytrans-translation'); ?></h2>
         <div class="translation-logging-options">
