@@ -310,7 +310,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
         $attempts = 0;
 
         while ($attempts < $max_attempts) {
-            sleep(2); // Wait 2 seconds between checks
+            sleep(rand(1, 10)); // Wait 2 seconds between checks
 
             $status_response = wp_remote_get("https://api.openai.com/v1/threads/$thread_id/runs/$run_id", [
                 'headers' => [
