@@ -64,12 +64,12 @@ class PolyTrans_Translation_Notifications
         $lang = get_post_meta($post->ID, 'polytrans_translation_lang', true);
         $settings = get_option('polytrans_settings', []);
         $reviewer_id = $settings[$lang]['reviewer'] ?? '';
-        if (!$reviewer_id) {
+        if (empty($reviewer_id)) {
             return;
         }
 
         // Only notify if current user is reviewer
-        if (get_current_user_id() != $reviewer_id) {
+        if (get_current_user_id() !== $reviewer_id && !isset($reviewer_id)) {
             PolyTrans_Logs_Manager::log("Not notifying, current user is not the reviewer for post {$post->ID}", "info");
             return;
         }
