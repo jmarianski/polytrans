@@ -61,10 +61,7 @@ class PolyTrans_Translation_Notification_Manager
         if (!empty($edit_link_base_url)) {
             // Use custom base URL for edit links
             $edit_link = rtrim($edit_link_base_url, '/') . '/post.php?post=' . $post_id . '&action=edit';
-            PolyTrans_Logs_Manager::log("Using custom edit link base URL: $edit_link", "info", [
-                'post_id' => $post_id,
-                'base_url' => $edit_link_base_url
-            ]);
+
             return $edit_link;
         } else {
             // Fall back to WordPress default (may not work in background processes)
@@ -118,7 +115,12 @@ class PolyTrans_Translation_Notification_Manager
         $email_subject = str_replace(array_keys($placeholders), array_values($placeholders), $email_subject);
         $email_body = str_replace(array_keys($placeholders), array_values($placeholders), $email_body);
 
-        $sent = wp_mail($reviewer->user_email, $email_subject, $email_body);
+        $sent = wp_mail(
+            $reviewer->user_email,
+            $email_subject,
+            $email_body,
+            ['Content-Type: text/html; charset=UTF-8']
+        );
 
         if ($sent) {
             PolyTrans_Logs_Manager::log("Sent reviewer notification to {$reviewer->user_email} for post $new_post_id", "info");

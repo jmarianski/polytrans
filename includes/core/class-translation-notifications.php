@@ -95,7 +95,12 @@ class PolyTrans_Translation_Notifications
         PolyTrans_Logs_Manager::log("Sending review notification to author {$author->user_email} for post {$post->ID} (original $original_post_id)", "info");
 
         // Send email
-        wp_mail($author->user_email, $email_subject, $email_body);
+        wp_mail(
+            $author->user_email,
+            $email_subject,
+            $email_body,
+            ['Content-Type: text/html; charset=UTF-8']
+        );
 
         // Mark as notified
         update_post_meta($post->ID, '_polytrans_author_notified', 1);
@@ -130,10 +135,7 @@ class PolyTrans_Translation_Notifications
         if (!empty($edit_link_base_url)) {
             // Use custom base URL for edit links
             $edit_link = rtrim($edit_link_base_url, '/') . '/post.php?post=' . $post_id . '&action=edit';
-            PolyTrans_Logs_Manager::log("Using custom edit link base URL: $edit_link", "info", [
-                'post_id' => $post_id,
-                'base_url' => $edit_link_base_url
-            ]);
+
             return $edit_link;
         } else {
             // Fall back to WordPress default (may not work in background processes)
