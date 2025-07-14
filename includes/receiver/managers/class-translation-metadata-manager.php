@@ -20,8 +20,9 @@ class PolyTrans_Translation_Metadata_Manager
      */
     public function setup_metadata($new_post_id, $original_post_id, $source_language, array $translated)
     {
-        $this->set_translation_markers($new_post_id, $original_post_id, $source_language);
+        $this->set_author($new_post_id, $$original_post_id);
         $this->copy_original_metadata($new_post_id, $original_post_id, $translated);
+        $this->set_translation_markers($new_post_id, $original_post_id, $source_language);
     }
 
     /**
@@ -65,6 +66,23 @@ class PolyTrans_Translation_Metadata_Manager
                 $meta_value = $this->process_meta_value($value);
                 update_post_meta($new_post_id, $key, $meta_value);
             }
+        }
+    }
+
+    /**
+     * Sets the author of the translated post to match the original post.
+     *
+     * @param int $new_post_id New translated post ID
+     * @param int $original_post_id Original post ID
+     */
+    private function set_author($new_post_id, $original_post_id)
+    {
+        $original_post = get_post($original_post_id);
+        if ($original_post && isset($original_post->post_author)) {
+            wp_update_post([
+                'ID' => $new_post_id,
+                'post_author' => $original_post->post_author,
+            ]);
         }
     }
 

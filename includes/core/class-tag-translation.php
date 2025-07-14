@@ -419,7 +419,6 @@ class PolyTrans_Tag_Translation
 
                 // Skip if empty translation or if this is the source language column (contains " tag" at the end)
                 if (empty($translation_name) || preg_match('/\s+tag\s*$/i', $header[$j])) {
-                    PolyTrans_Logs_Manager::log("Skipping: empty or source column", "info");
                     continue;
                 }
 
