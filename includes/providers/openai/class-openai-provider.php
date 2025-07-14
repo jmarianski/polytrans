@@ -216,6 +216,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
      */
     private function translate_with_openai($content, $source_lang, $target_lang, $assistant_id, $api_key)
     {
+        PolyTrans_Logs_Manager::log("OpenAI run status: started ($source_lang -> $target_lang)", "info");
         // Prepare the content for translation as JSON
         $content_to_translate = [
             'title' => $content['title'] ?? '',
@@ -332,7 +333,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
             $status = $status_data['status'] ?? 'unknown';
 
             if ($status === 'completed') {
-                PolyTrans_Logs_Manager::log("OpenAI run status: completed", "info");
+                PolyTrans_Logs_Manager::log("OpenAI run status: completed ($source_lang -> $target_lang)", "info");
                 break;
             } elseif ($status === 'failed' || $status === 'cancelled' || $status === 'expired') {
                 return [
