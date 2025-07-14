@@ -12,21 +12,14 @@ jQuery(function ($) {
     var $translateStatus = $('#polytrans-translate-status');
 
     var postId = PolyTransScheduler.postId;
-    var langNames = PolyTransScheduler.lang_names || {};
 
-    // Helper: get last log message or fallback
-    function getLastLog(info, fallback) {
-        return (info.log && info.log.length ? info.log[info.log.length - 1] : fallback);
-    }
 
     // Helper: show/hide translation status UI
     function renderStatusUI(status) {
-        console.log('[PolyTrans] renderStatusUI called with:', status);
         var hasAny = false;
         $mergedList.find('li').each(function () {
             var lang = this.id.replace('polytrans-merged-', '');
             var info = status[lang];
-            console.log('[PolyTrans] Processing language:', lang, 'info:', info);
             var $li = $(this);
             var $loader = $li.find('.polytrans-loader');
             var $check = $li.find('.polytrans-check');
@@ -34,7 +27,6 @@ jQuery(function ($) {
             var $editBtn = $li.find('.polytrans-edit-btn');
             var $clearBtn = $li.find('.polytrans-clear-translation');
             if (info && (info.status === 'started' || info.status === 'translating' || info.status === 'processing')) {
-                console.log('[PolyTrans] Showing started status for:', lang);
                 $li.show();
                 $loader.show();
                 $check.hide();
@@ -42,7 +34,6 @@ jQuery(function ($) {
                 $clearBtn.show();
                 hasAny = true;
             } else if (info && (info.status === 'finished' || info.status === 'completed') && info.post_id) {
-                console.log('[PolyTrans] Showing finished status for:', lang, 'post_id:', info.post_id);
                 $li.show();
                 $loader.hide();
                 $check.show();
@@ -64,7 +55,6 @@ jQuery(function ($) {
                 $clearBtn.hide();
             }
         });
-        console.log('[PolyTrans] hasAny:', hasAny);
         if (hasAny) {
             $mergedList.show();
             $controls.hide();
@@ -82,7 +72,6 @@ jQuery(function ($) {
             post_id: postId,
             _ajax_nonce: PolyTransScheduler.nonce
         }, function (resp) {
-            console.log('[PolyTrans] Status response:', resp);
             if (resp && resp.success && resp.data && resp.data.status) {
                 console.log('[PolyTrans] Rendering status:', resp.data.status);
                 renderStatusUI(resp.data.status);
