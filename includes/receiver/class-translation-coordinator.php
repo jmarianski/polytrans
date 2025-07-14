@@ -53,8 +53,6 @@ class PolyTrans_Translation_Coordinator
             $target_language = $params['target_language'];
             $original_post_id = $params['original_post_id'];
 
-            PolyTrans_Logs_Manager::log("Starting translation processing for post $original_post_id: $source_language -> $target_language", "info");
-
             // Create the translated post
             $new_post_id = $this->post_creator->create_post($translated, $original_post_id);
             if (is_wp_error($new_post_id)) {
@@ -65,7 +63,6 @@ class PolyTrans_Translation_Coordinator
                 ];
             }
 
-            PolyTrans_Logs_Manager::log("Created NEW translated post $new_post_id from original $original_post_id", "info");
 
             // Setup all post properties and relationships
             $this->setup_translated_post($new_post_id, $original_post_id, $source_language, $target_language, $translated);

@@ -35,11 +35,10 @@ class PolyTrans_Translation_Post_Creator
         $new_post_id = wp_insert_post($postarr);
 
         if (is_wp_error($new_post_id)) {
-            error_log('[polytrans] Failed to create translated post: ' . $new_post_id->get_error_message());
+            PolyTrans_Logs_Manager::log('[polytrans] Failed to create translated post: ' . $new_post_id->get_error_message(), "error");
             return $new_post_id;
         }
 
-        error_log("[polytrans] Successfully created translated post $new_post_id from original $original_post_id");
         return $new_post_id;
     }
 

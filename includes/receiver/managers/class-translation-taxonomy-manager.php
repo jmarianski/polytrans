@@ -34,6 +34,8 @@ class PolyTrans_Translation_Taxonomy_Manager
     {
         $orig_cats = wp_get_post_categories($original_post_id, ['fields' => 'all']);
         $translated_cat_ids = [];
+        $categories_found = [];
+        $categories_not_found = [];
 
         foreach ($orig_cats as $cat) {
             $cat_obj = get_category($cat);
@@ -42,14 +44,20 @@ class PolyTrans_Translation_Taxonomy_Manager
             $translated_cat_id = $this->find_translated_category($cat_obj, $target_language);
             if ($translated_cat_id) {
                 $translated_cat_ids[] = $translated_cat_id;
+                $categories_found[] = $cat_obj->name;
+            } else {
+                $categories_not_found[] = $cat_obj->name;
             }
         }
 
         if ($translated_cat_ids) {
             wp_set_post_categories($new_post_id, $translated_cat_ids);
-            error_log("[polytrans] Set translated categories for post $new_post_id: " . implode(',', $translated_cat_ids));
-        } else {
-            error_log("[polytrans] No translated categories found for post $new_post_id in language $target_language");
+        }
+        if (!empty($categories_not_found)) {
+            PolyTrans_Logs_Manager::log(
+                "[polytrans] Categories not found for post $new_post_id: " . implode(',', $categories_not_found) . "; Found: " . implode(',', $categories_found),
+                "info"
+            );
         }
     }
 

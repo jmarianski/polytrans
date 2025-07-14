@@ -38,6 +38,10 @@ class PolyTrans_Translation_Notifications
      */
     public function handle_post_status_transition($new_status, $old_status, $post)
     {
+        if ($new_status === 'inherit') {
+            // Skip, as it mostly applies to revisions
+            return;
+        }
         PolyTrans_Logs_Manager::log("transition_post_status: post {$post->ID} from $old_status to $new_status", "info");
 
         // Only for posts that are translation targets
@@ -46,7 +50,7 @@ class PolyTrans_Translation_Notifications
         }
 
         // Only when moving from pending/pending_review to publish or draft
-        if (!in_array($old_status, ['pending', 'draft']) || !in_array($new_status, ['publish', 'draft'])) {
+        if (!in_array($old_status, ['pending', 'draft']) || !in_array($new_status, ['publish', 'draft', 'future'])) {
             return;
         }
 

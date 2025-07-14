@@ -96,9 +96,6 @@ class PolyTrans
         require_once $includes_dir . 'receiver/managers/class-translation-security-manager.php';
         require_once $includes_dir . 'receiver/class-translation-coordinator.php';
         require_once $includes_dir . 'receiver/class-translation-receiver-extension.php';
-
-        // REST API endpoints
-        require_once $includes_dir . 'api/class-translation-api.php';
     }
 
     /**
@@ -113,7 +110,6 @@ class PolyTrans
         PolyTrans_Translation_Notifications::get_instance();
         PolyTrans_Tag_Translation::get_instance();
         PolyTrans_User_Autocomplete::get_instance();
-        PolyTrans_Translation_API::get_instance();
 
         // Initialize the translation extension (handles incoming translation requests)
         PolyTrans_Translation_Extension::get_instance();
