@@ -55,7 +55,7 @@ class PolyTrans_Translation_Notifications
         }
 
         // Only if not already notified
-        if (get_post_meta($post->ID, '_polytrans_reviewed_notified', true)) {
+        if (get_post_meta($post->ID, '_polytrans_author_notified', true)) {
             return;
         }
 
@@ -88,37 +88,12 @@ class PolyTrans_Translation_Notifications
         $body = str_replace(['{link}', '{title}'], [get_edit_post_link($post->ID, 'edit'), get_the_title($post->ID)], $body);
 
         PolyTrans_Logs_Manager::log("Sending review notification to author {$author->user_email} for post {$post->ID} (original $original_post_id)", "info");
-        PolyTrans_Logs_Manager::log("Email subject: $subject", "info");
-        PolyTrans_Logs_Manager::log("Email body: $body", "info");
 
         // Send email
         wp_mail($author->user_email, $subject, $body);
 
         // Mark as notified
-        update_post_meta($post->ID, '_polytrans_reviewed_notified', 1);
+        update_post_meta($post->ID, '_polytrans_author_notified', 1);
         PolyTrans_Logs_Manager::log("Marked as notified for post {$post->ID}", "info");
-    }
-
-    /**
-     * Send reviewer notification email
-     */
-    public function send_reviewer_notification($post_id, $reviewer_id, $lang)
-    {
-        $settings = get_option('polytrans_settings', []);
-        $reviewer = get_user_by('id', $reviewer_id);
-
-        if (!$reviewer) {
-            PolyTrans_Logs_Manager::log("No reviewer found with ID $reviewer_id", "info");
-            return false;
-        }
-
-        $subject = $settings['reviewer_email_title'] ?? 'Translation ready for review: {title}';
-        $body = $settings['reviewer_email'] ?? 'A translation is ready for your review: {link}';
-        $subject = str_replace('{title}', get_the_title($post_id), $subject);
-        $body = str_replace(['{link}', '{title}'], [get_edit_post_link($post_id, 'edit'), get_the_title($post_id)], $body);
-
-        PolyTrans_Logs_Manager::log("Sending reviewer notification to {$reviewer->user_email} for post $post_id in language $lang", "info");
-
-        return wp_mail($reviewer->user_email, $subject, $body);
     }
 }
