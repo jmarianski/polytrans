@@ -308,6 +308,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
         // Poll for completion
         $max_attempts = 30;
         $attempts = 0;
+        sleep(10); // Initial wait to allow processing to start
 
         while ($attempts < $max_attempts) {
             sleep(rand(1, 10)); // Wait 2 seconds between checks
@@ -330,15 +331,16 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
             $status_data = json_decode(wp_remote_retrieve_body($status_response), true);
             $status = $status_data['status'] ?? 'unknown';
 
-            PolyTrans_Logs_Manager::log("OpenAI run status: $status (attempt $attempts)", "info");
-
             if ($status === 'completed') {
+                PolyTrans_Logs_Manager::log("OpenAI run status: completed", "info");
                 break;
             } elseif ($status === 'failed' || $status === 'cancelled' || $status === 'expired') {
                 return [
                     'success' => false,
                     'error' => "OpenAI run $status: " . ($status_data['last_error']['message'] ?? 'Unknown error')
                 ];
+            } else {
+                PolyTrans_Logs_Manager::log("OpenAI run status: $status (attempt $attempts)", "info");
             }
 
             $attempts++;
