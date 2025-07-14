@@ -33,7 +33,7 @@ jQuery(function ($) {
             var $failed = $li.find('.polytrans-failed');
             var $editBtn = $li.find('.polytrans-edit-btn');
             var $clearBtn = $li.find('.polytrans-clear-translation');
-            if (info && (info.status === 'started' || info.status === 'translating')) {
+            if (info && (info.status === 'started' || info.status === 'translating' || info.status === 'processing')) {
                 console.log('[PolyTrans] Showing started status for:', lang);
                 $li.show();
                 $loader.show();
