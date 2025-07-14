@@ -19,7 +19,7 @@ make phpcs-relaxed
 
 #### Option A: Fix Critical Security (RECOMMENDED)
 ```bash
-# Edit: includes/settings/class-translation-settings.php
+# Edit: includes/core/class-translation-settings.php
 # Fix: Lines 40, 54-61, 70, 77-85 (nonce verification)
 # Test: make phpcs-relaxed (should reduce from 93 to ~56 issues)
 ```
@@ -55,7 +55,7 @@ Update CODE_QUALITY_STATUS.md with:
 - `composer.json` - Dependencies and scripts
 
 ### Problem Files (NEED FIXES)
-1. `includes/settings/class-translation-settings.php` (37 issues)
+1. `includes/core/class-translation-settings.php` (37 issues)
 2. `includes/class-polytrans.php` (12 issues)
 3. `includes/core/class-logs-manager.php` (7 issues)
 

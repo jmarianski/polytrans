@@ -5,7 +5,7 @@
 ### IMMEDIATE (Priority 1) - Security Critical
 ```
 Task: Fix nonce verification in settings
-File: includes/settings/class-translation-settings.php
+File: includes/core/class-translation-settings.php
 Issues: 37 security violations
 Command: make phpcs-relaxed
 Goal: Reduce security issues from 93 to ~56

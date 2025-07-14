@@ -27,7 +27,7 @@ The plugin has complete Docker-based development infrastructure with these comma
 - `make phpcbf` - Auto-fix issues
 
 Choose the next development focus:
-- SECURITY (recommended): Fix 37 critical issues in includes/settings/class-translation-settings.php
+- SECURITY (recommended): Fix 37 critical issues in includes/core/class-translation-settings.php
 - FEATURES: Continue functionality development
 - STANDARDS: WordPress.org compliance preparation
 

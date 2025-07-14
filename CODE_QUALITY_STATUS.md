@@ -51,7 +51,7 @@ make all             # Run all quality checks
 ### 🔍 Detailed Issues Breakdown
 
 #### High Priority Security Issues (37 errors in settings):
-- **File**: `includes/settings/class-translation-settings.php`
+- **File**: `includes/core/class-translation-settings.php`
 - **Issues**: Missing nonce verification, unvalidated $_POST data
 - **Priority**: High (form processing without security checks)
 
