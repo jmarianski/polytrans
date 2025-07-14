@@ -48,12 +48,12 @@ class PolyTrans_Translation_Notifications
             // already notofied, not sending anything
             return;
         }
-        PolyTrans_Logs_Manager::log("transition_post_status: post {$post->ID} from $old_status to $new_status", "info");
-
         // Only for posts that are translation targets
         if (!get_post_meta($post->ID, 'polytrans_is_translation_target', true)) {
             return;
         }
+
+        PolyTrans_Logs_Manager::log("transition_post_status: post {$post->ID} from $old_status to $new_status", "info");
 
         // Only when moving from pending/pending_review to publish or draft
         if (!in_array($old_status, ['pending', 'draft']) || !in_array($new_status, ['publish', 'draft', 'future'])) {
