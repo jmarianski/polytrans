@@ -38,8 +38,8 @@ class PolyTrans_Translation_Notifications
      */
     public function handle_post_status_transition($new_status, $old_status, $post)
     {
-        if ($new_status === 'inherit') {
-            // Skip, as it mostly applies to revisions
+        if ($new_status === 'inherit' || $new_status === $old_status) {
+            // Skip, as it mostly applies to revisions or new things
             return;
         }
         PolyTrans_Logs_Manager::log("transition_post_status: post {$post->ID} from $old_status to $new_status", "info");
