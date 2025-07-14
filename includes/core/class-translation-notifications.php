@@ -42,6 +42,12 @@ class PolyTrans_Translation_Notifications
             // Skip, as it mostly applies to revisions or new things
             return;
         }
+
+        // Only if not already notified
+        if (get_post_meta($post->ID, '_polytrans_author_notified', true)) {
+            // already notofied, not sending anything
+            return;
+        }
         PolyTrans_Logs_Manager::log("transition_post_status: post {$post->ID} from $old_status to $new_status", "info");
 
         // Only for posts that are translation targets
@@ -51,11 +57,6 @@ class PolyTrans_Translation_Notifications
 
         // Only when moving from pending/pending_review to publish or draft
         if (!in_array($old_status, ['pending', 'draft']) || !in_array($new_status, ['publish', 'draft', 'future'])) {
-            return;
-        }
-
-        // Only if not already notified
-        if (get_post_meta($post->ID, '_polytrans_author_notified', true)) {
             return;
         }
 
@@ -69,6 +70,7 @@ class PolyTrans_Translation_Notifications
 
         // Only notify if current user is reviewer
         if (get_current_user_id() != $reviewer_id) {
+            PolyTrans_Logs_Manager::log("Not notifying, current user is not the reviewer for post {$post->ID}", "info");
             return;
         }
 
@@ -84,16 +86,70 @@ class PolyTrans_Translation_Notifications
         // Prepare email
         $subject = $settings['author_email_title'] ?? 'Your translation is reviewed: {title}';
         $body = $settings['author_email'] ?? 'Your translation has been reviewed: {link}';
-        $subject = str_replace('{title}', get_the_title($post->ID), $subject);
-        $body = str_replace(['{link}', '{title}'], [get_edit_post_link($post->ID, 'edit'), get_the_title($post->ID)], $body);
+
+        $placeholders = $this->get_post_placeholders($post, $lang);
+
+        $email_subject = str_replace(array_keys($placeholders), array_values($placeholders), $subject);
+        $email_body = str_replace(array_keys($placeholders), array_values($placeholders), $body);
 
         PolyTrans_Logs_Manager::log("Sending review notification to author {$author->user_email} for post {$post->ID} (original $original_post_id)", "info");
 
         // Send email
-        wp_mail($author->user_email, $subject, $body);
+        wp_mail($author->user_email, $email_subject, $email_body);
 
         // Mark as notified
         update_post_meta($post->ID, '_polytrans_author_notified', 1);
         PolyTrans_Logs_Manager::log("Marked as notified for post {$post->ID}", "info");
+    }
+
+
+    private function get_post_placeholders($post, $target_language)
+    {
+        $settings = get_option('polytrans_settings', []);
+        $edit_link = $this->get_edit_link($post->ID, $settings);
+
+        return [
+            '{title}' => $post->post_title,
+            '{language}' => $target_language,
+            '{link}' => $edit_link,
+            '{edit_link}' => $edit_link,
+            '{author_name}' => get_the_author_meta('display_name', $post->post_author)
+        ];
+    }
+    /**
+     * Generate edit link for a post, using custom base URL if configured
+     * 
+     * @param int $post_id Post ID
+     * @param array $settings Plugin settings
+     * @return string Edit link URL
+     */
+    private function get_edit_link($post_id, $settings)
+    {
+        $edit_link_base_url = $settings['edit_link_base_url'] ?? '';
+
+        if (!empty($edit_link_base_url)) {
+            // Use custom base URL for edit links
+            $edit_link = rtrim($edit_link_base_url, '/') . '/post.php?post=' . $post_id . '&action=edit';
+            PolyTrans_Logs_Manager::log("Using custom edit link base URL: $edit_link", "info", [
+                'post_id' => $post_id,
+                'base_url' => $edit_link_base_url
+            ]);
+            return $edit_link;
+        } else {
+            // Fall back to WordPress default (may not work in background processes)
+            $edit_link = get_edit_post_link($post_id, 'edit');
+            if (!$edit_link) {
+                // If get_edit_post_link fails (background context), construct manually
+                $edit_link = admin_url('post.php?post=' . $post_id . '&action=edit');
+                PolyTrans_Logs_Manager::log("get_edit_post_link failed, using admin_url fallback: $edit_link", "info", [
+                    'post_id' => $post_id
+                ]);
+            } else {
+                PolyTrans_Logs_Manager::log("Using WordPress generated edit link: $edit_link", "info", [
+                    'post_id' => $post_id
+                ]);
+            }
+            return $edit_link;
+        }
     }
 }
