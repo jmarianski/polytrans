@@ -140,17 +140,17 @@ class PolyTrans_Logs_Manager
             } else {
                 // Column exists - check if type matches
                 $existing = $existing_columns[$column_name];
-                
+
                 // Normalize types for comparison
                 $expected_type = self::normalize_column_type($expected['type']);
                 $existing_type = self::normalize_column_type($existing['type']);
-                
+
                 if ($expected_type !== $existing_type) {
                     // Type mismatch detected - this indicates corrupted data
                     $data_corrupted = true;
                     error_log("[polytrans] Type mismatch detected for column '$column_name': expected '$expected_type', found '$existing_type'");
                 }
-                
+
                 // Check if NULL constraint matches
                 if ($expected['null'] !== $existing['null']) {
                     $data_corrupted = true;
@@ -184,7 +184,7 @@ class PolyTrans_Logs_Manager
             $backup_data = [];
             $salvage_query = "SELECT * FROM `$table_name` ORDER BY id DESC LIMIT 1000";
             $existing_data = $wpdb->get_results($salvage_query, ARRAY_A);
-            
+
             if ($existing_data) {
                 error_log("[polytrans] Attempting to salvage " . count($existing_data) . " recent log entries");
                 $backup_data = $existing_data;
@@ -217,10 +217,10 @@ class PolyTrans_Logs_Manager
             ) $charset_collate;";
 
             $result = $wpdb->query($sql);
-            
+
             if ($result !== false) {
                 error_log("[polytrans] Successfully recreated logs table with correct structure");
-                
+
                 // Try to restore salvageable data
                 if (!empty($backup_data)) {
                     self::restore_salvageable_data($table_name, $backup_data);
@@ -228,7 +228,6 @@ class PolyTrans_Logs_Manager
             } else {
                 error_log("[polytrans] Failed to recreate logs table: " . $wpdb->last_error);
             }
-
         } catch (Exception $e) {
             error_log("[polytrans] Error during table cleanup and recreation: " . $e->getMessage());
         }
@@ -244,7 +243,7 @@ class PolyTrans_Logs_Manager
     private static function restore_salvageable_data($table_name, $backup_data)
     {
         global $wpdb;
-        
+
         $restored_count = 0;
         $failed_count = 0;
 
@@ -266,20 +265,19 @@ class PolyTrans_Logs_Manager
                 if (empty($clean_data['message'])) {
                     $clean_data['message'] = 'Restored log entry';
                 }
-                
+
                 if (empty($clean_data['created_at'])) {
                     $clean_data['created_at'] = current_time('mysql');
                 }
 
                 // Insert the cleaned data
                 $result = $wpdb->insert($table_name, $clean_data);
-                
+
                 if ($result !== false) {
                     $restored_count++;
                 } else {
                     $failed_count++;
                 }
-
             } catch (Exception $e) {
                 $failed_count++;
                 error_log("[polytrans] Failed to restore log entry: " . $e->getMessage());
@@ -302,7 +300,7 @@ class PolyTrans_Logs_Manager
         // Define expected indexes
         $indexes = [
             'level' => 'level',
-            'created_at' => 'created_at', 
+            'created_at' => 'created_at',
             'source' => 'source',
             'user_id' => 'user_id',
             'post_id' => 'post_id'
@@ -325,22 +323,22 @@ class PolyTrans_Logs_Manager
     private static function build_add_column_sql($table_name, $column_name, $column_def)
     {
         $sql = "ALTER TABLE `$table_name` ADD COLUMN `$column_name` {$column_def['type']}";
-        
+
         if ($column_def['null'] === 'NO') {
             $sql .= ' NOT NULL';
         }
-        
+
         if (isset($column_def['default'])) {
             $sql .= " DEFAULT '{$column_def['default']}'";
         }
-        
+
         if (isset($column_def['extra']) && $column_def['extra'] === 'auto_increment') {
             $sql .= ' AUTO_INCREMENT';
             if ($column_name === 'id') {
                 $sql .= ' PRIMARY KEY FIRST';
             }
         }
-        
+
         return $sql;
     }
 
@@ -354,10 +352,10 @@ class PolyTrans_Logs_Manager
     {
         // Remove whitespace and convert to lowercase
         $type = strtolower(trim($type));
-        
+
         // Handle common variations
         $type = str_replace([' unsigned', ' signed'], ['_unsigned', '_signed'], $type);
-        
+
         return $type;
     }
 
@@ -372,12 +370,12 @@ class PolyTrans_Logs_Manager
         if (empty($value)) {
             return current_time('mysql');
         }
-        
+
         $timestamp = strtotime($value);
         if ($timestamp === false) {
             return current_time('mysql');
         }
-        
+
         return date('Y-m-d H:i:s', $timestamp);
     }
 
@@ -393,7 +391,7 @@ class PolyTrans_Logs_Manager
         if ($value === null) {
             return null;
         }
-        
+
         return substr(sanitize_text_field($value), 0, $max_length);
     }
 
@@ -408,7 +406,7 @@ class PolyTrans_Logs_Manager
         if ($value === null) {
             return null;
         }
-        
+
         return sanitize_textarea_field($value);
     }
 
@@ -423,7 +421,7 @@ class PolyTrans_Logs_Manager
         if ($value === null || $value === '') {
             return null;
         }
-        
+
         return intval($value);
     }
 
@@ -438,7 +436,7 @@ class PolyTrans_Logs_Manager
         if ($value === null || $value === '') {
             return null;
         }
-        
+
         return intval($value);
     }
 
