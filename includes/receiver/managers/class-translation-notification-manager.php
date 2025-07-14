@@ -44,13 +44,13 @@ class PolyTrans_Translation_Notification_Manager
     {
         $reviewer = get_user_by('id', $reviewer_user_id);
         if (!$reviewer) {
-            PolyTrans_Logs_Manager::log("[polytrans] Reviewer not found: $reviewer_user_id", "info");
+            PolyTrans_Logs_Manager::log("Reviewer not found: $reviewer_user_id", "info");
             return;
         }
 
         $post = get_post($new_post_id);
         if (!$post) {
-            PolyTrans_Logs_Manager::log("[polytrans] Post not found for notification: $new_post_id", "info");
+            PolyTrans_Logs_Manager::log("Post not found for notification: $new_post_id", "info");
             return;
         }
 
@@ -75,9 +75,9 @@ class PolyTrans_Translation_Notification_Manager
         $sent = wp_mail($reviewer->user_email, $email_subject, $email_body);
 
         if ($sent) {
-            PolyTrans_Logs_Manager::log("[polytrans] Sent reviewer notification to {$reviewer->user_email} for post $new_post_id", "info");
+            PolyTrans_Logs_Manager::log("Sent reviewer notification to {$reviewer->user_email} for post $new_post_id", "info");
         } else {
-            PolyTrans_Logs_Manager::log("[polytrans] Failed to send reviewer notification for post $new_post_id", "info");
+            PolyTrans_Logs_Manager::log("Failed to send reviewer notification for post $new_post_id", "info");
         }
     }
 

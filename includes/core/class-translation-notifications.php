@@ -38,7 +38,7 @@ class PolyTrans_Translation_Notifications
      */
     public function handle_post_status_transition($new_status, $old_status, $post)
     {
-        PolyTrans_Logs_Manager::log("[polytrans] transition_post_status: post {$post->ID} from $old_status to $new_status", "info");
+        PolyTrans_Logs_Manager::log("transition_post_status: post {$post->ID} from $old_status to $new_status", "info");
 
         // Only for posts that are translation targets
         if (!get_post_meta($post->ID, 'polytrans_is_translation_target', true)) {
@@ -73,7 +73,7 @@ class PolyTrans_Translation_Notifications
         $author_id = get_post_field('post_author', $original_post_id);
         $author = get_user_by('id', $author_id);
         if (!$author) {
-            PolyTrans_Logs_Manager::log("[polytrans] No author found for original post $original_post_id (translation {$post->ID})", "info");
+            PolyTrans_Logs_Manager::log("No author found for original post $original_post_id (translation {$post->ID})", "info");
             return;
         }
 
@@ -83,16 +83,16 @@ class PolyTrans_Translation_Notifications
         $subject = str_replace('{title}', get_the_title($post->ID), $subject);
         $body = str_replace(['{link}', '{title}'], [get_edit_post_link($post->ID, 'edit'), get_the_title($post->ID)], $body);
 
-        PolyTrans_Logs_Manager::log("[polytrans] Sending review notification to author {$author->user_email} for post {$post->ID} (original $original_post_id)", "info");
-        PolyTrans_Logs_Manager::log("[polytrans] Email subject: $subject", "info");
-        PolyTrans_Logs_Manager::log("[polytrans] Email body: $body", "info");
+        PolyTrans_Logs_Manager::log("Sending review notification to author {$author->user_email} for post {$post->ID} (original $original_post_id)", "info");
+        PolyTrans_Logs_Manager::log("Email subject: $subject", "info");
+        PolyTrans_Logs_Manager::log("Email body: $body", "info");
 
         // Send email
         wp_mail($author->user_email, $subject, $body);
 
         // Mark as notified
         update_post_meta($post->ID, '_polytrans_reviewed_notified', 1);
-        PolyTrans_Logs_Manager::log("[polytrans] Marked as notified for post {$post->ID}", "info");
+        PolyTrans_Logs_Manager::log("Marked as notified for post {$post->ID}", "info");
     }
 
     /**
@@ -104,7 +104,7 @@ class PolyTrans_Translation_Notifications
         $reviewer = get_user_by('id', $reviewer_id);
 
         if (!$reviewer) {
-            PolyTrans_Logs_Manager::log("[polytrans] No reviewer found with ID $reviewer_id", "info");
+            PolyTrans_Logs_Manager::log("No reviewer found with ID $reviewer_id", "info");
             return false;
         }
 
@@ -113,7 +113,7 @@ class PolyTrans_Translation_Notifications
         $subject = str_replace('{title}', get_the_title($post_id), $subject);
         $body = str_replace(['{link}', '{title}'], [get_edit_post_link($post_id, 'edit'), get_the_title($post_id)], $body);
 
-        PolyTrans_Logs_Manager::log("[polytrans] Sending reviewer notification to {$reviewer->user_email} for post $post_id in language $lang", "info");
+        PolyTrans_Logs_Manager::log("Sending reviewer notification to {$reviewer->user_email} for post $post_id in language $lang", "info");
 
         return wp_mail($reviewer->user_email, $subject, $body);
     }

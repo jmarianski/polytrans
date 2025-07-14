@@ -50,7 +50,7 @@ class PolyTrans_Translation_Security_Manager
         $is_valid = hash_equals($secret, $provided_secret);
 
         if (!$is_valid) {
-            PolyTrans_Logs_Manager::log("[polytrans] Translation receiver authentication failed", "info");
+            PolyTrans_Logs_Manager::log("Translation receiver authentication failed", "info");
         }
 
         return $is_valid;

@@ -49,7 +49,7 @@ class PolyTrans_Google_Provider implements PolyTrans_Translation_Provider_Interf
      */
     public function translate(array $content, string $source_lang, string $target_lang, array $settings)
     {
-        PolyTrans_Logs_Manager::log("[polytrans] Google Translate: translating from $source_lang to $target_lang", "info");
+        PolyTrans_Logs_Manager::log("Google Translate: translating from $source_lang to $target_lang", "info");
 
         try {
             $translated = $this->deep_translate($content, $source_lang, $target_lang);
@@ -217,7 +217,7 @@ class PolyTrans_Google_Provider implements PolyTrans_Translation_Provider_Interf
             return $json[0][0][0];
         }
 
-        PolyTrans_Logs_Manager::log("[polytrans] Google Translate API fallback for '$text'", "info");
+        PolyTrans_Logs_Manager::log("Google Translate API fallback for '$text'", "info");
         return null;
     }
 }

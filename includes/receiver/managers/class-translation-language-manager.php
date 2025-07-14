@@ -34,9 +34,9 @@ class PolyTrans_Translation_Language_Manager
     {
         if (function_exists('pll_set_post_language')) {
             pll_set_post_language($new_post_id, $target_language);
-            PolyTrans_Logs_Manager::log("[polytrans] Set language for post $new_post_id to $target_language", "info");
+            PolyTrans_Logs_Manager::log("Set language for post $new_post_id to $target_language", "info");
         } else {
-            PolyTrans_Logs_Manager::log("[polytrans] Polylang not available, skipping language assignment for post $new_post_id", "info");
+            PolyTrans_Logs_Manager::log("Polylang not available, skipping language assignment for post $new_post_id", "info");
         }
     }
 
@@ -59,7 +59,7 @@ class PolyTrans_Translation_Language_Manager
 
             // Save the translation relationships
             pll_save_post_translations($translations);
-            PolyTrans_Logs_Manager::log("[polytrans] Set up translation relationship: post $new_post_id as $target_language translation of $original_post_id", "info");
+            PolyTrans_Logs_Manager::log("Set up translation relationship: post $new_post_id as $target_language translation of $original_post_id", "info");
         }
 
         // Also update our internal tracking
@@ -95,6 +95,6 @@ class PolyTrans_Translation_Language_Manager
             'post_status' => $desired_status
         ]);
 
-        PolyTrans_Logs_Manager::log("[polytrans] Set post status for $new_post_id to $desired_status (language: $target_language)", "info");
+        PolyTrans_Logs_Manager::log("Set post status for $new_post_id to $desired_status (language: $target_language)", "info");
     }
 }
