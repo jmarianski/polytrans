@@ -51,9 +51,6 @@ class PolyTrans
         add_action('wp_ajax_polytrans_refresh_logs', [PolyTrans_Logs_Manager::class, 'ajax_refresh_logs']);
         // Post status transition for notifications
         add_action('transition_post_status', [$this, 'handle_post_status_transition'], 10, 3);
-
-        // Dashboard widget
-        add_action('wp_dashboard_setup', [$this, 'add_dashboard_widgets']);
     }
 
     /**
@@ -80,10 +77,10 @@ class PolyTrans
         require_once $includes_dir . 'scheduler/class-translation-handler.php';
 
         // Translation extension (handles incoming translation requests)
-        require_once $includes_dir . 'translator/class-translation-extension.php';
+        require_once $includes_dir . 'core/class-translation-extension.php';
 
         // Settings and admin interface
-        require_once $includes_dir . 'settings/class-translation-settings.php';
+        require_once $includes_dir . 'core/class-translation-settings.php';
 
         // Receiver architecture
         require_once $includes_dir . 'receiver/managers/class-translation-request-validator.php';

@@ -65,7 +65,7 @@ class PolyTrans_Settings_Menu
      */
     public function render_settings()
     {
-        require_once POLYTRANS_PLUGIN_DIR . 'includes/settings/class-translation-settings.php';
+        require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-translation-settings.php';
         $settings = new polytrans_settings();
         $settings->render();
     }
