@@ -33,6 +33,17 @@ class PolyTrans_Translation_Notification_Manager
         return 'completed';
     }
 
+    private function get_post_placeholders($post, $target_language)
+    {
+        return [
+            '{post_title}' => $post->post_title,
+            '{language}' => $target_language,
+            '{edit_link}' => get_edit_post_link($post->ID),
+            '{view_link}' => get_permalink($post->ID),
+            '{author_name}' => get_the_author_meta('display_name', $post->post_author)
+        ];
+    }
+
     /**
      * Sends notification email to the reviewer.
      * 
@@ -62,12 +73,7 @@ class PolyTrans_Translation_Notification_Manager
             $settings['reviewer_email'] : 'A translation is ready for review.';
 
         // Replace placeholders
-        $placeholders = [
-            '{post_title}' => $post->post_title,
-            '{language}' => $target_language,
-            '{edit_link}' => get_edit_post_link($new_post_id),
-            '{reviewer_name}' => $reviewer->display_name
-        ];
+        $placeholders = $this->get_post_placeholders($post, $target_language);
 
         $email_subject = str_replace(array_keys($placeholders), array_values($placeholders), $email_subject);
         $email_body = str_replace(array_keys($placeholders), array_values($placeholders), $email_body);
@@ -105,12 +111,7 @@ class PolyTrans_Translation_Notification_Manager
             $settings['author_email'] : 'Your translation has been published.';
 
         $post = get_post($new_post_id);
-        $placeholders = [
-            '{post_title}' => $post->post_title,
-            '{language}' => $target_language,
-            '{view_link}' => get_permalink($new_post_id),
-            '{author_name}' => $author->display_name
-        ];
+        $placeholders = $this->get_post_placeholders($post, $target_language);
 
         $email_subject = str_replace(array_keys($placeholders), array_values($placeholders), $email_subject);
         $email_body = str_replace(array_keys($placeholders), array_values($placeholders), $email_body);

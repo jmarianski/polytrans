@@ -399,7 +399,6 @@ class PolyTrans_Tag_Translation
             if (empty($row[0])) continue;
 
             $source_tag_name = trim(stripslashes($row[0]), " \t\n\r\0\x0B\"");
-            error_log("Processing tag: " . $source_tag_name);
             $tag = $this->get_term_by_name_and_lang($source_tag_name, $source_language);
 
             if (!$tag) {
@@ -417,9 +416,6 @@ class PolyTrans_Tag_Translation
             for ($j = 1; $j < count($header) && $j < count($row); $j++) {
                 $lang = strtolower(trim($header[$j]));
                 $translation_name = str_replace('"', '', stripslashes($row[$j]));
-
-
-                error_log("Processing translation: header='" . $header[$j] . "', lang='$lang', translation='$translation_name'");
 
                 // Skip if empty translation or if this is the source language column (contains " tag" at the end)
                 if (empty($translation_name) || preg_match('/\s+tag\s*$/i', $header[$j])) {

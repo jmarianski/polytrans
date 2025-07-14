@@ -38,8 +38,6 @@ class PolyTrans_Translation_Metadata_Manager
         update_post_meta($new_post_id, 'polytrans_is_translation_target', 1);
         update_post_meta($new_post_id, 'polytrans_translation_source', $original_post_id);
         update_post_meta($new_post_id, 'polytrans_translation_lang', $source_language);
-
-        PolyTrans_Logs_Manager::log("Set translation markers for post $new_post_id (source: $original_post_id, lang: $source_language)", "info");
     }
 
     /**
