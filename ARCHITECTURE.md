@@ -9,13 +9,19 @@ polytrans/
 ├── polytrans.php                    # Main plugin file
 ├── includes/
 │   ├── class-polytrans.php         # Main plugin class
-│   ├── api/                         # REST API endpoints
-│   │   └── class-translation-api.php
 │   ├── core/                        # Core WordPress integration
 │   │   ├── class-translation-meta-box.php
 │   │   ├── class-translation-notifications.php
+│   │   ├── class-translation-settings.php
+│   │   ├── class-translation-extension.php
+│   │   ├── class-user-autocomplete.php
+│   │   ├── class-background-processor.php
+│   │   ├── class-logs-manager.php
+│   │   └── process-task.php
+│   ├── menu/                        # Admin menu components
 │   │   ├── class-tag-translation.php
-│   │   └── class-user-autocomplete.php
+│   │   ├── class-settings-menu.php
+│   │   └── class-logs-menu.php
 │   ├── providers/                   # Translation provider system
 │   │   ├── interface-translation-provider.php
 │   │   ├── interface-settings-provider.php
@@ -26,13 +32,9 @@ polytrans/
 │   │       ├── class-openai-provider.php
 │   │       ├── class-openai-settings-provider.php
 │   │       └── class-openai-settings-ui.php
-│   ├── translator/                  # Translation extension
-│   │   └── class-translation-extension.php
 │   ├── scheduler/                   # Translation scheduling
 │   │   ├── class-translation-scheduler.php
 │   │   └── class-translation-handler.php
-│   ├── settings/                    # Admin settings interface
-│   │   └── class-translation-settings.php
 │   └── receiver/                    # Translation receiver architecture
 │       ├── class-translation-coordinator.php
 │       ├── class-translation-receiver-extension.php
@@ -72,11 +74,21 @@ polytrans/
 ## Module Descriptions
 
 ### Core (`/core/`)
-WordPress integration components that handle UI elements and basic functionality:
+WordPress integration components that handle core functionality and UI elements:
 - **Translation Meta Box**: Post editor meta box for translation controls
 - **Translation Notifications**: Email notification system
-- **Tag Translation**: Tag translation management
+- **Translation Settings**: Main settings management functionality
+- **Translation Extension**: Handles incoming translation requests via REST API
 - **User Autocomplete**: User search and selection functionality
+- **Background Processor**: Handles background translation processing tasks
+- **Logs Manager**: Manages plugin logging functionality
+- **Process Task**: Background task processing utilities
+
+### Menu (`/menu/`)
+WordPress admin menu components:
+- **Tag Translation**: Tag translation management interface
+- **Settings Menu**: Main plugin settings menu
+- **Logs Menu**: Plugin logs viewing interface
 
 ### Providers (`/providers/`)
 Hot-pluggable translation provider system:
@@ -86,18 +98,10 @@ Hot-pluggable translation provider system:
 - **Google Provider**: Google Translate integration (no configuration needed)
 - **OpenAI Provider**: OpenAI GPT translation with custom assistant support
 
-### Translator (`/translator/`)
-Translation service extension:
-- **Translation Extension**: Handles incoming translation requests via REST API
-
 ### Scheduler (`/scheduler/`)
 Translation job scheduling and management:
 - **Translation Scheduler**: Main scheduling interface and controls
 - **Translation Handler**: Processes translation requests and coordinates with providers
-
-### Settings (`/settings/`)
-Admin interface and configuration management:
-- **Translation Settings**: Main admin settings page with dynamic provider tabs
 
 ### Receiver (`/receiver/`)
 Advanced translation receiver architecture for processing completed translations:
@@ -113,13 +117,9 @@ Advanced translation receiver architecture for processing completed translations
   - Status tracking
   - Security validation
 
-### API (`/api/`)
-REST API endpoints for external integration:
-- **Translation API**: REST endpoints for receiving translations and status queries
-
 ### Assets (`/assets/`)
 Frontend resources organized by functionality:
-- **Core assets**: JavaScript and CSS for WordPress integration features (meta boxes, user autocomplete, tag translation)
+- **Core assets**: JavaScript and CSS for WordPress integration features (meta boxes, user autocomplete, background processing)
 - **Translator assets**: Frontend code for translation provider interfaces (OpenAI integration)
 - **Scheduler assets**: UI for translation scheduling functionality
 - **Settings assets**: Admin interface styling and interaction

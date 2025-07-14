@@ -46,7 +46,7 @@ Choose next development focus based on available time and priorities:
 
 #### Option A: Security-First (Recommended)
 - **Focus**: Fix critical security violations
-- **Files**: `includes/settings/class-translation-settings.php` (37 issues)
+- **Files**: `includes/core/class-translation-settings.php` (37 issues)
 - **Validation**: `make phpcs-relaxed`
 
 #### Option B: Feature Development
@@ -69,7 +69,7 @@ Choose next development focus based on available time and priorities:
 - `Makefile` - Development commands
 
 ### High-Priority Files Needing Fixes
-1. `includes/settings/class-translation-settings.php` (37 security issues)
+1. `includes/core/class-translation-settings.php` (37 security issues)
 2. `includes/class-polytrans.php` (12 security issues)
 3. `includes/core/class-logs-manager.php` (7 security issues)
 
@@ -87,7 +87,7 @@ make shell           # Open development environment
 ## Documented Issues Summary
 
 ### Critical Security Issues (Priority 1)
-- **37 issues** in `includes/settings/class-translation-settings.php`
+- **37 issues** in `includes/core/class-translation-settings.php`
   - Missing nonce verification for form processing
   - Unvalidated $_POST data usage
   - Missing wp_unslash() before sanitization
@@ -107,7 +107,8 @@ make shell           # Open development environment
 - **Core Classes**: `includes/class-polytrans.php`
 - **Modular System**: Provider-based translation architecture
 - **Frontend**: JavaScript in `assets/js/`
-- **Settings**: `includes/settings/`
+- **Menu**: `includes/menu/` (admin interface components)
+- **Core**: `includes/core/` (WordPress integration and settings)
 - **Providers**: `includes/providers/` (Google, OpenAI)
 
 ---
@@ -123,14 +124,14 @@ I need to continue development on the PolyTrans WordPress plugin. Please:
 2. Verify the development environment works: `make phpcs-syntax` (should pass)
 3. Check current issues: `make phpcs-relaxed` (should show ~93 security issues)
 4. Focus on [CHOOSE ONE]:
-   - SECURITY: Fix critical issues in includes/settings/class-translation-settings.php
+   - SECURITY: Fix critical issues in includes/core/class-translation-settings.php
    - FEATURES: Add new functionality (use syntax-only checking)
    - STANDARDS: WordPress.org compliance (full standards)
 
 The plugin has complete Docker development infrastructure. Use the established workflow and update progress in CODE_QUALITY_STATUS.md.
 
 Priority files needing attention:
-- includes/settings/class-translation-settings.php (37 security issues)
+- includes/core/class-translation-settings.php (37 security issues)
 - includes/class-polytrans.php (12 security issues)  
 - includes/core/class-logs-manager.php (7 security issues)
 

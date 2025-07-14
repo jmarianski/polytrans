@@ -8,6 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Menu directory structure for organized admin interface components
+- Background processor for handling translation tasks asynchronously
+- Logs manager and logs menu for comprehensive debugging and monitoring
+- Settings menu for centralized plugin configuration
+- Enhanced core directory with consolidated WordPress integration functionality
+
+### Changed
+- Restructured plugin architecture with dedicated menu directory
+- Moved tag translation functionality to menu directory
+- Consolidated translation settings in core directory
+- Moved translation extension from translator to core directory
+- Improved organization of admin interface components
+
+### Deprecated
+- N/A
+
+### Removed
+- Standalone API directory (functionality integrated into core)
+- Separate translator directory (functionality moved to core)
+- Separate settings directory (functionality moved to core)
+
+### Fixed
+- JavaScript undefined variable `$failed` in translation scheduler
+
+### Security
+- N/A
+
+## [1.1.0] - 2025-07-14
+
+### Added
 - Initial plugin structure and architecture
 - Translation provider system with Google Translate and OpenAI integration
 - Translation scheduling and management system
@@ -18,19 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Polylang integration
 
 ### Changed
-- N/A
-
-### Deprecated
-- N/A
-
-### Removed
-- N/A
+- Reorganized directory structure for better maintainability
 
 ### Fixed
-- JavaScript undefined variable `$failed` in translation scheduler
-
-### Security
-- N/A
+- JavaScript undefined variable issues
 
 ## [1.0.0] - 2024-07-09
 
