@@ -83,7 +83,7 @@ class PolyTrans_Translation_Notification_Manager
         if ($sent) {
             PolyTrans_Logs_Manager::log("Sent reviewer notification to {$reviewer->user_email} for post $new_post_id", "info");
         } else {
-            PolyTrans_Logs_Manager::log("Failed to send reviewer notification for post $new_post_id", "info");
+            PolyTrans_Logs_Manager::log("Failed to send reviewer notification for post $new_post_id", "warning");
         }
     }
 
