@@ -21,6 +21,7 @@ class PolyTrans_Translation_Security_Manager
         $settings = get_option('polytrans_settings', []);
         $secret = isset($settings['translation_receiver_secret']) ? $settings['translation_receiver_secret'] : '';
         $method = isset($settings['translation_receiver_secret_method']) ? $settings['translation_receiver_secret_method'] : 'header_bearer';
+        $custom_header_name = isset($settings['translation_receiver_secret_custom_header']) ? $settings['translation_receiver_secret_custom_header'] : 'x-polytrans-secret';
 
         if (!$secret || $method === 'none') {
             return true; // No secret configured, allow all requests
@@ -39,7 +40,7 @@ class PolyTrans_Translation_Security_Manager
                 }
                 break;
             case 'header_custom':
-                $provided_secret = $request->get_header('x-polytrans-secret') ?: '';
+                $provided_secret = $request->get_header($custom_header_name) ?: '';
                 break;
             case 'post_param':
                 $body = $request->get_json_params();

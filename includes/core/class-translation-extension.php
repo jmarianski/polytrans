@@ -234,6 +234,7 @@ class PolyTrans_Translation_Extension
         $settings = get_option('polytrans_settings', []);
         $secret = $settings['translation_receiver_secret'] ?? '';
         $secret_method = $settings['translation_receiver_secret_method'] ?? 'header_bearer';
+        $custom_header_name = $settings['translation_receiver_secret_custom_header'] ?? 'x-polytrans-secret';
 
         $args = [
             'headers' => [
@@ -253,7 +254,7 @@ class PolyTrans_Translation_Extension
                     $args['headers']['Authorization'] = 'Bearer ' . $secret;
                     break;
                 case 'header_custom':
-                    $args['headers']['x-polytrans-secret'] = $secret;
+                    $args['headers'][$custom_header_name] = $secret;
                     break;
                 case 'post_param':
                     // Add secret to payload
@@ -335,6 +336,7 @@ class PolyTrans_Translation_Extension
         $settings = get_option('polytrans_settings', []);
         $expected_secret = $settings['translation_receiver_secret'] ?? '';
         $secret_method = $settings['translation_receiver_secret_method'] ?? 'header_bearer';
+        $custom_header_name = $settings['translation_receiver_secret_custom_header'] ?? 'x-polytrans-secret';
 
         if (empty($expected_secret) || $secret_method === 'none') {
             return true;
@@ -353,7 +355,7 @@ class PolyTrans_Translation_Extension
                 }
                 break;
             case 'header_custom':
-                $received_secret = $request->get_header('x-polytrans-secret');
+                $received_secret = $request->get_header($custom_header_name);
                 break;
             case 'post_param':
                 $params = $request->get_json_params();
