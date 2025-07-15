@@ -128,7 +128,7 @@ jQuery(function ($) {
                     $field.attr('name').indexOf('_ajax') === 0 ||
                     $field.attr('name').indexOf('action') === 0 ||
                     $field.attr('name').indexOf('post_ID') === 0
-                )) {
+                ) || !$field.attr('name')) {
                     return true; // Continue to next field
                 }
 
