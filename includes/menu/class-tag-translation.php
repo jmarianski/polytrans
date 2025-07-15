@@ -236,7 +236,9 @@ class PolyTrans_Tag_Translation
                 if ($existing_term) {
                     $translation_id = $existing_term->term_id;
                 } else {
-                    $new_term = wp_insert_term($translation_name, 'post_tag');
+                    $new_term = wp_insert_term($translation_name, 'post_tag', [
+                        'slug' => sanitize_title($translation_name) . '-' . $lang
+                    ]);
                     if (is_wp_error($new_term)) {
                         wp_send_json_error(['message' => $new_term->get_error_message()]);
                     }
@@ -253,7 +255,9 @@ class PolyTrans_Tag_Translation
             if (!empty($translation_name)) {
                 $existing_term = get_term_by('name', $translation_name, 'post_tag');
                 if (!$existing_term) {
-                    wp_insert_term($translation_name, 'post_tag');
+                    wp_insert_term($translation_name, 'post_tag', [
+                        'slug' => sanitize_title($translation_name) . '-' . $lang
+                    ]);
                 }
             }
         }
@@ -440,9 +444,11 @@ class PolyTrans_Tag_Translation
                     if ($existing_term) {
                         $translation_id = $existing_term->term_id;
                     } else {
-                        $new_term = wp_insert_term($translation_name, 'post_tag');
-                        if (is_wp_error($new_term)) continue;
-                        $translation_id = $new_term['term_id'];
+                        $new_tag = wp_insert_term($source_tag_name, 'post_tag', [
+                            'slug' => sanitize_title($source_tag_name) . '-' . $source_language
+                        ]);
+                        if (is_wp_error($new_tag)) continue;
+                        $translation_id = $new_tag['term_id'];
                     }
 
                     pll_set_term_language($translation_id, $lang);
