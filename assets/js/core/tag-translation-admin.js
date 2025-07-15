@@ -16,9 +16,9 @@ jQuery(document).ready(function ($) {
         }, function (resp) {
             if (resp.success) {
                 if (typeof wp !== 'undefined' && wp.toast && wp.toast.success) {
-                    wp.toast.success('Translation saved!');
+                    wp.toast.success(PolyTransTagTranslation.i18n.translation_saved);
                 } else {
-                    $("<div class='notice notice-success is-dismissible'><p>Translation saved!</p></div>")
+                    $("<div class='notice notice-success is-dismissible'><p>" + PolyTransTagTranslation.i18n.translation_saved + "</p></div>")
                         .prependTo('.wrap').delay(2000).fadeOut();
                 }
             }
@@ -41,7 +41,7 @@ jQuery(document).ready(function ($) {
     $('#import-csv-submit').on('click', function () {
         var fileInput = document.getElementById('import-csv-file');
         if (!fileInput.files.length) {
-            alert('Please select a CSV file.');
+            alert(PolyTransTagTranslation.i18n.please_select_file);
             return;
         }
         var file = fileInput.files[0];

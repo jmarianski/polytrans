@@ -42,8 +42,8 @@ class PolyTrans_Tag_Translation
     {
         add_submenu_page(
             'polytrans',
-            __('Tag Translations', 'polytrans-translation'),
-            __('Tag Translations', 'polytrans-translation'),
+            __('Tag Translations', 'polytrans'),
+            __('Tag Translations', 'polytrans'),
             'manage_options',
             'polytrans-tag-translation',
             [$this, 'admin_page'],
@@ -65,6 +65,20 @@ class PolyTrans_Tag_Translation
         wp_localize_script('polytrans-tag-translation', 'PolyTransTagTranslation', [
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('polytrans_tag_translation'),
+            'i18n' => [
+                'translation_saved' => esc_html__('Translation saved!', 'polytrans'),
+                'please_select_file' => esc_html__('Please select a CSV file.', 'polytrans'),
+                'importing' => esc_html__('Importing...', 'polytrans'),
+                'import_complete' => esc_html__('Import complete!', 'polytrans'),
+                'import_error' => esc_html__('Import failed. Please check the CSV format.', 'polytrans'),
+                'confirm_delete' => esc_html__('Are you sure you want to delete this translation?', 'polytrans'),
+                'deleting' => esc_html__('Deleting...', 'polytrans'),
+                'delete_error' => esc_html__('Failed to delete translation.', 'polytrans'),
+                'search_placeholder' => esc_html__('Search tags...', 'polytrans'),
+                'no_results' => esc_html__('No tags found.', 'polytrans'),
+                'loading' => esc_html__('Loading...', 'polytrans'),
+                'error_occurred' => esc_html__('An error occurred. Please try again.', 'polytrans'),
+            ]
         ]);
     }
 
@@ -116,21 +130,21 @@ class PolyTrans_Tag_Translation
 
 ?>
         <div class="wrap">
-            <h1><?php esc_html_e('Tag Translations', 'polytrans-translation'); ?></h1>
+            <h1><?php esc_html_e('Tag Translations', 'polytrans'); ?></h1>
 
             <div class="tag-translation-admin-desc">
-                <p><?php esc_html_e('This view lets you manage translations for the tags specified in the Translation Settings. You can set translations for each language, and use the import/export functionality to manage translations in bulk.', 'polytrans-translation'); ?></p>
-                <p><strong><?php esc_html_e('Note:', 'polytrans-translation'); ?></strong> <?php printf(esc_html__('To add or remove tags from the translation list, please go to %s.', 'polytrans-translation'), '<a href="' . admin_url('admin.php?page=polytrans') . '">' . esc_html__('Translation Settings → Tag Settings', 'polytrans-translation') . '</a>'); ?></p>
+                <p><?php esc_html_e('This view lets you manage translations for the tags specified in the Translation Settings. You can set translations for each language, and use the import/export functionality to manage translations in bulk.', 'polytrans'); ?></p>
+                <p><strong><?php esc_html_e('Note:', 'polytrans'); ?></strong> <?php printf(esc_html__('To add or remove tags from the translation list, please go to %s.', 'polytrans'), '<a href="' . admin_url('admin.php?page=polytrans') . '">' . esc_html__('Translation Settings → Tag Settings', 'polytrans') . '</a>'); ?></p>
             </div>
 
             <!-- Export/Import controls -->
             <div>
-                <button id="export-tag-csv" class="button button-primary"><?php esc_html_e('Export CSV', 'polytrans-translation'); ?></button>
-                <button id="show-import-csv" class="button"><?php esc_html_e('Import CSV', 'polytrans-translation'); ?></button>
+                <button id="export-tag-csv" class="button button-primary"><?php esc_html_e('Export CSV', 'polytrans'); ?></button>
+                <button id="show-import-csv" class="button"><?php esc_html_e('Import CSV', 'polytrans'); ?></button>
                 <span id="import-csv-area">
                     <input type="file" id="import-csv-file" accept=".csv,text/csv" />
-                    <button id="import-csv-submit" class="button button-secondary"><?php esc_html_e('Import', 'polytrans-translation'); ?></button>
-                    <button id="import-csv-cancel" class="button"><?php esc_html_e('Cancel', 'polytrans-translation'); ?></button>
+                    <button id="import-csv-submit" class="button button-secondary"><?php esc_html_e('Import', 'polytrans'); ?></button>
+                    <button id="import-csv-cancel" class="button"><?php esc_html_e('Cancel', 'polytrans'); ?></button>
                 </span>
             </div>
 
@@ -150,11 +164,11 @@ class PolyTrans_Tag_Translation
                                     break;
                                 }
                             }
-                            echo esc_html($source_lang_name . ' ' . __('Tag', 'polytrans-translation'));
+                            echo esc_html($source_lang_name . ' ' . __('Tag', 'polytrans'));
                             ?></th>
                         <?php foreach ($langs as $lang): ?>
                             <?php if ($lang === $source_language) continue; ?>
-                            <th><?php echo esc_html(strtoupper($lang)) . ' ' . esc_html__('Translation', 'polytrans-translation'); ?></th>
+                            <th><?php echo esc_html(strtoupper($lang)) . ' ' . esc_html__('Translation', 'polytrans'); ?></th>
                         <?php endforeach; ?>
                     </tr>
                 </thead>
@@ -178,7 +192,7 @@ class PolyTrans_Tag_Translation
                                         data-translation-id="<?php echo esc_attr($translation_id); ?>"
                                         value="<?php echo esc_attr($translation_name); ?>"
                                         class="tag-translation-input"
-                                        placeholder="<?php esc_attr_e('Enter or select tag...', 'polytrans-translation'); ?>" />
+                                        placeholder="<?php esc_attr_e('Enter or select tag...', 'polytrans'); ?>" />
                                 </td>
                             <?php endforeach; ?>
                         </tr>
@@ -205,7 +219,7 @@ class PolyTrans_Tag_Translation
         $translation_name = sanitize_text_field($_POST['value'] ?? '');
 
         if (!$tag_id || !$lang) {
-            wp_send_json_error(['message' => __('Invalid parameters.', 'polytrans-translation')]);
+            wp_send_json_error(['message' => __('Invalid parameters.', 'polytrans')]);
         }
 
         // Handle translation logic based on whether Polylang is available
@@ -244,7 +258,7 @@ class PolyTrans_Tag_Translation
             }
         }
 
-        wp_send_json_success(['message' => __('Translation saved successfully.', 'polytrans-translation')]);
+        wp_send_json_success(['message' => __('Translation saved successfully.', 'polytrans')]);
     }
 
     /**
@@ -367,7 +381,7 @@ class PolyTrans_Tag_Translation
 
         $csv_content =  $_POST['csv'] ?? '';
         if (empty($csv_content)) {
-            wp_send_json_error(['message' => __('No CSV data provided.', 'polytrans-translation')]);
+            wp_send_json_error(['message' => __('No CSV data provided.', 'polytrans')]);
         }
 
         // Get source language from settings
@@ -386,7 +400,7 @@ class PolyTrans_Tag_Translation
         $csv_data = $temp_lines;
 
         if (empty($csv_data) || count($csv_data) < 2) {
-            wp_send_json_error(['message' => __('Invalid CSV format or no data rows.', 'polytrans-translation')]);
+            wp_send_json_error(['message' => __('Invalid CSV format or no data rows.', 'polytrans')]);
         }
 
         $header = $csv_data[0];
@@ -440,7 +454,7 @@ class PolyTrans_Tag_Translation
             $imported_count++;
         }
 
-        wp_send_json_success(['message' => sprintf(__('%d tag translations imported successfully.', 'polytrans-translation'), $imported_count)]);
+        wp_send_json_success(['message' => sprintf(__('%d tag translations imported successfully.', 'polytrans'), $imported_count)]);
     }
 
     private function get_term_by_name_and_lang(string $tag_name, $lang = 'pl')

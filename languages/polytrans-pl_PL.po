@@ -1,0 +1,238 @@
+# Polish (Poland) translation for PolyTrans Plugin
+# Copyright (C) 2025 PolyTrans Team
+# This file is distributed under the same license as the PolyTrans plugin.
+# Translator: PolyTrans Team <info@polytrans.com>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PolyTrans 1.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/polytrans/polytrans-wp-plugin/issues\n"
+"POT-Creation-Date: 2025-07-15 00:00+0000\n"
+"PO-Revision-Date: 2025-07-15 12:00+0000\n"
+"Last-Translator: PolyTrans Team <info@polytrans.com>\n"
+"Language-Team: Polish\n"
+"Language: pl_PL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Manual translation\n"
+"X-Domain: polytrans\n"
+
+#: includes/menu/class-settings-menu.php:29
+msgid "PolyTrans"
+msgstr "PolyTrans"
+
+#: includes/menu/class-tag-translation.php:45
+#: includes/menu/class-tag-translation.php:46
+msgid "Tag Translations"
+msgstr "Tłumaczenia Tagów"
+
+#: includes/core/class-translation-meta-box.php:36
+msgid "Prepared by Human"
+msgstr "Przygotowane przez Człowieka"
+
+#: includes/core/class-translation-meta-box.php:37
+msgid "Translation done by Machine"
+msgstr "Tłumaczenie wykonane przez Maszynę"
+
+# Settings JavaScript Localization
+#: includes/menu/class-settings-menu.php:57
+msgid "Loading..."
+msgstr "Ładowanie..."
+
+#: includes/menu/class-settings-menu.php:58
+msgid "Saving..."
+msgstr "Zapisywanie..."
+
+#: includes/menu/class-settings-menu.php:59
+msgid "Settings saved successfully!"
+msgstr "Ustawienia zostały pomyślnie zapisane!"
+
+#: includes/menu/class-settings-menu.php:60
+msgid "An error occurred. Please try again."
+msgstr "Wystąpił błąd. Spróbuj ponownie."
+
+#: includes/menu/class-settings-menu.php:61
+msgid "Are you sure you want to delete this item?"
+msgstr "Czy na pewno chcesz usunąć ten element?"
+
+#: includes/menu/class-settings-menu.php:62
+msgid "Testing connection..."
+msgstr "Testowanie połączenia..."
+
+#: includes/menu/class-settings-menu.php:63
+msgid "Connection successful!"
+msgstr "Połączenie udane!"
+
+#: includes/menu/class-settings-menu.php:64
+msgid "Connection failed. Please check your settings."
+msgstr "Połączenie nieudane. Sprawdź swoje ustawienia."
+
+#: includes/menu/class-settings-menu.php:65
+msgid "Please enter a valid URL."
+msgstr "Wprowadź prawidłowy adres URL."
+
+#: includes/menu/class-settings-menu.php:66
+msgid "This field is required."
+msgstr "To pole jest wymagane."
+
+# Tag Translation JavaScript Localization
+#: includes/menu/class-tag-translation.php:68
+msgid "Translation saved!"
+msgstr "Tłumaczenie zapisane!"
+
+#: includes/menu/class-tag-translation.php:69
+msgid "Please select a CSV file."
+msgstr "Wybierz plik CSV."
+
+#: includes/menu/class-tag-translation.php:70
+msgid "Importing..."
+msgstr "Importowanie..."
+
+#: includes/menu/class-tag-translation.php:71
+msgid "Import complete!"
+msgstr "Import zakończony!"
+
+#: includes/menu/class-tag-translation.php:72
+msgid "Import failed. Please check the CSV format."
+msgstr "Import nieudany. Sprawdź format pliku CSV."
+
+#: includes/menu/class-tag-translation.php:154
+msgid "Export CSV"
+msgstr "Eksportuj CSV"
+
+#: includes/menu/class-tag-translation.php:155
+msgid "Import CSV"
+msgstr "Importuj CSV"
+
+#: includes/menu/class-tag-translation.php:158
+msgid "Import"
+msgstr "Importuj"
+
+#: includes/menu/class-tag-translation.php:159
+msgid "Cancel"
+msgstr "Anuluj"
+
+# Translation Settings Core Strings
+#: includes/core/class-translation-settings.php:134
+msgid "Translation Settings"
+msgstr "Ustawienia Tłumaczeń"
+
+#: includes/core/class-translation-settings.php:135
+msgid "Configure translation workflow for each language. You can specify the default post status after translation, assign a reviewer, and customize the emails sent to the reviewer and author."
+msgstr "Skonfiguruj przepływ pracy tłumaczeń dla każdego języka. Możesz określić domyślny status wpisu po tłumaczeniu, wyznaczyć recenzenta i dostosować e-maile wysyłane do recenzenta i autora."
+
+#: includes/core/class-translation-settings.php:139
+msgid "Translation Provider"
+msgstr "Dostawca Tłumaczeń"
+
+#: includes/core/class-translation-settings.php:140
+msgid "Basic Settings"
+msgstr "Podstawowe Ustawienia"
+
+#: includes/core/class-translation-settings.php:141
+msgid "Tag Settings"
+msgstr "Ustawienia Tagów"
+
+#: includes/core/class-translation-settings.php:142
+msgid "Email Settings"
+msgstr "Ustawienia E-mail"
+
+#: includes/core/class-translation-settings.php:148
+msgid "Advanced Settings"
+msgstr "Zaawansowane Ustawienia"
+
+#: includes/core/class-translation-settings.php:157
+msgid "Choose which translation service to use for automatic translations."
+msgstr "Wybierz, której usługi tłumaczeniowej używać do automatycznych tłumaczeń."
+
+#: includes/core/class-translation-settings.php:173
+msgid "Allowed Source Languages"
+msgstr "Dozwolone Języki Źródłowe"
+
+#: includes/core/class-translation-settings.php:184
+msgid "Allowed Target Languages"
+msgstr "Dozwolone Języki Docelowe"
+
+#: includes/core/class-translation-settings.php:220
+msgid "Save Settings"
+msgstr "Zapisz Ustawienia"
+
+#: includes/core/class-translation-settings.php:276
+msgid "Language"
+msgstr "Język"
+
+#: includes/core/class-translation-settings.php:277
+msgid "Post Status After Translation"
+msgstr "Status Wpisu Po Tłumaczeniu"
+
+#: includes/core/class-translation-settings.php:278
+msgid "Reviewer"
+msgstr "Recenzent"
+
+# OpenAI Provider Localization
+#: includes/providers/openai/class-openai-settings-provider.php:26
+msgid "OpenAI Configuration"
+msgstr "Konfiguracja OpenAI"
+
+#: includes/providers/openai/class-openai-settings-provider.php:82
+msgid "API Key"
+msgstr "Klucz API"
+
+#: includes/providers/openai/class-openai-settings-provider.php:89
+msgid "Validate"
+msgstr "Zweryfikuj"
+
+#: includes/providers/openai/class-openai-settings-provider.php:275
+msgid "Validating..."
+msgstr "Weryfikowanie..."
+
+#: includes/providers/openai/class-openai-settings-provider.php:276
+msgid "API key is valid"
+msgstr "Klucz API jest prawidłowy"
+
+#: includes/providers/openai/class-openai-settings-provider.php:277
+msgid "API key is invalid"
+msgstr "Klucz API jest nieprawidłowy"
+
+# Translation Scheduler Core Strings
+#: includes/scheduler/class-translation-scheduler.php:95
+msgid "Translation Scope"
+msgstr "Zakres Tłumaczenia"
+
+#: includes/scheduler/class-translation-scheduler.php:97
+msgid "Local (no translation)"
+msgstr "Lokalny (bez tłumaczenia)"
+
+#: includes/scheduler/class-translation-scheduler.php:98
+msgid "Regional"
+msgstr "Regionalny"
+
+#: includes/scheduler/class-translation-scheduler.php:99
+msgid "Global"
+msgstr "Globalny"
+
+#: includes/scheduler/class-translation-scheduler.php:104
+msgid "Target Languages"
+msgstr "Języki Docelowe"
+
+#: includes/scheduler/class-translation-scheduler.php:119
+msgid "Translate"
+msgstr "Tłumacz"
+
+#: includes/scheduler/class-translation-scheduler.php:133
+msgid "Completed"
+msgstr "Ukończone"
+
+#: includes/scheduler/class-translation-scheduler.php:135
+msgid "Edit"
+msgstr "Edytuj"
+
+#: includes/scheduler/class-translation-scheduler.php:140
+msgid "In Progress"
+msgstr "W Trakcie"
+
+#: includes/scheduler/class-translation-scheduler.php:144
+msgid "Not Started"
+msgstr "Nie Rozpoczęte"

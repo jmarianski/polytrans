@@ -55,6 +55,25 @@ class PolyTrans_Translation_Scheduler
                 'postId' => get_the_ID(),
                 'nonce' => wp_create_nonce('polytrans_schedule_translation'),
                 'edit_url' => admin_url('post.php?post=__ID__&action=edit'),
+                'i18n' => [
+                    'translating' => esc_html__('Translating...', 'polytrans'),
+                    'translation_started' => esc_html__('Translation started!', 'polytrans'),
+                    'translation_scheduled' => esc_html__('Translation scheduled successfully.', 'polytrans'),
+                    'translation_completed' => esc_html__('Translation completed!', 'polytrans'),
+                    'translation_failed' => esc_html__('Translation failed. Please try again.', 'polytrans'),
+                    'error_occurred' => esc_html__('An error occurred. Please try again.', 'polytrans'),
+                    'loading' => esc_html__('Loading...', 'polytrans'),
+                    'please_wait' => esc_html__('Please wait...', 'polytrans'),
+                    'confirm_clear' => esc_html__('Are you sure you want to clear this translation?', 'polytrans'),
+                    'clearing' => esc_html__('Clearing...', 'polytrans'),
+                    'cleared' => esc_html__('Translation cleared.', 'polytrans'),
+                    'select_languages' => esc_html__('Please select at least one target language.', 'polytrans'),
+                    'save_post_first' => esc_html__('Please save the post before scheduling translations.', 'polytrans'),
+                    'connection_error' => esc_html__('Connection error. Please check your settings.', 'polytrans'),
+                    'processing' => esc_html__('Processing...', 'polytrans'),
+                    'edit_translation' => esc_html__('Edit Translation', 'polytrans'),
+                    'view_translation' => esc_html__('View Translation', 'polytrans'),
+                ]
             ]);
         }
     }

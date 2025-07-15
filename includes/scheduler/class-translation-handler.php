@@ -93,7 +93,7 @@ class PolyTrans_Translation_Handler
             update_post_meta($post_id, $needs_review_key, $needs_review ? '1' : '0');
             update_post_meta($post_id, $log_key, [[
                 'timestamp' => $now,
-                'msg' => __('Translation scheduled.', 'polytrans-translation'),
+                'msg' => __('Translation scheduled.', 'polytrans'),
             ]]);
 
             if (!in_array($lang, $scheduled_langs, true)) {
@@ -147,7 +147,7 @@ class PolyTrans_Translation_Handler
         // Add a status update log entry
         $log[] = [
             'timestamp' => time(),
-            'msg' => sprintf(__('Translation process scheduled (mode: %s).', 'polytrans-translation'), $transport_mode)
+            'msg' => sprintf(__('Translation process scheduled (mode: %s).', 'polytrans'), $transport_mode)
         ];
         update_post_meta($post_id, $log_key, $log);
         PolyTrans_Logs_Manager::log("Translation scheduled for post $post_id from $source_lang to $target_lang (mode: $transport_mode)", "info");
@@ -182,7 +182,7 @@ class PolyTrans_Translation_Handler
         // Add a log entry about spawning the background process
         $log[] = [
             'timestamp' => time(),
-            'msg' => __('Spawning background process for translation.', 'polytrans-translation')
+            'msg' => __('Spawning background process for translation.', 'polytrans')
         ];
         update_post_meta($post_id, $log_key, $log);
 
@@ -204,7 +204,7 @@ class PolyTrans_Translation_Handler
             $log[] = [
                 'timestamp' => time(),
                 'msg' => sprintf(
-                    __('Translation request queued in background process. <a href="%s" target="_blank">View logs</a> for more details.', 'polytrans-translation'),
+                    __('Translation request queued in background process. <a href="%s" target="_blank">View logs</a> for more details.', 'polytrans'),
                     esc_url($logs_url)
                 )
             ];
@@ -217,7 +217,7 @@ class PolyTrans_Translation_Handler
         // If background process spawning failed, log the error
         $log[] = [
             'timestamp' => time(),
-            'msg' => __('Failed to start background process. Please check server configuration.', 'polytrans-translation')
+            'msg' => __('Failed to start background process. Please check server configuration.', 'polytrans')
         ];
         PolyTrans_Logs_Manager::log("Failed to spawn background process for post $post_id translation", "info");
         update_post_meta($post_id, $status_key, 'failed');
@@ -245,7 +245,7 @@ class PolyTrans_Translation_Handler
             // Log error if no endpoint is configured
             $log[] = [
                 'timestamp' => time(),
-                'msg' => __('Failed to send translation request: No translation endpoint configured.', 'polytrans-translation')
+                'msg' => __('Failed to send translation request: No translation endpoint configured.', 'polytrans')
             ];
             PolyTrans_Logs_Manager::log("Failed to send external translation request for post $post_id: No endpoint configured", "info");
             update_post_meta($post_id, $status_key, 'failed');
@@ -265,7 +265,7 @@ class PolyTrans_Translation_Handler
         // Add log entry about sending to external service
         $log[] = [
             'timestamp' => time(),
-            'msg' => sprintf(__('Sending translation request to external endpoint: %s', 'polytrans-translation'), $translation_endpoint)
+            'msg' => sprintf(__('Sending translation request to external endpoint: %s', 'polytrans'), $translation_endpoint)
         ];
         update_post_meta($post_id, $log_key, $log);
 
@@ -274,7 +274,7 @@ class PolyTrans_Translation_Handler
         if (!$post) {
             $log[] = [
                 'timestamp' => time(),
-                'msg' => __('Failed to send translation request: Post not found.', 'polytrans-translation')
+                'msg' => __('Failed to send translation request: Post not found.', 'polytrans')
             ];
             PolyTrans_Logs_Manager::log("Failed to send external translation request for post $post_id: Post not found", "info");
             update_post_meta($post_id, $status_key, 'failed');
@@ -347,7 +347,7 @@ class PolyTrans_Translation_Handler
         // Log success if request was accepted
         $log[] = [
             'timestamp' => time(),
-            'msg' => sprintf(__('Translation request sent successfully to external endpoint. Awaiting response.', 'polytrans-translation'))
+            'msg' => sprintf(__('Translation request sent successfully to external endpoint. Awaiting response.', 'polytrans'))
         ];
         PolyTrans_Logs_Manager::log("External translation request sent successfully for post $post_id", "info");
 
@@ -364,15 +364,15 @@ class PolyTrans_Translation_Handler
     {
         // Check if post exists
         if (!$post_id || !get_post($post_id)) {
-            return ['message' => __('Cannot translate: the post does not exist.', 'polytrans-translation')];
+            return ['message' => __('Cannot translate: the post does not exist.', 'polytrans')];
         }
 
         // Check if post is currently being edited (has an active edit lock)
         $lock = wp_check_post_lock($post_id);
         if ($lock) {
             $user = get_userdata($lock);
-            $lock_user = $user ? $user->display_name : __('another user', 'polytrans-translation');
-            return ['message' => sprintf(__('Cannot translate: the post is currently being edited by %s.', 'polytrans-translation'), $lock_user)];
+            $lock_user = $user ? $user->display_name : __('another user', 'polytrans');
+            return ['message' => sprintf(__('Cannot translate: the post is currently being edited by %s.', 'polytrans'), $lock_user)];
         }
 
         // Check for unsaved changes - WordPress sets a revision when autosave happens
@@ -382,14 +382,14 @@ class PolyTrans_Translation_Handler
             $latest_revision = array_shift($revisions);
             $post = get_post($post_id);
             if ($latest_revision->post_modified > $post->post_modified) {
-                return ['message' => __('Cannot translate: the article has unsaved changes. Please save the post first.', 'polytrans-translation')];
+                return ['message' => __('Cannot translate: the article has unsaved changes. Please save the post first.', 'polytrans')];
             }
         }
 
         // Legacy dirty check for backwards compatibility
         $is_dirty = get_post_meta($post_id, 'is_dirty', true);
         if ($is_dirty === '1' || $is_dirty === 1 || $is_dirty === true) {
-            return ['message' => __('Cannot translate: the article has unsaved changes or is marked as dirty.', 'polytrans-translation')];
+            return ['message' => __('Cannot translate: the article has unsaved changes or is marked as dirty.', 'polytrans')];
         }
 
         // Get allowed targets from settings
@@ -400,14 +400,14 @@ class PolyTrans_Translation_Handler
         }
         if ($scope === 'regional') {
             if (empty($targets)) {
-                return ['message' => __('Please select at least one target language for regional translation.', 'polytrans-translation')];
+                return ['message' => __('Please select at least one target language for regional translation.', 'polytrans')];
             }
         }
 
         $invalid_targets = array_diff($targets, $allowed_targets);
         if (!empty($invalid_targets)) {
             return [
-                'message' => __('Invalid target language(s) selected.', 'polytrans-translation'),
+                'message' => __('Invalid target language(s) selected.', 'polytrans'),
                 'invalid_targets' => $invalid_targets
             ];
         }
@@ -525,7 +525,7 @@ class PolyTrans_Translation_Handler
                 $logs[] = [
                     'timestamp' => $current_time,
                     'msg' => sprintf(
-                        __('Translation automatically marked as failed after %d hours of inactivity.', 'polytrans-translation'),
+                        __('Translation automatically marked as failed after %d hours of inactivity.', 'polytrans'),
                         $timeout_hours
                     )
                 ];

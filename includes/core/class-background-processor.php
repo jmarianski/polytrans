@@ -341,7 +341,7 @@ class PolyTrans_Background_Processor
             update_post_meta($post_id, $status_key, 'failed');
             $log[] = [
                 'timestamp' => time(),
-                'msg' => __('Translation failed: Post not found.', 'polytrans-translation')
+                'msg' => __('Translation failed: Post not found.', 'polytrans')
             ];
             update_post_meta($post_id, $log_key, $log);
             return;
@@ -359,7 +359,7 @@ class PolyTrans_Background_Processor
         // Log start in post meta
         $log[] = [
             'timestamp' => time(),
-            'msg' => sprintf(__('Starting translation with %s.', 'polytrans-translation'), ucfirst($translation_provider))
+            'msg' => sprintf(__('Starting translation with %s.', 'polytrans'), ucfirst($translation_provider))
         ];
         update_post_meta($post_id, $log_key, $log);
 
@@ -391,7 +391,7 @@ class PolyTrans_Background_Processor
             $provider = $registry->get_provider($translation_provider);
 
             if (!$provider) {
-                throw new Exception(sprintf(__('Translation provider %s not found.', 'polytrans-translation'), $translation_provider));
+                throw new Exception(sprintf(__('Translation provider %s not found.', 'polytrans'), $translation_provider));
             }
 
             // Use the provider to translate
@@ -404,7 +404,7 @@ class PolyTrans_Background_Processor
             $translation_result = $provider->translate($content_to_translate, $source_lang, $target_lang, $settings);
 
             if (!$translation_result['success']) {
-                throw new Exception($translation_result['error'] ?? __('Unknown translation error.', 'polytrans-translation'));
+                throw new Exception($translation_result['error'] ?? __('Unknown translation error.', 'polytrans'));
             }
 
             self::log("Translation received from provider, processing result", "info", [
@@ -434,7 +434,7 @@ class PolyTrans_Background_Processor
             $result = $coordinator->process_translation($request_data);
 
             if (!$result['success']) {
-                throw new Exception($result['error'] ?? __('Failed to process translation.', 'polytrans-translation'));
+                throw new Exception($result['error'] ?? __('Failed to process translation.', 'polytrans'));
             }
 
             // Update success status and log
@@ -446,7 +446,7 @@ class PolyTrans_Background_Processor
             $log[] = [
                 'timestamp' => time(),
                 'msg' => sprintf(
-                    __('Translation completed successfully. New post ID: <a href="%s">%d</a>', 'polytrans-translation'),
+                    __('Translation completed successfully. New post ID: <a href="%s">%d</a>', 'polytrans'),
                     esc_url(admin_url('post.php?post=' . $result['created_post_id'] . '&action=edit')),
                     $result['created_post_id']
                 )
@@ -470,7 +470,7 @@ class PolyTrans_Background_Processor
 
             $log[] = [
                 'timestamp' => time(),
-                'msg' => sprintf(__('Translation failed: %s', 'polytrans-translation'), $e->getMessage())
+                'msg' => sprintf(__('Translation failed: %s', 'polytrans'), $e->getMessage())
             ];
 
             self::log("Translation failed: " . $e->getMessage(), "error", [
@@ -486,7 +486,7 @@ class PolyTrans_Background_Processor
         $log[] = [
             'timestamp' => time(),
             'msg' => sprintf(
-                __('Process complete. View detailed <a href="%s" target="_blank">system logs</a>.', 'polytrans-translation'),
+                __('Process complete. View detailed <a href="%s" target="_blank">system logs</a>.', 'polytrans'),
                 esc_url($logs_url)
             )
         ];
