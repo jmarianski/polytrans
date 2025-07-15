@@ -105,6 +105,9 @@ class PolyTrans
      */
     public function init()
     {
+        // Load plugin text domain for internationalization
+        load_plugin_textdomain('polytrans', false, dirname(plugin_basename(POLYTRANS_PLUGIN_FILE)) . '/languages');
+
         // Initialize components
         PolyTrans_Translation_Meta_Box::get_instance();
         PolyTrans_Translation_Scheduler::get_instance();

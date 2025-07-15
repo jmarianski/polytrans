@@ -49,6 +49,17 @@ class PolyTrans_Settings_Menu
             wp_enqueue_style('polytrans-settings', $plugin_url . 'assets/css/settings/translation-settings-admin.css', [], POLYTRANS_VERSION);
             wp_enqueue_style('jquery-ui-autocomplete');
 
+            // Localize user autocomplete script
+            wp_localize_script('polytrans-user-autocomplete', 'PolyTransUserAutocomplete', [
+                'i18n' => [
+                    'no_results' => esc_html__('No users found.', 'polytrans'),
+                    'searching' => esc_html__('Searching users...', 'polytrans'),
+                    'clear_selection' => esc_html__('Clear selection', 'polytrans'),
+                    'type_to_search' => esc_html__('Type to search users...', 'polytrans'),
+                    'min_chars' => esc_html__('Type at least 2 characters to search.', 'polytrans'),
+                ]
+            ]);
+
             // Localize script for main settings
             $settings = get_option('polytrans_settings', []);
             wp_localize_script('polytrans-settings', 'PolyTransAjax', [
@@ -56,6 +67,18 @@ class PolyTrans_Settings_Menu
                 'nonce' => wp_create_nonce('polytrans_nonce'),
                 'settings' => $settings,
                 'translation_receiver_endpoint' => $settings['translation_receiver_endpoint'] ?? '',
+                'i18n' => [
+                    'loading' => esc_html__('Loading...', 'polytrans'),
+                    'saving' => esc_html__('Saving...', 'polytrans'),
+                    'saved' => esc_html__('Settings saved successfully!', 'polytrans'),
+                    'error' => esc_html__('An error occurred. Please try again.', 'polytrans'),
+                    'confirm_delete' => esc_html__('Are you sure you want to delete this item?', 'polytrans'),
+                    'test_connection' => esc_html__('Testing connection...', 'polytrans'),
+                    'connection_success' => esc_html__('Connection successful!', 'polytrans'),
+                    'connection_failed' => esc_html__('Connection failed. Please check your settings.', 'polytrans'),
+                    'invalid_url' => esc_html__('Please enter a valid URL.', 'polytrans'),
+                    'required_field' => esc_html__('This field is required.', 'polytrans'),
+                ]
             ]);
         }
     }

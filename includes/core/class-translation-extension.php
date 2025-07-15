@@ -111,7 +111,7 @@ class PolyTrans_Translation_Extension
             // Add a status update log entry
             $log[] = [
                 'timestamp' => time(),
-                'msg' => __('External translation process started.', 'polytrans-translation')
+                'msg' => __('External translation process started.', 'polytrans')
             ];
             update_post_meta($original_post_id, $log_key, $log);
 
@@ -209,7 +209,7 @@ class PolyTrans_Translation_Extension
 
         $log[] = [
             'timestamp' => time(),
-            'msg' => sprintf(__('Translation failed: %s', 'polytrans-translation'), $error_message)
+            'msg' => sprintf(__('Translation failed: %s', 'polytrans'), $error_message)
         ];
 
         update_post_meta($post_id, $log_key, $log);
@@ -305,7 +305,7 @@ class PolyTrans_Translation_Extension
                         $log[] = [
                             'timestamp' => time(),
                             'msg' => sprintf(
-                                __('Translation completed successfully. New post ID: <a href="%s">%d</a>', 'polytrans-translation'),
+                                __('Translation completed successfully. New post ID: <a href="%s">%d</a>', 'polytrans'),
                                 esc_url(admin_url('post.php?post=' . $created_post_id . '&action=edit')),
                                 $created_post_id
                             )

@@ -37,7 +37,7 @@ class polytrans_settings
     {
         $settings = get_option('polytrans_settings', []);
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('polytrans_settings')) {
+        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('polytrans_settings')) {
             $this->save_settings($settings);
         }
 
@@ -49,20 +49,25 @@ class polytrans_settings
      */
     private function save_settings(&$settings)
     {
+        // Verify nonce for security
+        if (!check_admin_referer('polytrans_settings')) {
+            wp_die(esc_html__('Security check failed.', 'polytrans-translation'));
+        }
+
         $registry = PolyTrans_Provider_Registry::get_instance();
 
-        $settings['translation_provider'] = sanitize_text_field($_POST['translation_provider'] ?? 'google');
-        $settings['translation_transport_mode'] = sanitize_text_field($_POST['translation_transport_mode'] ?? 'external');
-        $settings['translation_endpoint'] = esc_url_raw($_POST['translation_endpoint'] ?? '');
-        $settings['translation_receiver_endpoint'] = esc_url_raw($_POST['translation_receiver_endpoint'] ?? '');
-        $settings['translation_receiver_secret'] = sanitize_text_field($_POST['translation_receiver_secret'] ?? '');
-        $settings['translation_receiver_secret_method'] = sanitize_text_field($_POST['translation_receiver_secret_method'] ?? 'header_bearer');
-        $settings['edit_link_base_url'] = esc_url_raw($_POST['edit_link_base_url'] ?? '');
+        $settings['translation_provider'] = sanitize_text_field(wp_unslash($_POST['translation_provider'] ?? 'google'));
+        $settings['translation_transport_mode'] = sanitize_text_field(wp_unslash($_POST['translation_transport_mode'] ?? 'external'));
+        $settings['translation_endpoint'] = esc_url_raw(wp_unslash($_POST['translation_endpoint'] ?? ''));
+        $settings['translation_receiver_endpoint'] = esc_url_raw(wp_unslash($_POST['translation_receiver_endpoint'] ?? ''));
+        $settings['translation_receiver_secret'] = sanitize_text_field(wp_unslash($_POST['translation_receiver_secret'] ?? ''));
+        $settings['translation_receiver_secret_method'] = sanitize_text_field(wp_unslash($_POST['translation_receiver_secret_method'] ?? 'header_bearer'));
+        $settings['edit_link_base_url'] = esc_url_raw(wp_unslash($_POST['edit_link_base_url'] ?? ''));
         $settings['enable_db_logging'] = isset($_POST['enable_db_logging']) ? '1' : '0';
-        $settings['allowed_sources'] = array_map('sanitize_text_field', $_POST['allowed_sources'] ?? []);
-        $settings['allowed_targets'] = array_map('sanitize_text_field', $_POST['allowed_targets'] ?? []);
-        $settings['source_language'] = sanitize_text_field($_POST['source_language'] ?? 'pl');
-        $settings['base_tags'] = sanitize_textarea_field($_POST['base_tags'] ?? '');
+        $settings['allowed_sources'] = isset($_POST['allowed_sources']) ? array_map('sanitize_text_field', wp_unslash($_POST['allowed_sources'])) : [];
+        $settings['allowed_targets'] = isset($_POST['allowed_targets']) ? array_map('sanitize_text_field', wp_unslash($_POST['allowed_targets'])) : [];
+        $settings['source_language'] = sanitize_text_field(wp_unslash($_POST['source_language'] ?? 'pl'));
+        $settings['base_tags'] = sanitize_textarea_field(wp_unslash($_POST['base_tags'] ?? ''));
 
         // Handle provider-specific settings
         $selected_provider = $registry->get_provider($settings['translation_provider']);
@@ -77,15 +82,15 @@ class polytrans_settings
 
         foreach ($this->langs as $lang) {
             $settings[$lang] = [
-                'status' => sanitize_text_field($_POST['status'][$lang] ?? 'draft'),
-                'reviewer' => sanitize_text_field($_POST['reviewer'][$lang] ?? 'none'),
+                'status' => sanitize_text_field(wp_unslash($_POST['status'][$lang] ?? 'draft')),
+                'reviewer' => sanitize_text_field(wp_unslash($_POST['reviewer'][$lang] ?? 'none')),
             ];
         }
 
-        $settings['reviewer_email'] = wp_kses_post(stripslashes($_POST['reviewer_email'] ?? ''));
-        $settings['author_email'] = wp_kses_post(stripslashes($_POST['author_email'] ?? ''));
-        $settings['reviewer_email_title'] = wp_kses_post(stripslashes($_POST['reviewer_email_title'] ?? ''));
-        $settings['author_email_title'] = wp_kses_post(stripslashes($_POST['author_email_title'] ?? ''));
+        $settings['reviewer_email'] = wp_kses_post(wp_unslash($_POST['reviewer_email'] ?? ''));
+        $settings['author_email'] = wp_kses_post(wp_unslash($_POST['author_email'] ?? ''));
+        $settings['reviewer_email_title'] = wp_kses_post(wp_unslash($_POST['reviewer_email_title'] ?? ''));
+        $settings['author_email_title'] = wp_kses_post(wp_unslash($_POST['author_email_title'] ?? ''));
 
         update_option('polytrans_settings', $settings);
         echo '<div class="updated"><p>' . esc_html__('Settings saved.', 'polytrans-translation') . '</p></div>';
@@ -255,7 +260,8 @@ class polytrans_settings
             </script>
         </div>
     <?php
-        echo ob_get_clean();
+        $output = ob_get_clean();
+        echo wp_kses_post($output);
     }
 
     /**
@@ -299,7 +305,7 @@ class polytrans_settings
                                 class="user-autocomplete-input"
                                 id="reviewer_autocomplete_<?php echo esc_attr($lang); ?>"
                                 name="reviewer_suggest[<?php echo esc_attr($lang); ?>]"
-                                value="<?php echo $reviewer_label; ?>"
+                                value="<?php echo esc_attr($reviewer_label); ?>"
                                 autocomplete="off"
                                 placeholder="<?php esc_attr_e('Type to search user...', 'polytrans-translation'); ?>"
                                 style="width:100%;max-width:350px;"
