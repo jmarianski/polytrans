@@ -310,6 +310,7 @@ class PolyTrans_Translation_Handler
         // Add authentication if needed
         $secret = isset($settings['translation_receiver_secret']) ? $settings['translation_receiver_secret'] : '';
         $secret_method = isset($settings['translation_receiver_secret_method']) ? $settings['translation_receiver_secret_method'] : 'header_bearer';
+        $custom_header_name = isset($settings['translation_receiver_secret_custom_header']) ? $settings['translation_receiver_secret_custom_header'] : 'x-polytrans-secret';
 
         $args = [
             'headers' => [
@@ -330,7 +331,7 @@ class PolyTrans_Translation_Handler
                     $args['headers']['Authorization'] = 'Bearer ' . $secret;
                     break;
                 case 'header_custom':
-                    $args['headers']['x-polytrans-secret'] = $secret;
+                    $args['headers'][$custom_header_name] = $secret;
                     break;
                 case 'post_param':
                     // Add secret to payload

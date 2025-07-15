@@ -62,6 +62,7 @@ class polytrans_settings
         $settings['translation_receiver_endpoint'] = esc_url_raw(wp_unslash($_POST['translation_receiver_endpoint'] ?? ''));
         $settings['translation_receiver_secret'] = sanitize_text_field(wp_unslash($_POST['translation_receiver_secret'] ?? ''));
         $settings['translation_receiver_secret_method'] = sanitize_text_field(wp_unslash($_POST['translation_receiver_secret_method'] ?? 'header_bearer'));
+        $settings['translation_receiver_secret_custom_header'] = sanitize_text_field(wp_unslash($_POST['translation_receiver_secret_custom_header'] ?? 'x-polytrans-secret'));
         $settings['edit_link_base_url'] = esc_url_raw(wp_unslash($_POST['edit_link_base_url'] ?? ''));
         $settings['enable_db_logging'] = isset($_POST['enable_db_logging']) ? '1' : '0';
         $settings['allowed_sources'] = isset($_POST['allowed_sources']) ? array_map('sanitize_text_field', wp_unslash($_POST['allowed_sources'])) : [];
@@ -256,6 +257,18 @@ class polytrans_settings
                         $(this).addClass('nav-tab-active');
                         $(targetTab).show();
                     });
+
+                    // Handle secret method changes to show/hide custom header field
+                    $('select[name="translation_receiver_secret_method"]').on('change', function() {
+                        var selectedMethod = $(this).val();
+                        var customHeaderSection = $('#custom-header-section');
+                        
+                        if (selectedMethod === 'header_custom') {
+                            customHeaderSection.show();
+                        } else {
+                            customHeaderSection.hide();
+                        }
+                    });
                 });
             </script>
         </div>
@@ -411,10 +424,16 @@ class polytrans_settings
             <option value="none" <?php selected($method, 'none'); ?>><?php esc_html_e('None (do not send secret)', 'polytrans'); ?></option>
             <option value="get_param" <?php selected($method, 'get_param'); ?>><?php esc_html_e('GET parameter (?secret=...)', 'polytrans'); ?></option>
             <option value="header_bearer" <?php selected($method, 'header_bearer'); ?>><?php esc_html_e('HTTP Header: Authorization: Bearer ...', 'polytrans'); ?></option>
-            <option value="header_custom" <?php selected($method, 'header_custom'); ?>><?php esc_html_e('HTTP Header: x-polytrans-secret: ...', 'polytrans'); ?></option>
+            <option value="header_custom" <?php selected($method, 'header_custom'); ?>><?php esc_html_e('HTTP Header: Custom Header Name', 'polytrans'); ?></option>
             <option value="post_param" <?php selected($method, 'post_param'); ?>><?php esc_html_e('POST body field (JSON: secret)', 'polytrans'); ?></option>
         </select>
         <br><small><?php esc_html_e('Choose how the secret should be sent to the receiver endpoint. Select "None" to disable secret sending/checking.', 'polytrans'); ?></small><br><br>
+
+        <div id="custom-header-section" style="<?php echo ($method !== 'header_custom') ? 'display:none;' : ''; ?>">
+            <h2><?php esc_html_e('Custom Header Name', 'polytrans'); ?></h2>
+            <input type="text" name="translation_receiver_secret_custom_header" value="<?php echo esc_attr($settings['translation_receiver_secret_custom_header'] ?? 'x-polytrans-secret'); ?>" style="width:100%;max-width:400px;" placeholder="x-polytrans-secret" />
+            <br><small><?php esc_html_e('Specify the custom header name to use when sending the secret. Default is "x-polytrans-secret".', 'polytrans'); ?></small><br><br>
+        </div>
 
         <h2><?php esc_html_e('Edit Link Base URL', 'polytrans'); ?></h2>
         <input type="url" name="edit_link_base_url" value="<?php echo esc_attr($settings['edit_link_base_url'] ?? ''); ?>" style="width:100%" placeholder="https://example.com/wp-admin" />
