@@ -51,7 +51,7 @@ class polytrans_settings
     {
         // Verify nonce for security
         if (!check_admin_referer('polytrans_settings')) {
-            wp_die(esc_html__('Security check failed.', 'polytrans-translation'));
+            wp_die(esc_html__('Security check failed.', 'polytrans'));
         }
 
         $registry = PolyTrans_Provider_Registry::get_instance();
@@ -93,7 +93,7 @@ class polytrans_settings
         $settings['author_email_title'] = wp_kses_post(wp_unslash($_POST['author_email_title'] ?? ''));
 
         update_option('polytrans_settings', $settings);
-        echo '<div class="updated"><p>' . esc_html__('Settings saved.', 'polytrans-translation') . '</p></div>';
+        echo '<div class="updated"><p>' . esc_html__('Settings saved.', 'polytrans') . '</p></div>';
     }
 
     /**
@@ -131,21 +131,21 @@ class polytrans_settings
         ob_start();
 ?>
         <div class="wrap">
-            <h1><?php esc_html_e('Translation Settings', 'polytrans-translation'); ?></h1>
-            <p><?php esc_html_e('Configure translation workflow for each language. You can specify the default post status after translation, assign a reviewer, and customize the emails sent to the reviewer and author.', 'polytrans-translation'); ?></p>
+            <h1><?php esc_html_e('Translation Settings', 'polytrans'); ?></h1>
+            <p><?php esc_html_e('Configure translation workflow for each language. You can specify the default post status after translation, assign a reviewer, and customize the emails sent to the reviewer and author.', 'polytrans'); ?></p>
 
             <!-- Tab Navigation -->
             <div class="nav-tab-wrapper">
-                <a href="#provider-settings" class="nav-tab nav-tab-active" id="provider-tab"><?php esc_html_e('Translation Provider', 'polytrans-translation'); ?></a>
-                <a href="#basic-settings" class="nav-tab" id="basic-tab"><?php esc_html_e('Basic Settings', 'polytrans-translation'); ?></a>
-                <a href="#tag-settings" class="nav-tab" id="tag-tab"><?php esc_html_e('Tag Settings', 'polytrans-translation'); ?></a>
-                <a href="#email-settings" class="nav-tab" id="email-tab"><?php esc_html_e('Email Settings', 'polytrans-translation'); ?></a>
+                <a href="#provider-settings" class="nav-tab nav-tab-active" id="provider-tab"><?php esc_html_e('Translation Provider', 'polytrans'); ?></a>
+                <a href="#basic-settings" class="nav-tab" id="basic-tab"><?php esc_html_e('Basic Settings', 'polytrans'); ?></a>
+                <a href="#tag-settings" class="nav-tab" id="tag-tab"><?php esc_html_e('Tag Settings', 'polytrans'); ?></a>
+                <a href="#email-settings" class="nav-tab" id="email-tab"><?php esc_html_e('Email Settings', 'polytrans'); ?></a>
                 <?php foreach ($settings_providers as $provider_id => $settings_provider): ?>
                     <a href="#<?php echo esc_attr($provider_id); ?>-settings" class="nav-tab provider-settings-tab" id="<?php echo esc_attr($provider_id); ?>-tab" style="<?php echo ($translation_provider !== $provider_id) ? 'display:none;' : ''; ?>">
                         <?php echo esc_html($settings_provider->get_tab_label()); ?>
                     </a>
                 <?php endforeach; ?>
-                <a href="#advanced-settings" class="nav-tab" id="advanced-tab"><?php esc_html_e('Advanced Settings', 'polytrans-translation'); ?></a>
+                <a href="#advanced-settings" class="nav-tab" id="advanced-tab"><?php esc_html_e('Advanced Settings', 'polytrans'); ?></a>
             </div>
 
             <form method="post">
@@ -154,8 +154,8 @@ class polytrans_settings
                 <!-- Translation Provider Tab -->
                 <div id="provider-settings" class="tab-content active">
                     <div class="translation-provider-section">
-                        <h2><?php esc_html_e('Translation Provider', 'polytrans-translation'); ?></h2>
-                        <p><?php esc_html_e('Choose which translation service to use for automatic translations.', 'polytrans-translation'); ?></p>
+                        <h2><?php esc_html_e('Translation Provider', 'polytrans'); ?></h2>
+                        <p><?php esc_html_e('Choose which translation service to use for automatic translations.', 'polytrans'); ?></p>
                         <div style="margin-bottom:2em;">
                             <?php foreach ($providers as $provider_id => $provider): ?>
                                 <label style="display:block;margin-bottom:0.5em;">
@@ -170,8 +170,8 @@ class polytrans_settings
 
                 <!-- Basic Settings Tab -->
                 <div id="basic-settings" class="tab-content" style="display:none;">
-                    <h2><?php esc_html_e('Allowed Source Languages', 'polytrans-translation'); ?></h2>
-                    <p><?php esc_html_e('Select which source languages are allowed for automatic translation. Only posts in these languages will be considered as sources for translation.', 'polytrans-translation'); ?></p>
+                    <h2><?php esc_html_e('Allowed Source Languages', 'polytrans'); ?></h2>
+                    <p><?php esc_html_e('Select which source languages are allowed for automatic translation. Only posts in these languages will be considered as sources for translation.', 'polytrans'); ?></p>
                     <div class="language-grid">
                         <?php foreach ($this->langs as $i => $lang): ?>
                             <label>
@@ -181,8 +181,8 @@ class polytrans_settings
                         <?php endforeach; ?>
                     </div>
 
-                    <h2><?php esc_html_e('Allowed Target Languages', 'polytrans-translation'); ?></h2>
-                    <p><?php esc_html_e('Select which target languages are allowed for automatic translation. Only these languages will be available as translation targets and shown in the configuration table below.', 'polytrans-translation'); ?></p>
+                    <h2><?php esc_html_e('Allowed Target Languages', 'polytrans'); ?></h2>
+                    <p><?php esc_html_e('Select which target languages are allowed for automatic translation. Only these languages will be available as translation targets and shown in the configuration table below.', 'polytrans'); ?></p>
                     <div class="language-grid">
                         <?php foreach ($this->langs as $i => $lang): ?>
                             <label>
@@ -217,7 +217,7 @@ class polytrans_settings
                     <?php $this->render_advanced_settings($translation_endpoint, $translation_receiver_endpoint, $settings); ?>
                 </div>
 
-                <p><input type="submit" class="button button-primary" value="<?php esc_attr_e('Save Settings', 'polytrans-translation'); ?>"></p>
+                <p><input type="submit" class="button button-primary" value="<?php esc_attr_e('Save Settings', 'polytrans'); ?>"></p>
             </form>
 
             <script>
@@ -261,7 +261,7 @@ class polytrans_settings
         </div>
     <?php
         $output = ob_get_clean();
-        echo wp_kses_post($output);
+        echo $output;
     }
 
     /**
@@ -273,9 +273,9 @@ class polytrans_settings
         <table class="widefat fixed striped" id="translation-settings-table">
             <thead>
                 <tr>
-                    <th><?php esc_html_e('Language', 'polytrans-translation'); ?></th>
-                    <th><?php esc_html_e('Post Status After Translation', 'polytrans-translation'); ?></th>
-                    <th><?php esc_html_e('Reviewer', 'polytrans-translation'); ?></th>
+                    <th><?php esc_html_e('Language', 'polytrans'); ?></th>
+                    <th><?php esc_html_e('Post Status After Translation', 'polytrans'); ?></th>
+                    <th><?php esc_html_e('Reviewer', 'polytrans'); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -293,7 +293,7 @@ class polytrans_settings
                                     <option value="<?php echo esc_attr($val); ?>" <?php selected($row['status'], $val); ?>><?php echo esc_html($label); ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <br><small><?php esc_html_e('Choose the status for posts after translation in this language. "Same as source" means the translation will be published if the source is published, or draft if the source is draft.', 'polytrans-translation'); ?></small>
+                            <br><small><?php esc_html_e('Choose the status for posts after translation in this language. "Same as source" means the translation will be published if the source is published, or draft if the source is draft.', 'polytrans'); ?></small>
                         </td>
                         <td>
                             <?php
@@ -307,19 +307,19 @@ class polytrans_settings
                                 name="reviewer_suggest[<?php echo esc_attr($lang); ?>]"
                                 value="<?php echo esc_attr($reviewer_label); ?>"
                                 autocomplete="off"
-                                placeholder="<?php esc_attr_e('Type to search user...', 'polytrans-translation'); ?>"
+                                placeholder="<?php esc_attr_e('Type to search user...', 'polytrans'); ?>"
                                 style="width:100%;max-width:350px;"
                                 data-user-autocomplete-for="#reviewer_hidden_<?php echo esc_attr($lang); ?>"
                                 data-user-autocomplete-clear="#reviewer_clear_<?php echo esc_attr($lang); ?>">
                             <input type="hidden" name="reviewer[<?php echo esc_attr($lang); ?>]" id="reviewer_hidden_<?php echo esc_attr($lang); ?>" value="<?php echo esc_attr($reviewer_id); ?>">
                             <button type="button" class="button user-autocomplete-clear" id="reviewer_clear_<?php echo esc_attr($lang); ?>" data-lang="<?php echo esc_attr($lang); ?>" style="margin-left:0.5em;<?php if ($reviewer_id === 'none') echo 'display:none;'; ?>">&times;</button>
-                            <br><small><?php esc_html_e('Select a reviewer for this language. "None" disables review.', 'polytrans-translation'); ?></small>
+                            <br><small><?php esc_html_e('Select a reviewer for this language. "None" disables review.', 'polytrans'); ?></small>
                         </td>
                     </tr>
                 <?php endforeach; ?>
                 <?php if (!$has_target): ?>
                     <tr>
-                        <td colspan="3" style="text-align:center; color:#888;"><?php esc_html_e('No target languages selected. Please select at least one target language above.', 'polytrans-translation'); ?></td>
+                        <td colspan="3" style="text-align:center; color:#888;"><?php esc_html_e('No target languages selected. Please select at least one target language above.', 'polytrans'); ?></td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -335,10 +335,10 @@ class polytrans_settings
     ?>
         <div class="translation-emails-row" style="display:flex;gap:2em;flex-wrap:wrap;">
             <div class="translation-email-col">
-                <h2><?php esc_html_e('Reviewer Email Template', 'polytrans-translation'); ?></h2>
-                <label for="reviewer_email_title"><strong><?php esc_html_e('Email Subject (Reviewer)', 'polytrans-translation'); ?></strong></label><br />
+                <h2><?php esc_html_e('Reviewer Email Template', 'polytrans'); ?></h2>
+                <label for="reviewer_email_title"><strong><?php esc_html_e('Email Subject (Reviewer)', 'polytrans'); ?></strong></label><br />
                 <input type="text" id="reviewer_email_title" name="reviewer_email_title" value="<?php echo esc_attr($reviewer_email_title); ?>" style="width:100%" />
-                <br><small><?php esc_html_e('Subject of the email sent to reviewer. You can use {title} for the post title.', 'polytrans-translation'); ?></small><br><br>
+                <br><small><?php esc_html_e('Subject of the email sent to reviewer. You can use {title} for the post title.', 'polytrans'); ?></small><br><br>
                 <?php
                 $editor_id = 'reviewer_email';
                 $editor_settings = [
@@ -350,19 +350,19 @@ class polytrans_settings
                 ];
                 wp_editor($reviewer_email, $editor_id, $editor_settings);
                 ?>
-                <small><?php esc_html_e('Email sent to reviewer when translation is ready for review. Use {link} for the edit link and {title} for the post title. Note: Edit links will use the "Edit Link Base URL" from Advanced Settings if configured, which is recommended for background processes.', 'polytrans-translation'); ?></small>
+                <small><?php esc_html_e('Email sent to reviewer when translation is ready for review. Use {link} for the edit link and {title} for the post title. Note: Edit links will use the "Edit Link Base URL" from Advanced Settings if configured, which is recommended for background processes.', 'polytrans'); ?></small>
             </div>
             <div class="translation-email-col">
-                <h2><?php esc_html_e('Author Email Template (when translation is published)', 'polytrans-translation'); ?></h2>
-                <label for="author_email_title"><strong><?php esc_html_e('Email Subject (Author)', 'polytrans-translation'); ?></strong></label><br />
+                <h2><?php esc_html_e('Author Email Template (when translation is published)', 'polytrans'); ?></h2>
+                <label for="author_email_title"><strong><?php esc_html_e('Email Subject (Author)', 'polytrans'); ?></strong></label><br />
                 <input type="text" id="author_email_title" name="author_email_title" value="<?php echo esc_attr($author_email_title); ?>" style="width:100%" />
-                <br><small><?php esc_html_e('Subject of the email sent to the author. You can use {title} for the post title.', 'polytrans-translation'); ?></small><br><br>
+                <br><small><?php esc_html_e('Subject of the email sent to the author. You can use {title} for the post title.', 'polytrans'); ?></small><br><br>
                 <?php
                 $editor_id = 'author_email';
                 $editor_settings['textarea_name'] = 'author_email';
                 wp_editor($author_email, $editor_id, $editor_settings);
                 ?>
-                <small><?php esc_html_e('Email sent to the author when translation is published. Use {link} for the edit link and {title} for the post title. Note: Edit links will use the "Edit Link Base URL" from Advanced Settings if configured, which is recommended for background processes.', 'polytrans-translation'); ?></small>
+                <small><?php esc_html_e('Email sent to the author when translation is published. Use {link} for the edit link and {title} for the post title. Note: Edit links will use the "Edit Link Base URL" from Advanced Settings if configured, which is recommended for background processes.', 'polytrans'); ?></small>
             </div>
         </div>
     <?php
@@ -374,61 +374,61 @@ class polytrans_settings
     private function render_advanced_settings($translation_endpoint, $translation_receiver_endpoint, $settings)
     {
     ?>
-        <h1><?php esc_html_e('Advanced Integration Settings', 'polytrans-translation'); ?></h1>
+        <h1><?php esc_html_e('Advanced Integration Settings', 'polytrans'); ?></h1>
 
-        <h2><?php esc_html_e('Transport Options', 'polytrans-translation'); ?></h2>
+        <h2><?php esc_html_e('Transport Options', 'polytrans'); ?></h2>
         <select name="translation_transport_mode" style="width:100%">
             <?php $transport_mode = $settings['translation_transport_mode'] ?? 'external'; ?>
-            <option value="external" <?php selected($transport_mode, 'external'); ?>><?php esc_html_e('External Server (Default)', 'polytrans-translation'); ?></option>
-            <option value="internal" <?php selected($transport_mode, 'internal'); ?>><?php esc_html_e('Internal (Local Endpoint)', 'polytrans-translation'); ?></option>
+            <option value="external" <?php selected($transport_mode, 'external'); ?>><?php esc_html_e('External Server (Default)', 'polytrans'); ?></option>
+            <option value="internal" <?php selected($transport_mode, 'internal'); ?>><?php esc_html_e('Internal (Local Endpoint)', 'polytrans'); ?></option>
         </select>
         <div style="margin-top:8px;">
             <small>
-                <?php esc_html_e('Choose how to handle translation transport:', 'polytrans-translation'); ?><br>
-                <strong><?php esc_html_e('External Server:', 'polytrans-translation'); ?></strong> <?php esc_html_e('Sends data to the external endpoints specified below and expects the server to send data back to the specified receiver endpoint.', 'polytrans-translation'); ?><br>
-                <strong><?php esc_html_e('Internal:', 'polytrans-translation'); ?></strong> <?php esc_html_e('Uses local endpoints via the site URL, bypassing the need for external services. Data will be sent to self via the site\'s WordPress REST API.', 'polytrans-translation'); ?>
+                <?php esc_html_e('Choose how to handle translation transport:', 'polytrans'); ?><br>
+                <strong><?php esc_html_e('External Server:', 'polytrans'); ?></strong> <?php esc_html_e('Sends data to the external endpoints specified below and expects the server to send data back to the specified receiver endpoint.', 'polytrans'); ?><br>
+                <strong><?php esc_html_e('Internal:', 'polytrans'); ?></strong> <?php esc_html_e('Uses local endpoints via the site URL, bypassing the need for external services. Data will be sent to self via the site\'s WordPress REST API.', 'polytrans'); ?>
             </small>
         </div><br><br>
 
-        <h2><?php esc_html_e('Translation Endpoint', 'polytrans-translation'); ?></h2>
+        <h2><?php esc_html_e('Translation Endpoint', 'polytrans'); ?></h2>
         <input type="url" name="translation_endpoint" value="<?php echo esc_attr($translation_endpoint); ?>" style="width:100%" placeholder="https://example.com/translate-endpoint" />
-        <br><small><?php esc_html_e('Specify the URL of the translation endpoint. The system will send JSON with source_language, target_language, title, and text to this endpoint.', 'polytrans-translation'); ?></small><br><br>
+        <br><small><?php esc_html_e('Specify the URL of the translation endpoint. The system will send JSON with source_language, target_language, title, and text to this endpoint.', 'polytrans'); ?></small><br><br>
 
-        <h2><?php esc_html_e('Translation Receiver Endpoint', 'polytrans-translation'); ?></h2>
+        <h2><?php esc_html_e('Translation Receiver Endpoint', 'polytrans'); ?></h2>
         <input type="url" name="translation_receiver_endpoint" value="<?php echo esc_attr($translation_receiver_endpoint); ?>" style="width:100%" placeholder="https://example.com/receive-endpoint" />
-        <br><small><?php esc_html_e('Specify the URL of the translation receiver endpoint. This is where translated data will be sent (e.g., http://localhost:9008/wp-json/polytrans/v1/translation/receive-post).', 'polytrans-translation'); ?></small><br><br>
+        <br><small><?php esc_html_e('Specify the URL of the translation receiver endpoint. This is where translated data will be sent (e.g., http://localhost:9008/wp-json/polytrans/v1/translation/receive-post).', 'polytrans'); ?></small><br><br>
 
-        <h2><?php esc_html_e('Translation Receiver Secret', 'polytrans-translation'); ?></h2>
+        <h2><?php esc_html_e('Translation Receiver Secret', 'polytrans'); ?></h2>
         <div style="display:flex;gap:0.5em;align-items:center;max-width:600px;">
-            <input type="text" id="translation-receiver-secret" name="translation_receiver_secret" value="<?php echo esc_attr($settings['translation_receiver_secret'] ?? ''); ?>" data-initial="<?php echo esc_attr($settings['translation_receiver_secret'] ?? ''); ?>" style="width:100%" placeholder="<?php esc_attr_e('Enter secret for receiver authentication', 'polytrans-translation'); ?>" autocomplete="off" />
-            <button type="button" id="generate-translation-secret" class="button" style="white-space:nowrap;"><?php esc_html_e('Generate Secret', 'polytrans-translation'); ?></button>
+            <input type="text" id="translation-receiver-secret" name="translation_receiver_secret" value="<?php echo esc_attr($settings['translation_receiver_secret'] ?? ''); ?>" data-initial="<?php echo esc_attr($settings['translation_receiver_secret'] ?? ''); ?>" style="width:100%" placeholder="<?php esc_attr_e('Enter secret for receiver authentication', 'polytrans'); ?>" autocomplete="off" />
+            <button type="button" id="generate-translation-secret" class="button" style="white-space:nowrap;"><?php esc_html_e('Generate Secret', 'polytrans'); ?></button>
         </div>
-        <br><small><?php esc_html_e('This secret will be used to authenticate translation requests. Keep it private!', 'polytrans-translation'); ?></small><br><br>
+        <br><small><?php esc_html_e('This secret will be used to authenticate translation requests. Keep it private!', 'polytrans'); ?></small><br><br>
 
-        <h2><?php esc_html_e('How to Pass Secret', 'polytrans-translation'); ?></h2>
+        <h2><?php esc_html_e('How to Pass Secret', 'polytrans'); ?></h2>
         <select name="translation_receiver_secret_method" style="width:100%">
             <?php $method = $settings['translation_receiver_secret_method'] ?? 'header_bearer'; ?>
-            <option value="none" <?php selected($method, 'none'); ?>><?php esc_html_e('None (do not send secret)', 'polytrans-translation'); ?></option>
-            <option value="get_param" <?php selected($method, 'get_param'); ?>><?php esc_html_e('GET parameter (?secret=...)', 'polytrans-translation'); ?></option>
-            <option value="header_bearer" <?php selected($method, 'header_bearer'); ?>><?php esc_html_e('HTTP Header: Authorization: Bearer ...', 'polytrans-translation'); ?></option>
-            <option value="header_custom" <?php selected($method, 'header_custom'); ?>><?php esc_html_e('HTTP Header: x-polytrans-secret: ...', 'polytrans-translation'); ?></option>
-            <option value="post_param" <?php selected($method, 'post_param'); ?>><?php esc_html_e('POST body field (JSON: secret)', 'polytrans-translation'); ?></option>
+            <option value="none" <?php selected($method, 'none'); ?>><?php esc_html_e('None (do not send secret)', 'polytrans'); ?></option>
+            <option value="get_param" <?php selected($method, 'get_param'); ?>><?php esc_html_e('GET parameter (?secret=...)', 'polytrans'); ?></option>
+            <option value="header_bearer" <?php selected($method, 'header_bearer'); ?>><?php esc_html_e('HTTP Header: Authorization: Bearer ...', 'polytrans'); ?></option>
+            <option value="header_custom" <?php selected($method, 'header_custom'); ?>><?php esc_html_e('HTTP Header: x-polytrans-secret: ...', 'polytrans'); ?></option>
+            <option value="post_param" <?php selected($method, 'post_param'); ?>><?php esc_html_e('POST body field (JSON: secret)', 'polytrans'); ?></option>
         </select>
-        <br><small><?php esc_html_e('Choose how the secret should be sent to the receiver endpoint. Select "None" to disable secret sending/checking.', 'polytrans-translation'); ?></small><br><br>
+        <br><small><?php esc_html_e('Choose how the secret should be sent to the receiver endpoint. Select "None" to disable secret sending/checking.', 'polytrans'); ?></small><br><br>
 
-        <h2><?php esc_html_e('Edit Link Base URL', 'polytrans-translation'); ?></h2>
+        <h2><?php esc_html_e('Edit Link Base URL', 'polytrans'); ?></h2>
         <input type="url" name="edit_link_base_url" value="<?php echo esc_attr($settings['edit_link_base_url'] ?? ''); ?>" style="width:100%" placeholder="https://example.com/wp-admin" />
-        <br><small><?php esc_html_e('Base URL for edit links in email notifications (e.g., https://example.com/wp-admin). If left empty, the system will attempt to use the default WordPress admin URL. This is useful when notifications are sent from background processes or external services that don\'t have proper WordPress context.', 'polytrans-translation'); ?></small><br><br>
+        <br><small><?php esc_html_e('Base URL for edit links in email notifications (e.g., https://example.com/wp-admin). If left empty, the system will attempt to use the default WordPress admin URL. This is useful when notifications are sent from background processes or external services that don\'t have proper WordPress context.', 'polytrans'); ?></small><br><br>
 
-        <h2><?php esc_html_e('Logging Options', 'polytrans-translation'); ?></h2>
+        <h2><?php esc_html_e('Logging Options', 'polytrans'); ?></h2>
         <div class="translation-logging-options">
             <?php $enable_db_logging = isset($settings['enable_db_logging']) ? (bool)$settings['enable_db_logging'] : true; ?>
             <p>
                 <input type="checkbox" id="enable-db-logging" name="enable_db_logging" value="1" <?php checked($enable_db_logging); ?>>
-                <label for="enable-db-logging"><strong><?php esc_html_e('Enable Database Logging', 'polytrans-translation'); ?></strong></label>
+                <label for="enable-db-logging"><strong><?php esc_html_e('Enable Database Logging', 'polytrans'); ?></strong></label>
             </p>
             <small>
-                <?php esc_html_e('When enabled, logs will be stored in the database table. When disabled, logs will only be written to the WordPress error log and post meta. Disabling database logging can improve performance and reduce database size, but makes viewing logs from the admin panel more limited.', 'polytrans-translation'); ?>
+                <?php esc_html_e('When enabled, logs will be stored in the database table. When disabled, logs will only be written to the WordPress error log and post meta. Disabling database logging can improve performance and reduce database size, but makes viewing logs from the admin panel more limited.', 'polytrans'); ?>
             </small>
         </div><br>
     <?php
@@ -440,8 +440,8 @@ class polytrans_settings
     private function render_tag_settings($source_language, $base_tags)
     {
     ?>
-        <h2><?php esc_html_e('Source (Main) Language', 'polytrans-translation'); ?></h2>
-        <p><?php esc_html_e('Select the primary language that will appear in the first column of tag translations. This language will be considered the source for tag translations.', 'polytrans-translation'); ?></p>
+        <h2><?php esc_html_e('Source (Main) Language', 'polytrans'); ?></h2>
+        <p><?php esc_html_e('Select the primary language that will appear in the first column of tag translations. This language will be considered the source for tag translations.', 'polytrans'); ?></p>
         <select name="source_language" style="width:100%;max-width:300px;">
             <?php foreach ($this->langs as $i => $lang): ?>
                 <option value="<?php echo esc_attr($lang); ?>" <?php selected($source_language, $lang); ?>>
@@ -451,11 +451,11 @@ class polytrans_settings
         </select>
         <br><br>
 
-        <h2><?php esc_html_e('Base Tags List', 'polytrans-translation'); ?></h2>
-        <p><?php esc_html_e('Enter the tags that you want to manage for translation (one per line or comma separated). These tags will appear in the tag translation table where you can set translations for each language.', 'polytrans-translation'); ?></p>
-        <label for="base-tags-textarea"><strong><?php esc_html_e('Tags to translate:', 'polytrans-translation'); ?></strong></label><br />
-        <textarea id="base-tags-textarea" name="base_tags" style="width:100%;min-height:150px;font-family:monospace;" placeholder="<?php esc_attr_e('Enter tags separated by new lines or commas...', 'polytrans-translation'); ?>"><?php echo esc_textarea($base_tags); ?></textarea>
-        <br><small><?php esc_html_e('These tags will be used for automatic translation and tag mapping between languages. You can add tags that you want to translate now or that you want to use in future automatic translations.', 'polytrans-translation'); ?></small>
+        <h2><?php esc_html_e('Base Tags List', 'polytrans'); ?></h2>
+        <p><?php esc_html_e('Enter the tags that you want to manage for translation (one per line or comma separated). These tags will appear in the tag translation table where you can set translations for each language.', 'polytrans'); ?></p>
+        <label for="base-tags-textarea"><strong><?php esc_html_e('Tags to translate:', 'polytrans'); ?></strong></label><br />
+        <textarea id="base-tags-textarea" name="base_tags" style="width:100%;min-height:150px;font-family:monospace;" placeholder="<?php esc_attr_e('Enter tags separated by new lines or commas...', 'polytrans'); ?>"><?php echo esc_textarea($base_tags); ?></textarea>
+        <br><small><?php esc_html_e('These tags will be used for automatic translation and tag mapping between languages. You can add tags that you want to translate now or that you want to use in future automatic translations.', 'polytrans'); ?></small>
 <?php
     }
 }
