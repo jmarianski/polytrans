@@ -108,7 +108,8 @@ class PolyTrans_Tag_Translation
                 if (!$tag) {
                     // Create the source language tag if it doesn't exist
                     $new_tag = wp_insert_term($tag_name, 'post_tag', [
-                        'slug' => sanitize_title($tag_name) . '-' . $source_language
+                        'slug' => sanitize_title($tag_name) . '-' . $source_language,
+                        'name' => $tag_name
                     ]);
                     if (!is_wp_error($new_tag)) {
                         $tag = get_term($new_tag['term_id']);
@@ -174,13 +175,16 @@ class PolyTrans_Tag_Translation
                 </thead>
                 <tbody>
                     <?php foreach ($tags as $tag): ?>
+                        <?php
+                        $terms = pll_get_term_translations($tag->term_id);
+                        ?>
                         <tr>
                             <td><?php echo esc_html($tag->name); ?></td>
                             <?php foreach ($langs as $lang): ?>
                                 <?php if ($lang === $source_language) continue; ?>
                                 <?php
-                                $translated_term_id = function_exists('pll_get_term') ? pll_get_term($tag->term_id, $lang) : null;
-                                $translation = $translated_term_id ? get_term($translated_term_id) : null;
+                                $translated_term_id = $terms[$lang] ?? null;
+                                $translation = $translated_term_id ? get_term($translated_term_id, 'post_tag') : null;
                                 $translation_name = $translation ? $translation->name : '';
                                 $translation_id = $translation ? $translation->term_id : '';
                                 ?>
@@ -232,12 +236,13 @@ class PolyTrans_Tag_Translation
                 pll_save_term_translations($translations);
             } else {
                 // Create/update translation
-                $existing_term = get_term_by('name', $translation_name, 'post_tag');
+                $existing_term = $this->get_term_by_name_and_lang($translation_name, $lang);
                 if ($existing_term) {
                     $translation_id = $existing_term->term_id;
                 } else {
                     $new_term = wp_insert_term($translation_name, 'post_tag', [
-                        'slug' => sanitize_title($translation_name) . '-' . $lang
+                        'slug' => sanitize_title($translation_name) . '-' . $lang,
+                        'name' => $translation_name
                     ]);
                     if (is_wp_error($new_term)) {
                         wp_send_json_error(['message' => $new_term->get_error_message()]);
@@ -253,10 +258,11 @@ class PolyTrans_Tag_Translation
         } else {
             // Fallback: just create the term if it doesn't exist
             if (!empty($translation_name)) {
-                $existing_term = get_term_by('name', $translation_name, 'post_tag');
+                $existing_term = $this->get_term_by_name_and_lang($translation_name, $lang);
                 if (!$existing_term) {
-                    wp_insert_term($translation_name, 'post_tag', [
-                        'slug' => sanitize_title($translation_name) . '-' . $lang
+                    $existing_term = wp_insert_term($translation_name, 'post_tag', [
+                        'slug' => sanitize_title($translation_name) . '-' . $lang,
+                        'name' => $translation_name
                     ]);
                 }
             }
@@ -419,14 +425,18 @@ class PolyTrans_Tag_Translation
 
             if (!$tag) {
                 $new_tag = wp_insert_term($source_tag_name, 'post_tag', [
-                    'slug' => sanitize_title($source_tag_name) . '-' . $source_language
+                    'slug' => sanitize_title($source_tag_name) . '-' . $source_language,
+                    'name' => $source_tag_name
                 ]);
-                if (is_wp_error($new_tag)) continue;
+                if (is_wp_error($new_tag)) {
+                    continue;
+                }
                 $tag = get_term($new_tag['term_id']);
                 if (function_exists('pll_set_term_language')) {
                     pll_set_term_language($tag->term_id, $source_language);
                 }
             }
+            $translations = pll_get_term_translations($tag->term_id);
 
             // Process translations
             for ($j = 1; $j < count($header) && $j < count($row); $j++) {
@@ -440,23 +450,26 @@ class PolyTrans_Tag_Translation
 
                 // Create or update translation
                 if (function_exists('pll_set_term_language') && function_exists('pll_save_term_translations')) {
-                    $existing_term = get_term_by('name', $translation_name, 'post_tag');
+                    $existing_term = $this->get_term_by_name_and_lang($translation_name, $lang);
                     if ($existing_term) {
                         $translation_id = $existing_term->term_id;
                     } else {
-                        $new_tag = wp_insert_term($source_tag_name, 'post_tag', [
-                            'slug' => sanitize_title($source_tag_name) . '-' . $source_language
+                        $new_tag = wp_insert_term($translation_name, 'post_tag', [
+                            'slug' => sanitize_title($translation_name) . '-' . $lang,
+                            'name' => $translation_name
                         ]);
-                        if (is_wp_error($new_tag)) continue;
-                        $translation_id = $new_tag['term_id'];
+                        if (is_wp_error($new_tag)) {
+                            $translation_id = $tag->term_id; // Use the source tag ID if translation creation fails
+                        } else {
+                            $translation_id = $new_tag['term_id'];
+                            pll_set_term_language($translation_id, $lang);
+                        }
                     }
 
-                    pll_set_term_language($translation_id, $lang);
-                    $translations = pll_get_term_translations($tag->term_id);
                     $translations[$lang] = $translation_id;
-                    pll_save_term_translations($translations);
                 }
             }
+            $saved = pll_save_term_translations($translations);
             $imported_count++;
         }
 
@@ -465,12 +478,13 @@ class PolyTrans_Tag_Translation
 
     private function get_term_by_name_and_lang(string $tag_name, $lang = 'pl')
     {
-        $terms = get_terms(array(
+        $terms = get_terms([
             'taxonomy'   => 'post_tag',
             'hide_empty' => false,
             'name'       => $tag_name,
             'lang'       => $lang
-        ));
+        ]);
+
         return !empty($terms) ? $terms[0] : null;
     }
 }
