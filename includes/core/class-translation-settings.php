@@ -262,12 +262,75 @@ class polytrans_settings
                     $('select[name="translation_receiver_secret_method"]').on('change', function() {
                         var selectedMethod = $(this).val();
                         var customHeaderSection = $('#custom-header-section');
-                        
+
                         if (selectedMethod === 'header_custom') {
                             customHeaderSection.show();
                         } else {
                             customHeaderSection.hide();
                         }
+                    });
+
+                    // Workflow step management
+                    var workflowStepIndex = 0;
+
+                    function renderWorkflowStep(step) {
+                        var stepHtml = `
+                            <div class="workflow-step" data-index="${step.index}" style="margin-bottom:1em;padding:1em;border:1px solid #ddd;border-radius:4px;">
+                                <h4><?php esc_html_e('Workflow Step', 'polytrans'); ?> ${step.index + 1}</h4>
+                                <div style="margin-bottom:0.5em;">
+                                    <label><strong><?php esc_html_e('Action Type', 'polytrans'); ?></strong></label>
+                                    <select name="workflow_steps[${step.index}][action]" style="width:100%">
+                                        <option value="update_status"><?php esc_html_e('Update Post Status', 'polytrans'); ?></option>
+                                        <option value="send_reviewer_notification"><?php esc_html_e('Send Reviewer Notification', 'polytrans'); ?></option>
+                                        <option value="send_author_notification"><?php esc_html_e('Send Author Notification', 'polytrans'); ?></option>
+                                        <option value="call_external_api"><?php esc_html_e('Call External API', 'polytrans'); ?></option>
+                                    </select>
+                                </div>
+                                <div class="step-parameters" style="margin-bottom:0.5em;">
+                                    <!-- Parameters for the action will be dynamically added here -->
+                                </div>
+                                <button type="button" class="button remove-workflow-step" style="background-color:#dc3232;color:white;"><?php esc_html_e('Remove Step', 'polytrans'); ?></button>
+                            </div>
+                        `;
+
+                        $('#workflow-steps-container').append(stepHtml);
+
+                        // Initialize parameters for the step
+                        initWorkflowStepParameters(step);
+                    }
+
+                    function initWorkflowStepParameters(step) {
+                        var action = step.action;
+
+                        // Example: Initialize parameters for "Update Post Status" action
+                        if (action === 'update_status') {
+                            var statusSelect = `
+                                <label><strong><?php esc_html_e('Post Status', 'polytrans'); ?></strong></label>
+                                <select name="workflow_steps[${step.index}][status]" style="width:100%">
+                                    <option value="publish"><?php esc_html_e('Publish', 'polytrans'); ?></option>
+                                    <option value="draft"><?php esc_html_e('Draft', 'polytrans'); ?></option>
+                                    <option value="pending"><?php esc_html_e('Pending Review', 'polytrans'); ?></option>
+                                    <option value="source"><?php esc_html_e('Same as source', 'polytrans'); ?></option>
+                                </select>
+                            `;
+                            $(`.step-parameters[data-index="${step.index}"]`).html(statusSelect);
+                        }
+
+                        // Add more parameter initializations for other actions as needed
+                    }
+
+                    // Add workflow step button click
+                    $('#add-workflow-step').on('click', function() {
+                        var newIndex = workflowStepIndex++;
+                        renderWorkflowStep({
+                            index: newIndex,
+                            action: 'update_status'
+                        }); // Default to "Update Post Status"
+                    });
+
+                    // Remove workflow step button click (delegated)
+                    $(document).on('click', '.remove-workflow-step', function() {
+                        $(this).closest('.workflow-step').remove();
                     });
                 });
             </script>

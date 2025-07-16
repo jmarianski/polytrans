@@ -276,21 +276,6 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
                 'testing' => __('Testing translation...', 'polytrans'),
                 'test_success' => __('Translation successful!', 'polytrans'),
                 'test_failed' => __('Translation failed', 'polytrans'),
-                'loading_assistants' => __('Loading assistants...', 'polytrans'),
-                'no_assistants' => __('No assistants found. Please create assistants in your OpenAI account.', 'polytrans'),
-                'assistants_loaded' => __('Assistants loaded successfully!', 'polytrans'),
-                'failed_load_assistants' => __('Failed to load assistants. Please check your API key.', 'polytrans'),
-                'enter_api_key' => __('Please enter a valid API key first.', 'polytrans'),
-                'config_updated' => __('Configuration updated successfully!', 'polytrans'),
-                'config_error' => __('Error updating configuration.', 'polytrans'),
-                'confirm_clear' => __('Are you sure you want to clear this assistant mapping?', 'polytrans'),
-                'assistant_cleared' => __('Assistant mapping cleared.', 'polytrans'),
-                'select_assistant' => __('Select an assistant...', 'polytrans'),
-                'auto_assign' => __('Auto-assign available assistants', 'polytrans'),
-                'show_section' => __('Show section', 'polytrans'),
-                'hide_section' => __('Hide section', 'polytrans'),
-                'toggle_visibility' => __('Toggle password visibility', 'polytrans'),
-                'save_changes' => __('Save changes to see assistant mappings.', 'polytrans'),
             ]
         ]);
     }
