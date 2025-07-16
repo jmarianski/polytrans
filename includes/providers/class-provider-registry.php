@@ -72,6 +72,7 @@ class PolyTrans_Provider_Registry
     public function register_provider(PolyTrans_Translation_Provider_Interface $provider)
     {
         $this->providers[$provider->get_id()] = $provider;
+        error_log("[polytrans] Registered translation provider: " . $provider->get_id());
     }
 
     /**

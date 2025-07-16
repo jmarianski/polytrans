@@ -69,6 +69,7 @@ class PolyTrans
         require_once $includes_dir . 'core/class-translation-meta-box.php';
         require_once $includes_dir . 'core/class-translation-notifications.php';
         require_once $includes_dir . 'core/class-user-autocomplete.php';
+        require_once $includes_dir . 'core/class-post-autocomplete.php';
         require_once $includes_dir . '/core/class-logs-manager.php';
 
 
@@ -98,6 +99,22 @@ class PolyTrans
         require_once $includes_dir . 'menu/class-settings-menu.php';
         require_once $includes_dir . 'menu/class-logs-menu.php';
         require_once $includes_dir . 'menu/class-tag-translation.php';
+        require_once $includes_dir . 'menu/class-postprocessing-menu.php';
+
+        // Post-processing system
+        require_once $includes_dir . 'postprocessing/interface-workflow-step.php';
+        require_once $includes_dir . 'postprocessing/interface-variable-provider.php';
+        require_once $includes_dir . 'postprocessing/class-variable-manager.php';
+        require_once $includes_dir . 'postprocessing/class-workflow-executor.php';
+        require_once $includes_dir . 'postprocessing/class-workflow-output-processor.php';
+        require_once $includes_dir . 'postprocessing/managers/class-workflow-storage-manager.php';
+        require_once $includes_dir . 'postprocessing/providers/class-post-data-provider.php';
+        require_once $includes_dir . 'postprocessing/providers/class-meta-data-provider.php';
+        require_once $includes_dir . 'postprocessing/providers/class-context-data-provider.php';
+        require_once $includes_dir . 'postprocessing/providers/class-articles-data-provider.php';
+        require_once $includes_dir . 'postprocessing/steps/class-ai-assistant-step.php';
+        require_once $includes_dir . 'postprocessing/steps/class-predefined-assistant-step.php';
+        require_once $includes_dir . 'postprocessing/class-workflow-manager.php';
     }
 
     /**
@@ -115,9 +132,14 @@ class PolyTrans
         PolyTrans_Translation_Notifications::get_instance();
         PolyTrans_Tag_Translation::get_instance();
         PolyTrans_User_Autocomplete::get_instance();
+        PolyTrans_Post_Autocomplete::get_instance();
+        PolyTrans_Postprocessing_Menu::get_instance();
 
         // Initialize the translation extension (handles incoming translation requests)
         PolyTrans_Translation_Extension::get_instance();
+
+        // Initialize post-processing workflow manager
+        PolyTrans_Workflow_Manager::get_instance();
 
         // Initialize the advanced receiver extension
         $receiver_extension = new PolyTrans_Translation_Receiver_Extension();
@@ -149,6 +171,7 @@ class PolyTrans
         PolyTrans_Settings_Menu::get_instance()->add_admin_menu();
         PolyTrans_Tag_Translation::get_instance()->add_admin_menu();
         PolyTrans_Logs_Menu::get_instance()->add_logs_submenu();
+        PolyTrans_Postprocessing_Menu::get_instance()->add_admin_menu();
 
         // Rename the first submenu item
         global $submenu;
@@ -167,6 +190,7 @@ class PolyTrans
         PolyTrans_Logs_Menu::get_instance()->add_scripts($hook);
         PolyTrans_Tag_Translation::get_instance()->enqueue_admin_scripts($hook);
         PolyTrans_Translation_Scheduler::get_instance()->enqueue_admin_scripts($hook);
+        PolyTrans_Postprocessing_Menu::get_instance()->enqueue_assets($hook);
     }
 
     /**
