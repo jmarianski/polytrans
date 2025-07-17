@@ -998,3 +998,25 @@
 .test-data-options input[type="radio"] {
     margin-right: 8px;
 }
+
+/* User autocomplete styling for workflow editor */
+.workflow-basic-settings .user-autocomplete-input {
+    width: 100%;
+    max-width: 350px;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+.workflow-basic-settings .user-autocomplete-input:focus {
+    border-color: #007cba;
+    box-shadow: 0 0 0 1px #007cba;
+    outline: none;
+}
+
+.workflow-basic-settings .user-autocomplete-clear {
+    margin-left: 0.5em;
+    padding: 6px 12px;
+    font-size: 12px;
+}

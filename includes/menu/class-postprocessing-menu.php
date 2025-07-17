@@ -81,6 +81,16 @@ class PolyTrans_Postprocessing_Menu
             POLYTRANS_VERSION
         );
 
+        // Enqueue user autocomplete assets
+        wp_enqueue_script(
+            'polytrans-user-autocomplete', 
+            POLYTRANS_PLUGIN_URL . 'assets/js/core/user-autocomplete.js', 
+            ['jquery-ui-autocomplete'], 
+            POLYTRANS_VERSION, 
+            true
+        );
+        wp_enqueue_style('jquery-ui-autocomplete');
+
         // Localize script
         wp_localize_script('polytrans-workflows', 'polytransWorkflows', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
@@ -98,7 +108,21 @@ class PolyTrans_Postprocessing_Menu
                 'addStep' => __('Add Step', 'polytrans'),
                 'removeStep' => __('Remove Step', 'polytrans'),
                 'moveUp' => __('Move Up', 'polytrans'),
-                'moveDown' => __('Move Down', 'polytrans')
+                'moveDown' => __('Move Down', 'polytrans'),
+                'clearSelection' => __('Clear', 'polytrans')
+            ]
+        ]);
+
+        // Localize user autocomplete script
+        wp_localize_script('polytrans-user-autocomplete', 'PolyTransUserAutocomplete', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('polytrans_nonce'),
+            'i18n' => [
+                'no_results' => esc_html__('No users found.', 'polytrans'),
+                'searching' => esc_html__('Searching users...', 'polytrans'),
+                'clear_selection' => esc_html__('Clear selection', 'polytrans'),
+                'type_to_search' => esc_html__('Type to search users...', 'polytrans'),
+                'min_chars' => esc_html__('Type at least 2 characters to search.', 'polytrans'),
             ]
         ]);
     }
@@ -346,6 +370,18 @@ class PolyTrans_Postprocessing_Menu
 
         <script type="text/javascript">
             // Pass workflow data to JavaScript
+            <?php
+            // Add user label for attribution user if set
+            if (!empty($workflow['attribution_user'])) {
+                $attribution_user = get_user_by('id', $workflow['attribution_user']);
+                if ($attribution_user) {
+                    $workflow['attribution_user_label'] = $attribution_user->display_name . ' (' . $attribution_user->user_email . ')';
+                } else {
+                    // User not found, clear the invalid user ID
+                    $workflow['attribution_user'] = null;
+                }
+            }
+            ?>
             window.polytransWorkflowData = <?php echo json_encode($workflow); ?>;
             window.polytransLanguages = <?php echo json_encode(array_combine($langs, $lang_names)); ?>;
         </script>
@@ -584,12 +620,18 @@ class PolyTrans_Postprocessing_Menu
      */
     private function sanitize_workflow_data($workflow_data)
     {
+        $attribution_user = intval($workflow_data['attribution_user'] ?? 0);
+        if ($attribution_user === 0) {
+            $attribution_user = null;
+        }
+
         return [
             'id' => sanitize_text_field($workflow_data['id'] ?? ''),
             'name' => sanitize_text_field($workflow_data['name'] ?? ''),
             'description' => sanitize_textarea_field($workflow_data['description'] ?? ''),
             'language' => sanitize_text_field($workflow_data['language'] ?? 'en'),
             'enabled' => !empty($workflow_data['enabled']),
+            'attribution_user' => $attribution_user,
             'triggers' => [
                 'on_translation_complete' => !empty($workflow_data['triggers']['on_translation_complete']),
                 'manual_only' => $workflow_data['triggers']['manual_only'] !== 'false',
@@ -766,6 +808,7 @@ class PolyTrans_Postprocessing_Menu
             'description' => '',
             'language' => 'en',
             'enabled' => true,
+            'attribution_user' => null,
             'steps' => []
         ], $workflow);
 

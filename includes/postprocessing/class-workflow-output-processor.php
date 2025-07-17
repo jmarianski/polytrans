@@ -37,7 +37,7 @@ class PolyTrans_Workflow_Output_Processor
      * Process step outputs according to configured actions
      * Returns change objects that describe what would happen
      */
-    public function process_step_outputs($step_results, $output_actions, $context, $test_mode = false)
+    public function process_step_outputs($step_results, $output_actions, $context, $test_mode = false, $workflow = null)
     {
         if (empty($output_actions) || !is_array($output_actions)) {
             return [
@@ -53,6 +53,35 @@ class PolyTrans_Workflow_Output_Processor
         $errors = [];
         $changes = [];
         $updated_context = $context;
+
+        // Handle user attribution if specified in workflow
+        $original_user_id = get_current_user_id();
+        $attribution_user_id = null;
+        
+        if (!$test_mode && $workflow && isset($workflow['attribution_user']) && !empty($workflow['attribution_user'])) {
+            $attribution_user_id = intval($workflow['attribution_user']);
+            if ($attribution_user_id > 0) {
+                $attribution_user = get_user_by('id', $attribution_user_id);
+                if ($attribution_user) {
+                    wp_set_current_user($attribution_user_id);
+                    PolyTrans_Logs_Manager::log("Setting current user to {$attribution_user_id} ({$attribution_user->display_name}) for workflow changes", 'info', [
+                        'source' => 'workflow_output_processor',
+                        'original_user' => $original_user_id,
+                        'attribution_user' => $attribution_user_id,
+                        'attribution_user_name' => $attribution_user->display_name,
+                        'workflow_name' => $workflow['name'] ?? 'Unknown'
+                    ]);
+                } else {
+                    PolyTrans_Logs_Manager::log("Attribution user {$attribution_user_id} not found, using original user {$original_user_id}", 'warning', [
+                        'source' => 'workflow_output_processor',
+                        'original_user' => $original_user_id,
+                        'invalid_attribution_user' => $attribution_user_id,
+                        'workflow_name' => $workflow['name'] ?? 'Unknown'
+                    ]);
+                    $attribution_user_id = null; // Reset to prevent restoration attempt
+                }
+            }
+        }
 
         foreach ($output_actions as $action) {
             try {
@@ -78,6 +107,16 @@ class PolyTrans_Workflow_Output_Processor
             } catch (Exception $e) {
                 $errors[] = 'Action processing failed: ' . $e->getMessage();
             }
+        }
+
+        // Restore original user if we changed it
+        if (!$test_mode && $attribution_user_id && $attribution_user_id !== $original_user_id) {
+            wp_set_current_user($original_user_id);
+            PolyTrans_Logs_Manager::log("Restored current user to {$original_user_id} after workflow changes", 'info', [
+                'source' => 'workflow_output_processor',
+                'original_user' => $original_user_id,
+                'attribution_user' => $attribution_user_id
+            ]);
         }
 
         return [

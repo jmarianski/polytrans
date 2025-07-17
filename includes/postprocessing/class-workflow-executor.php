@@ -166,7 +166,8 @@ class PolyTrans_Workflow_Executor
                         $step_result,
                         $step_config['output_actions'],
                         $execution_context,
-                        $test_mode
+                        $test_mode,
+                        $workflow
                     );
 
                     if ($output_result['success']) {

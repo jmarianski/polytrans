@@ -101,6 +101,32 @@
                                 <p class="description">Disabled workflows will not run automatically</p>
                             </td>
                         </tr>
+                        <tr>
+                            <th><label for="workflow-attribution-user">Change Attribution User</label></th>
+                            <td>
+                                <input type="text"
+                                    class="user-autocomplete-input"
+                                    id="workflow-attribution-user-input"
+                                    name="workflow_attribution_user_suggest"
+                                    value="${escapeHtml(workflowData.attribution_user_label || '')}"
+                                    autocomplete="off"
+                                    placeholder="Type to search user..."
+                                    style="width:100%;max-width:350px;"
+                                    data-user-autocomplete-for="#workflow-attribution-user-hidden"
+                                    data-user-autocomplete-clear="#workflow-attribution-user-clear">
+                                <input type="hidden" 
+                                    name="workflow_attribution_user" 
+                                    id="workflow-attribution-user-hidden" 
+                                    value="${escapeHtml(workflowData.attribution_user || '')}">
+                                <button type="button" 
+                                    class="button user-autocomplete-clear" 
+                                    id="workflow-attribution-user-clear" 
+                                    style="display:${workflowData.attribution_user ? 'inline-block' : 'none'};">
+                                    ${polytransWorkflows.strings.clearSelection || 'Clear'}
+                                </button>
+                                <p class="description">User to attribute workflow changes to. If not set, changes will be attributed to the current user executing the workflow.</p>
+                            </td>
+                        </tr>
                     </table>
                 </div>
 
@@ -753,6 +779,7 @@
             description: $('#workflow-description').val(),
             language: $('#workflow-language').val(),
             enabled: $('#workflow-enabled').is(':checked'),
+            attribution_user: $('#workflow-attribution-user-hidden').val(),
             triggers: {
                 on_translation_complete: $('input[name="trigger_on_translation"]').is(':checked'),
                 manual_only: $('input[name="trigger_manual_only"]').is(':checked'),
