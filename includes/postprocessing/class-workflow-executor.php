@@ -3,7 +3,19 @@
 /**
  * Workflow Executor
  * 
- * Handles the execution of individual workflow steps and manages
+ * Handles the execution of individua        PolyTrans_Logs_Manager::log("Starting execution of '{$workflow_name}' (ID: {$workflow_id}){$mode_text}", 'info', [
+            'source' => 'workflow_executor',
+            'workflow_name' => $workflow_name,
+            'workflow_id' => $workflow_id,
+            'test_mode' => $test_mode
+        ]);
+        PolyTrans_Logs_Manager::log("Context includes " . count($context) . " variables: " . implode(', ', array_keys($context)), 'debug', [
+            'source' => 'workflow_executor',
+            'workflow_name' => $workflow_name,
+            'workflow_id' => $workflow_id,
+            'variable_count' => count($context),
+            'variables' => array_keys($context)
+        ]);workflow steps and manages
  * the flow of data between steps.
  */
 
@@ -66,34 +78,124 @@ class PolyTrans_Workflow_Executor
         $step_results = [];
         $execution_context = $context; // Copy context for modification
 
+        // Log workflow execution start
+        $workflow_name = $workflow['name'] ?? 'Unknown Workflow';
+        $workflow_id = $workflow['id'] ?? 'unknown';
+        $mode_text = $test_mode ? ' (TEST MODE)' : '';
+
+        PolyTrans_Logs_Manager::log("Starting execution of '{$workflow_name}' (ID: {$workflow_id}){$mode_text}", 'info', [
+            'source' => 'workflow_executor',
+            'workflow_name' => $workflow_name,
+            'workflow_id' => $workflow_id,
+            'test_mode' => $test_mode
+        ]);
+        PolyTrans_Logs_Manager::log("Context includes " . count($context) . " variables: " . implode(', ', array_keys($context)), 'debug', [
+            'source' => 'workflow_executor',
+            'workflow_name' => $workflow_name,
+            'workflow_id' => $workflow_id,
+            'variable_count' => count($context),
+            'variables' => array_keys($context)
+        ]);
+
         try {
             // Validate workflow
             $validation = $this->validate_workflow($workflow);
             if (!$validation['valid']) {
+                $error_msg = 'Workflow validation failed: ' . implode(', ', $validation['errors']);
+                PolyTrans_Logs_Manager::log("Workflow validation failed: {$error_msg}", 'error', [
+                    'source' => 'workflow_executor',
+                    'workflow_name' => $workflow_name,
+                    'workflow_id' => $workflow_id,
+                    'validation_errors' => $validation['errors']
+                ]);
                 return [
                     'success' => false,
-                    'error' => 'Workflow validation failed: ' . implode(', ', $validation['errors']),
+                    'error' => $error_msg,
                     'steps_executed' => 0,
                     'execution_time' => 0,
                     'test_mode' => $test_mode
                 ];
             }
 
+            PolyTrans_Logs_Manager::log("Validation passed. Found " . count($workflow['steps']) . " steps to execute", 'info', [
+                'source' => 'workflow_executor',
+                'workflow_name' => $workflow_name,
+                'workflow_id' => $workflow_id,
+                'step_count' => count($workflow['steps'])
+            ]);
+
             // Execute each step
             foreach ($workflow['steps'] as $step_index => $step_config) {
+                $step_name = $step_config['name'] ?? "Step " . ($step_index + 1);
+                $step_id = $step_config['id'] ?? "step_{$step_index}";
+                $step_type = $step_config['type'] ?? 'unknown';
+
                 // Skip disabled steps
                 if (isset($step_config['enabled']) && !$step_config['enabled']) {
+                    PolyTrans_Logs_Manager::log("Skipping disabled step '{$step_name}' (ID: {$step_id})", 'info', [
+                        'source' => 'workflow_executor',
+                        'workflow_name' => $workflow_name,
+                        'workflow_id' => $workflow_id,
+                        'step_name' => $step_name,
+                        'step_id' => $step_id
+                    ]);
                     continue;
                 }
 
+                PolyTrans_Logs_Manager::log("Executing step #{$steps_executed}: '{$step_name}' (ID: {$step_id}, Type: {$step_type})", 'info', [
+                    'source' => 'workflow_executor',
+                    'workflow_name' => $workflow_name,
+                    'workflow_id' => $workflow_id,
+                    'step_name' => $step_name,
+                    'step_id' => $step_id,
+                    'step_type' => $step_type,
+                    'step_number' => $steps_executed + 1
+                ]);
+
                 // Execute step
+                $step_start_time = microtime(true);
                 $step_result = $this->execute_step($step_config, $execution_context);
+                $step_execution_time = microtime(true) - $step_start_time;
 
                 $steps_executed++;
+
+                // Log step result
+                if ($step_result['success']) {
+                    PolyTrans_Logs_Manager::log("Step '{$step_name}' completed successfully in " . round($step_execution_time, 3) . "s", 'info', [
+                        'source' => 'workflow_executor',
+                        'workflow_name' => $workflow_name,
+                        'workflow_id' => $workflow_id,
+                        'step_name' => $step_name,
+                        'step_id' => $step_id,
+                        'execution_time' => round($step_execution_time, 3)
+                    ]);
+                    if (isset($step_result['data']) && is_array($step_result['data'])) {
+                        $output_vars = array_keys($step_result['data']);
+                        PolyTrans_Logs_Manager::log("Step output variables: " . implode(', ', $output_vars), 'debug', [
+                            'source' => 'workflow_executor',
+                            'workflow_name' => $workflow_name,
+                            'workflow_id' => $workflow_id,
+                            'step_name' => $step_name,
+                            'step_id' => $step_id,
+                            'output_variables' => $output_vars
+                        ]);
+                    }
+                } else {
+                    $error_msg = $step_result['error'] ?? 'Unknown error';
+                    PolyTrans_Logs_Manager::log("Step '{$step_name}' failed: {$error_msg}", 'error', [
+                        'source' => 'workflow_executor',
+                        'workflow_name' => $workflow_name,
+                        'workflow_id' => $workflow_id,
+                        'step_name' => $step_name,
+                        'step_id' => $step_id,
+                        'error' => $error_msg
+                    ]);
+                }
+
                 $step_results[] = [
-                    'step_id' => $step_config['id'] ?? "step_{$step_index}",
-                    'step_name' => $step_config['name'] ?? 'Unnamed Step',
-                    'step_type' => $step_config['type'] ?? 'unknown',
+                    'step_id' => $step_id,
+                    'step_name' => $step_name,
+                    'step_type' => $step_type,
                     'step_config' => $step_config, // Include full step configuration
                     'input_variables' => $this->extract_input_variables($execution_context),
                     'success' => $step_result['success'],
@@ -109,6 +211,15 @@ class PolyTrans_Workflow_Executor
 
                 // Process output actions if step succeeded
                 if ($step_result['success'] && isset($step_config['output_actions']) && !empty($step_config['output_actions'])) {
+                    PolyTrans_Logs_Manager::log("Processing " . count($step_config['output_actions']) . " output actions for step '{$step_name}'", 'info', [
+                        'source' => 'workflow_executor',
+                        'workflow_name' => $workflow_name,
+                        'workflow_id' => $workflow_id,
+                        'step_name' => $step_name,
+                        'step_id' => $step_id,
+                        'output_action_count' => count($step_config['output_actions'])
+                    ]);
+
                     $output_result = $this->output_processor->process_step_outputs(
                         $step_result,
                         $step_config['output_actions'],
@@ -119,14 +230,33 @@ class PolyTrans_Workflow_Executor
                     // Add output processing result to step result
                     $step_results[count($step_results) - 1]['output_processing'] = $output_result;
 
+                    // Log output processing results
+                    if ($output_result['success']) {
+                        $actions_processed = count($output_result['processed_actions'] ?? []);
+                        PolyTrans_Logs_Manager::log("Successfully processed {$actions_processed} output actions for step '{$step_name}'", 'info', [
+                            'source' => 'workflow_executor',
+                            'workflow_name' => $workflow_name,
+                            'workflow_id' => $workflow_id,
+                            'step_name' => $step_name,
+                            'step_id' => $step_id,
+                            'actions_processed' => $actions_processed
+                        ]);
+                    } else {
+                        $error_msg = implode(', ', $output_result['errors'] ?? ['Unknown error']);
+                        PolyTrans_Logs_Manager::log("Output processing failed for step '{$step_name}': {$error_msg}", 'error', [
+                            'source' => 'workflow_executor',
+                            'workflow_name' => $workflow_name,
+                            'workflow_id' => $workflow_id,
+                            'step_name' => $step_name,
+                            'step_id' => $step_id,
+                            'error' => $error_msg,
+                            'errors' => $output_result['errors']
+                        ]);
+                    }
+
                     // In test mode, update the execution context with the changes
                     if ($test_mode && isset($output_result['updated_context'])) {
                         $execution_context = $output_result['updated_context'];
-                    }
-
-                    // If output processing failed but we want to continue, log the error
-                    if (!$output_result['success']) {
-                        error_log('PolyTrans: Output processing failed for step ' . $step_config['id'] . ': ' . implode(', ', $output_result['errors'] ?? []));
                     }
                 }
 
@@ -134,13 +264,35 @@ class PolyTrans_Workflow_Executor
                 if (!$step_result['success']) {
                     $continue_on_error = $step_config['continue_on_error'] ?? false;
                     if (!$continue_on_error) {
+                        PolyTrans_Logs_Manager::log("Stopping execution due to step failure (continue_on_error = false)", 'info', [
+                            'source' => 'workflow_executor',
+                            'workflow_name' => $workflow_name,
+                            'workflow_id' => $workflow_id,
+                            'step_name' => $step_name,
+                            'step_id' => $step_id
+                        ]);
                         break;
+                    } else {
+                        PolyTrans_Logs_Manager::log("Continuing despite step failure (continue_on_error = true)", 'info', [
+                            'source' => 'workflow_executor',
+                            'workflow_name' => $workflow_name,
+                            'workflow_id' => $workflow_id,
+                            'step_name' => $step_name,
+                            'step_id' => $step_id
+                        ]);
                     }
                 }
 
                 // Merge step output into execution context for next steps
                 if ($step_result['success'] && isset($step_result['data'])) {
                     $this->merge_step_output($execution_context, $step_config, $step_result['data']);
+                    PolyTrans_Logs_Manager::log("Merged step output into execution context for next steps", 'debug', [
+                        'source' => 'workflow_executor',
+                        'workflow_name' => $workflow_name,
+                        'workflow_id' => $workflow_id,
+                        'step_name' => $step_name,
+                        'step_id' => $step_id
+                    ]);
                 }
             }
 
@@ -148,11 +300,35 @@ class PolyTrans_Workflow_Executor
 
             // Determine overall success
             $overall_success = true;
+            $failed_steps = [];
             foreach ($step_results as $result) {
                 if (!$result['success']) {
                     $overall_success = false;
-                    break;
+                    $failed_steps[] = $result['step_name'];
                 }
+            }
+
+            // Log workflow completion
+            if ($overall_success) {
+                PolyTrans_Logs_Manager::log("'{$workflow_name}' completed successfully in " . round($execution_time, 3) . "s. Executed {$steps_executed} steps.", 'info', [
+                    'source' => 'workflow_executor',
+                    'workflow_name' => $workflow_name,
+                    'workflow_id' => $workflow_id,
+                    'execution_time' => round($execution_time, 3),
+                    'steps_executed' => $steps_executed,
+                    'success' => true
+                ]);
+            } else {
+                $failed_list = implode(', ', $failed_steps);
+                PolyTrans_Logs_Manager::log("'{$workflow_name}' completed with errors in " . round($execution_time, 3) . "s. Failed steps: {$failed_list}", 'error', [
+                    'source' => 'workflow_executor',
+                    'workflow_name' => $workflow_name,
+                    'workflow_id' => $workflow_id,
+                    'execution_time' => round($execution_time, 3),
+                    'steps_executed' => $steps_executed,
+                    'failed_steps' => $failed_steps,
+                    'success' => false
+                ]);
             }
 
             return [
@@ -165,6 +341,21 @@ class PolyTrans_Workflow_Executor
             ];
         } catch (Exception $e) {
             $execution_time = microtime(true) - $start_time;
+            $error_msg = "Exception during workflow execution: " . $e->getMessage();
+            PolyTrans_Logs_Manager::log("'{$workflow_name}' failed with exception after " . round($execution_time, 3) . "s: {$error_msg}", 'error', [
+                'source' => 'workflow_executor',
+                'workflow_name' => $workflow_name,
+                'workflow_id' => $workflow_id,
+                'execution_time' => round($execution_time, 3),
+                'exception' => $e->getMessage(),
+                'success' => false
+            ]);
+            PolyTrans_Logs_Manager::log("Stack trace: " . $e->getTraceAsString(), 'debug', [
+                'source' => 'workflow_executor',
+                'workflow_name' => $workflow_name,
+                'workflow_id' => $workflow_id,
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return [
                 'success' => false,
@@ -186,11 +377,20 @@ class PolyTrans_Workflow_Executor
     private function execute_step($step_config, $context)
     {
         $start_time = microtime(true);
+        $step_name = $step_config['name'] ?? 'Unnamed Step';
+        $step_id = $step_config['id'] ?? 'unknown';
 
         try {
             // Get step type
             $step_type = $step_config['type'] ?? '';
             if (empty($step_type)) {
+                $error_msg = 'Step type not specified';
+                PolyTrans_Logs_Manager::log("Step '{$step_name}' (ID: {$step_id}) error: {$error_msg}", 'error', [
+                    'source' => 'workflow_executor',
+                    'step_name' => $step_name,
+                    'step_id' => $step_id,
+                    'error' => $error_msg
+                ]);
                 return [
                     'success' => false,
                     'error' => 'Step type not specified',
@@ -200,9 +400,17 @@ class PolyTrans_Workflow_Executor
 
             // Get step handler
             if (!isset($this->step_registry[$step_type])) {
+                $error_msg = "Unknown step type: {$step_type}";
+                PolyTrans_Logs_Manager::log("Step '{$step_name}' (ID: {$step_id}) error: {$error_msg}", 'error', [
+                    'source' => 'workflow_executor',
+                    'step_name' => $step_name,
+                    'step_id' => $step_id,
+                    'step_type' => $step_type,
+                    'error' => $error_msg
+                ]);
                 return [
                     'success' => false,
-                    'error' => "Unknown step type: {$step_type}",
+                    'error' => $error_msg,
                     'execution_time' => microtime(true) - $start_time
                 ];
             }
@@ -212,9 +420,17 @@ class PolyTrans_Workflow_Executor
             // Validate step configuration
             $validation = $step_handler->validate_config($step_config);
             if (!$validation['valid']) {
+                $error_msg = 'Step configuration validation failed: ' . implode(', ', $validation['errors']);
+                PolyTrans_Logs_Manager::log("Step '{$step_name}' (ID: {$step_id}) validation error: {$error_msg}", 'error', [
+                    'source' => 'workflow_executor',
+                    'step_name' => $step_name,
+                    'step_id' => $step_id,
+                    'validation_errors' => $validation['errors'],
+                    'error' => $error_msg
+                ]);
                 return [
                     'success' => false,
-                    'error' => 'Step configuration validation failed: ' . implode(', ', $validation['errors']),
+                    'error' => $error_msg,
                     'execution_time' => microtime(true) - $start_time
                 ];
             }

@@ -83,7 +83,7 @@ class PolyTrans_Workflow_Storage_Manager
         // Validate workflow structure
         $validation = $this->validate_workflow($workflow);
         if (!$validation['valid']) {
-            return false;
+            return ['success' => false, 'errors' => $validation['errors']];
         }
 
         $workflows = $this->get_all_workflows();
@@ -103,7 +103,20 @@ class PolyTrans_Workflow_Storage_Manager
             $workflows[] = $workflow;
         }
 
-        return update_option(self::OPTION_NAME, $workflows);
+        // Only update if workflows have changed
+        $existing_workflows = get_option(self::OPTION_NAME, []);
+        if ($workflows === $existing_workflows) {
+            $success = true;
+        } else {
+            $success = update_option(self::OPTION_NAME, $workflows);
+        }
+        $errors = [];
+
+        if (!$success) {
+            $errors[] = 'Unknown error updating option';
+        }
+
+        return ['success' => $success, 'errors' => $errors];
     }
 
     /**

@@ -148,7 +148,11 @@ class PolyTrans_Articles_Data_Provider implements PolyTrans_Variable_Provider_In
 
         $posts = get_posts($args);
         $articles = [];
-        error_log("Found " . count($posts) . " recent posts for articles data provider" . json_encode($args));
+        PolyTrans_Logs_Manager::log("Found " . count($posts) . " recent posts for articles data provider", 'debug', [
+            'source' => 'articles_data_provider',
+            'post_count' => count($posts),
+            'query_args' => $args
+        ]);
 
         foreach ($posts as $post) {
             // Skip if we have enough articles

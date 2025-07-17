@@ -23,7 +23,7 @@ class PolyTrans_Workflow_Manager
     /**
      * Get singleton instance
      */
-    public static function get_instance()
+    public static function get_instance(): self
     {
         if (null === self::$instance) {
             self::$instance = new self();
@@ -164,12 +164,29 @@ class PolyTrans_Workflow_Manager
      */
     public function trigger_workflows($original_post_id, $translated_post_id, $target_language)
     {
+        PolyTrans_Logs_Manager::log("Translation completed - Original: {$original_post_id}, Translated: {$translated_post_id}, Language: {$target_language}", 'info', [
+            'source' => 'workflow_manager',
+            'original_post_id' => $original_post_id,
+            'translated_post_id' => $translated_post_id,
+            'target_language' => $target_language
+        ]);
+
         // Get workflows for this language
         $workflows = $this->storage_manager->get_workflows_for_language($target_language);
 
         if (empty($workflows)) {
+            PolyTrans_Logs_Manager::log("No workflows found for language '{$target_language}'", 'info', [
+                'source' => 'workflow_manager',
+                'target_language' => $target_language
+            ]);
             return;
         }
+
+        PolyTrans_Logs_Manager::log("Found " . count($workflows) . " workflow(s) for language '{$target_language}'", 'info', [
+            'source' => 'workflow_manager',
+            'target_language' => $target_language,
+            'workflow_count' => count($workflows)
+        ]);
 
         // Create execution context
         $context = [
@@ -180,11 +197,30 @@ class PolyTrans_Workflow_Manager
         ];
 
         // Execute each applicable workflow
+        $executed_count = 0;
         foreach ($workflows as $workflow) {
+            $workflow_name = $workflow['name'] ?? 'Unknown';
             if ($this->should_execute_workflow($workflow, $context)) {
+                PolyTrans_Logs_Manager::log("Scheduling execution of workflow '{$workflow_name}'", 'info', [
+                    'source' => 'workflow_manager',
+                    'workflow_name' => $workflow_name,
+                    'workflow_id' => $workflow['id'] ?? null
+                ]);
                 $this->schedule_workflow_execution($workflow, $context);
+                $executed_count++;
+            } else {
+                PolyTrans_Logs_Manager::log("Skipping workflow '{$workflow_name}' (conditions not met)", 'info', [
+                    'source' => 'workflow_manager',
+                    'workflow_name' => $workflow_name,
+                    'workflow_id' => $workflow['id'] ?? null
+                ]);
             }
         }
+
+        PolyTrans_Logs_Manager::log("Scheduled {$executed_count} workflow(s) for execution", 'info', [
+            'source' => 'workflow_manager',
+            'executed_count' => $executed_count
+        ]);
     }
 
     /**
@@ -196,8 +232,15 @@ class PolyTrans_Workflow_Manager
      */
     private function should_execute_workflow($workflow, $context)
     {
+        $workflow_name = $workflow['name'] ?? 'Unknown';
+
         // Check if workflow is enabled
         if (!isset($workflow['enabled']) || !$workflow['enabled']) {
+            PolyTrans_Logs_Manager::log("Workflow '{$workflow_name}' is disabled", 'info', [
+                'source' => 'workflow_manager',
+                'workflow_name' => $workflow_name,
+                'workflow_id' => $workflow['id'] ?? null
+            ]);
             return false;
         }
 
@@ -206,15 +249,43 @@ class PolyTrans_Workflow_Manager
 
         if ($context['trigger'] === 'translation_completed') {
             if (!isset($triggers['on_translation_complete']) || !$triggers['on_translation_complete']) {
+                PolyTrans_Logs_Manager::log("Workflow '{$workflow_name}' not configured for translation completion trigger", 'info', [
+                    'source' => 'workflow_manager',
+                    'workflow_name' => $workflow_name,
+                    'workflow_id' => $workflow['id'] ?? null
+                ]);
                 return false;
             }
         }
 
-        // Check additional conditions (post type, categories, etc.)
-        if (isset($triggers['conditions']) && !empty($triggers['conditions'])) {
-            return $this->evaluate_workflow_conditions($triggers['conditions'], $context);
+        // Check for manual_only flag
+        if (isset($triggers['manual_only']) && $triggers['manual_only']) {
+            PolyTrans_Logs_Manager::log("Workflow '{$workflow_name}' is set to manual execution only", 'info', [
+                'source' => 'workflow_manager',
+                'workflow_name' => $workflow_name,
+                'workflow_id' => $workflow['id'] ?? null
+            ]);
+            return false;
         }
 
+        // Check additional conditions (post type, categories, etc.)
+        if (isset($triggers['conditions']) && !empty($triggers['conditions'])) {
+            $conditions_met = $this->evaluate_workflow_conditions($triggers['conditions'], $context);
+            if (!$conditions_met) {
+                PolyTrans_Logs_Manager::log("Workflow '{$workflow_name}' conditions not met", 'info', [
+                    'source' => 'workflow_manager',
+                    'workflow_name' => $workflow_name,
+                    'workflow_id' => $workflow['id'] ?? null
+                ]);
+                return false;
+            }
+        }
+
+        PolyTrans_Logs_Manager::log("Workflow '{$workflow_name}' passed all conditions", 'info', [
+            'source' => 'workflow_manager',
+            'workflow_name' => $workflow_name,
+            'workflow_id' => $workflow['id'] ?? null
+        ]);
         return true;
     }
 
@@ -260,6 +331,13 @@ class PolyTrans_Workflow_Manager
      */
     private function schedule_workflow_execution($workflow, $context)
     {
+        $workflow_name = $workflow['name'] ?? 'Unknown';
+        PolyTrans_Logs_Manager::log("Scheduling immediate execution of workflow '{$workflow_name}'", 'info', [
+            'source' => 'workflow_manager',
+            'workflow_name' => $workflow_name,
+            'workflow_id' => $workflow['id'] ?? null
+        ]);
+
         // For now, execute immediately
         // In production, this should be queued for background processing
         $this->execute_workflow($workflow, $context);
@@ -275,9 +353,32 @@ class PolyTrans_Workflow_Manager
      */
     public function execute_workflow($workflow, $context, $test_mode = false)
     {
+        $workflow_name = $workflow['name'] ?? 'Unknown';
+        $workflow_id = $workflow['id'] ?? 'unknown';
+
+        PolyTrans_Logs_Manager::log("Starting execution of workflow '{$workflow_name}' (ID: {$workflow_id})", 'info', [
+            'source' => 'workflow_manager',
+            'workflow_name' => $workflow_name,
+            'workflow_id' => $workflow_id,
+            'post_id' => $context['translated_post_id'] ?? null
+        ]);
+
         try {
             // Build variable context
+            PolyTrans_Logs_Manager::log("Building variable context with " . count($this->data_providers) . " data providers", 'debug', [
+                'source' => 'workflow_manager',
+                'workflow_name' => $workflow_name,
+                'workflow_id' => $workflow_id,
+                'provider_count' => count($this->data_providers)
+            ]);
             $variable_context = $this->variable_manager->build_context($context, $this->data_providers);
+            PolyTrans_Logs_Manager::log("Variable context built with " . count($variable_context) . " variables", 'debug', [
+                'source' => 'workflow_manager',
+                'workflow_name' => $workflow_name,
+                'workflow_id' => $workflow_id,
+                'variable_count' => count($variable_context),
+                'variables' => array_keys($variable_context)
+            ]);
 
             // Execute workflow using executor
             $result = $this->executor->execute($workflow, $variable_context, $test_mode);
@@ -287,8 +388,39 @@ class PolyTrans_Workflow_Manager
                 $this->log_workflow_execution($workflow, $context, $result);
             }
 
+            if ($result['success']) {
+                PolyTrans_Logs_Manager::log("Workflow '{$workflow_name}' execution completed successfully", 'info', [
+                    'source' => 'workflow_manager',
+                    'workflow_name' => $workflow_name,
+                    'workflow_id' => $workflow_id,
+                    'post_id' => $context['translated_post_id'] ?? null
+                ]);
+            } else {
+                $error_msg = $result['error'] ?? 'Unknown error';
+                PolyTrans_Logs_Manager::log("Workflow '{$workflow_name}' execution failed: {$error_msg}", 'error', [
+                    'source' => 'workflow_manager',
+                    'workflow_name' => $workflow_name,
+                    'workflow_id' => $workflow_id,
+                    'error' => $error_msg,
+                    'post_id' => $context['translated_post_id'] ?? null
+                ]);
+            }
+
             return $result;
         } catch (Exception $e) {
+            PolyTrans_Logs_Manager::log("Exception during workflow '{$workflow_name}' execution: " . $e->getMessage(), 'error', [
+                'source' => 'workflow_manager',
+                'workflow_name' => $workflow_name,
+                'workflow_id' => $workflow_id,
+                'exception' => $e->getMessage(),
+                'post_id' => $context['translated_post_id'] ?? null
+            ]);
+            PolyTrans_Logs_Manager::log("Exception stack trace: " . $e->getTraceAsString(), 'debug', [
+                'source' => 'workflow_manager',
+                'workflow_name' => $workflow_name,
+                'workflow_id' => $workflow_id,
+                'trace' => $e->getTraceAsString()
+            ]);
             $error_result = [
                 'success' => false,
                 'error' => $e->getMessage(),

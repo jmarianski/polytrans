@@ -1,4 +1,5 @@
 <?php
+
 /**
  * WordPress-integrated test for variable interpolation fix
  * This file can be accessed via /wp-content/plugins/polytrans/test-interpolation-wp.php
@@ -17,17 +18,45 @@ require_once plugin_dir_path(__FILE__) . 'includes/postprocessing/class-variable
 ?>
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>PolyTrans Variable Interpolation Test</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
-        .original { background: #f0f0f0; padding: 10px; margin: 5px 0; }
-        .result { background: #e8f5e8; padding: 10px; margin: 5px 0; }
-        .error { background: #ffe8e8; padding: 10px; margin: 5px 0; }
-        pre { white-space: pre-wrap; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+
+        .original {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 5px 0;
+        }
+
+        .result {
+            background: #e8f5e8;
+            padding: 10px;
+            margin: 5px 0;
+        }
+
+        .error {
+            background: #ffe8e8;
+            padding: 10px;
+            margin: 5px 0;
+        }
+
+        pre {
+            white-space: pre-wrap;
+        }
     </style>
 </head>
+
 <body>
     <h1>PolyTrans Variable Interpolation Test</h1>
     <p>This test verifies that JSON structures are preserved during variable interpolation.</p>
@@ -35,7 +64,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/postprocessing/class-variable
     <?php
     try {
         $variable_manager = new PolyTrans_Variable_Manager();
-        
+
         // Test context
         $context = [
             'original_post' => [
@@ -65,7 +94,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/postprocessing/class-variable
         echo '<div class="test-section">';
         echo '<h2>Test 1: System Prompt with JSON Structure</h2>';
         echo '<p>This test should preserve the JSON structure while interpolating variables.</p>';
-        
+
         $system_prompt = 'You are an expert content editor specializing in SEO optimization. Your task is to enhance the provided article by adding internal links to related content.
 
 Please review the original article and add 2-3 relevant internal links using the provided reference articles. Return your response in this exact JSON format:
@@ -85,10 +114,10 @@ Available articles for internal linking:
 Important: Ensure the links are contextually relevant and enhance the reader\'s experience.';
 
         echo '<div class="original"><strong>Original System Prompt:</strong><pre>' . htmlspecialchars($system_prompt) . '</pre></div>';
-        
+
         $interpolated = $variable_manager->interpolate_template($system_prompt, $context);
         echo '<div class="result"><strong>Interpolated Result:</strong><pre>' . htmlspecialchars($interpolated) . '</pre></div>';
-        
+
         // Check if JSON structure is preserved
         if (strpos($interpolated, '{"enhanced_post":') !== false || strpos($interpolated, '{\n  "enhanced_post":') !== false) {
             echo '<div class="result"><strong>✅ SUCCESS:</strong> JSON structure preserved!</div>';
@@ -101,14 +130,14 @@ Important: Ensure the links are contextually relevant and enhance the reader\'s 
         echo '<div class="test-section">';
         echo '<h2>Test 2: Variable Extraction</h2>';
         echo '<p>This test should only extract legitimate variable names, not JSON keys.</p>';
-        
+
         $variables = $variable_manager->extract_variables($system_prompt);
         echo '<div class="result"><strong>Variables Found:</strong> ' . implode(', ', $variables) . '</div>';
-        
+
         $expected_variables = ['original_post.title', 'original_post.content', 'recent_articles'];
         $missing = array_diff($expected_variables, $variables);
         $extra = array_diff($variables, $expected_variables);
-        
+
         if (empty($missing) && empty($extra)) {
             echo '<div class="result"><strong>✅ SUCCESS:</strong> Correct variables extracted!</div>';
         } else {
@@ -123,7 +152,7 @@ Important: Ensure the links are contextually relevant and enhance the reader\'s 
         echo '<div class="test-section">';
         echo '<h2>Test 3: Complex Mixed Content</h2>';
         echo '<p>This test combines multiple JSON structures with variables.</p>';
-        
+
         $complex_template = 'Analyze this article: {original_post.title}
 
 Content: {original_post.content}
@@ -150,10 +179,10 @@ Additional metadata format:
 }';
 
         echo '<div class="original"><strong>Original Template:</strong><pre>' . htmlspecialchars($complex_template) . '</pre></div>';
-        
+
         $complex_result = $variable_manager->interpolate_template($complex_template, $context);
         echo '<div class="result"><strong>Interpolated Result:</strong><pre>' . htmlspecialchars($complex_result) . '</pre></div>';
-        
+
         // Check for JSON preservation
         $json_patterns = [
             '"seo_score": 85',
@@ -162,7 +191,7 @@ Additional metadata format:
             '"processing_time":',
             '"confidence": 0.92'
         ];
-        
+
         $json_preserved = true;
         foreach ($json_patterns as $pattern) {
             if (strpos($complex_result, $pattern) === false) {
@@ -170,14 +199,13 @@ Additional metadata format:
                 break;
             }
         }
-        
+
         if ($json_preserved) {
             echo '<div class="result"><strong>✅ SUCCESS:</strong> All JSON structures preserved!</div>';
         } else {
             echo '<div class="error"><strong>❌ FAILED:</strong> Some JSON structures were corrupted!</div>';
         }
         echo '</div>';
-
     } catch (Exception $e) {
         echo '<div class="error"><strong>Error:</strong> ' . htmlspecialchars($e->getMessage()) . '</div>';
     }
@@ -195,4 +223,5 @@ Additional metadata format:
         <p><strong>If all tests show SUCCESS, the interpolation fix is working correctly!</strong></p>
     </div>
 </body>
+
 </html>

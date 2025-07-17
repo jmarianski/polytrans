@@ -115,6 +115,11 @@ class PolyTrans
         require_once $includes_dir . 'postprocessing/steps/class-ai-assistant-step.php';
         require_once $includes_dir . 'postprocessing/steps/class-predefined-assistant-step.php';
         require_once $includes_dir . 'postprocessing/class-workflow-manager.php';
+
+        // Debug tools (only load in admin)
+        if (is_admin()) {
+            require_once $includes_dir . 'debug/workflow-debug-page.php';
+        }
     }
 
     /**

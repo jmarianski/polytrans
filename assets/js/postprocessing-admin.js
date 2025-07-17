@@ -113,7 +113,7 @@
                         </label>
                         <br>
                         <label>
-                            <input type="checkbox" name="trigger_manual_only" ${(workflowData.triggers && workflowData.triggers.manual_only) ? 'checked' : ''}>
+                            <input type="checkbox" name="trigger_manual_only" ${(workflowData.triggers && workflowData.triggers.manual_only === true) ? 'checked' : ''}>
                             Manual execution only
                         </label>
                     </div>

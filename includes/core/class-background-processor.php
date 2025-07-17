@@ -455,6 +455,9 @@ class PolyTrans_Background_Processor
             // Store the created post ID
             update_post_meta($post_id, '_polytrans_translation_post_id_' . $target_lang, $result['created_post_id']);
 
+            // Fire action for post-processing workflows
+            do_action('polytrans_translation_completed', $post_id, $result['created_post_id'], $target_lang);
+
             self::log("Translation completed successfully", "info", [
                 'post_id' => $post_id,
                 'created_post_id' => $result['created_post_id'],
