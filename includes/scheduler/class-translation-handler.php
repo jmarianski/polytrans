@@ -17,6 +17,7 @@ const POLYTRANS_ALLOWED_RANK_MATH_META_KEYS = [
     'rank_math_facebook_description',
     'rank_math_twitter_title',
     'rank_math_twitter_description',
+    'rank_math_focus_keyword',
 ];
 
 class PolyTrans_Translation_Handler
