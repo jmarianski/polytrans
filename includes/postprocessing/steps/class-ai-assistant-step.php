@@ -68,7 +68,7 @@ class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
             $interpolated_user_message = $variable_manager->interpolate_template($user_message, $context);
 
             // Get AI provider settings
-            $provider_settings = $this->get_ai_provider_settings();
+            $provider_settings = $this->get_ai_provider_settings($step_config);
             if (!$provider_settings) {
                 return [
                     'success' => false,
@@ -146,6 +146,14 @@ class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
             $errors[] = 'Expected format must be one of: ' . implode(', ', $valid_formats);
         }
 
+        // Validate model if provided
+        if (isset($step_config['model']) && !empty($step_config['model'])) {
+            $valid_models = $this->get_all_available_models();
+            if (!in_array($step_config['model'], $valid_models)) {
+                $errors[] = 'Invalid model. Must be one of the available OpenAI models.';
+            }
+        }
+
         // Validate output variables if provided
         if (isset($step_config['output_variables']) && !is_array($step_config['output_variables'])) {
             $errors[] = 'Output variables must be an array';
@@ -193,6 +201,28 @@ class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
                 'required' => true,
                 'rows' => 6
             ],
+            'user_message' => [
+                'type' => 'textarea',
+                'label' => __('User Message Template', 'polytrans'),
+                'description' => __('Template for the user message. Use {variable_name} to include data from context.', 'polytrans'),
+                'required' => true,
+                'rows' => 4,
+                'placeholder' => 'Title: {title}\nContent: {content}\nTarget Language: {target_language}\n\nPlease review this translated content and provide your analysis.'
+            ],
+            'model' => [
+                'type' => 'select',
+                'label' => __('AI Model', 'polytrans'),
+                'description' => __('OpenAI model to use for this step (overrides global setting)', 'polytrans'),
+                'options' => [
+                    '' => __('Use Global Setting', 'polytrans'),
+                    'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
+                    'gpt-4' => 'GPT-4',
+                    'gpt-4-turbo' => 'GPT-4 Turbo',
+                    'gpt-4o' => 'GPT-4o',
+                    'gpt-4o-mini' => 'GPT-4o Mini'
+                ],
+                'default' => ''
+            ],
             'expected_format' => [
                 'type' => 'select',
                 'label' => __('Expected Response Format', 'polytrans'),
@@ -231,7 +261,7 @@ class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
     /**
      * Get AI provider settings
      */
-    private function get_ai_provider_settings()
+    private function get_ai_provider_settings($step_config = [])
     {
         // Get PolyTrans settings to find which AI provider is configured
         $polytrans_settings = get_option('polytrans_settings', []);
@@ -244,10 +274,18 @@ class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
                 return false;
             }
 
+            // Check for step-specific model override, otherwise use global setting
+            $model = $step_config['model'] ?? $polytrans_settings['openai_model'] ?? 'gpt-4o-mini';
+
+            // If step config has empty model, use global setting
+            if (empty($model)) {
+                $model = $polytrans_settings['openai_model'] ?? 'gpt-4o-mini';
+            }
+
             return [
                 'provider' => 'openai',
                 'api_key' => $api_key,
-                'model' => $polytrans_settings['openai_model'] ?? 'gpt-3.5-turbo',
+                'model' => $model,
                 'base_url' => $polytrans_settings['openai_base_url'] ?? 'https://api.openai.com/v1'
             ];
         }
@@ -378,5 +416,24 @@ class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
         return [
             'ai_response' => $response_text
         ];
+    }
+
+    /**
+     * Get all available OpenAI models (using same source as OpenAI settings provider)
+     */
+    private function get_all_available_models()
+    {
+        // Get the OpenAI settings provider to ensure we use the same model list
+        $provider = new PolyTrans_OpenAI_Settings_Provider();
+        $reflection = new ReflectionClass($provider);
+        $method = $reflection->getMethod('get_grouped_models');
+        $method->setAccessible(true);
+        $grouped_models = $method->invoke($provider);
+        
+        $models = [];
+        foreach ($grouped_models as $group => $group_models) {
+            $models = array_merge($models, array_keys($group_models));
+        }
+        return $models;
     }
 }

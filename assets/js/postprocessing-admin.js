@@ -10,6 +10,39 @@
     let languages = {};
     let stepCounter = 0;
 
+    // Helper function to generate model options from localized data
+    function generateModelOptions(selectedModel) {
+        let modelOptions = '<option value="" ' + (selectedModel === '' ? 'selected' : '') + '>Use Global Setting</option>';
+        
+        if (typeof polytransWorkflows !== 'undefined' && polytransWorkflows.models) {
+            for (const [groupName, models] of Object.entries(polytransWorkflows.models)) {
+                modelOptions += '<optgroup label="' + groupName + '">';
+                for (const [modelValue, modelLabel] of Object.entries(models)) {
+                    const selected = (selectedModel === modelValue) ? 'selected' : '';
+                    modelOptions += '<option value="' + modelValue + '" ' + selected + '>' + modelLabel + '</option>';
+                }
+                modelOptions += '</optgroup>';
+            }
+        } else {
+            console.warn('polytransWorkflows.models not available, using fallback models');
+            // Fallback to basic models if localized data is not available
+            const fallbackModels = {
+                'gpt-4o': 'GPT-4o (Latest)',
+                'gpt-4o-mini': 'GPT-4o Mini (Fast & Cost-effective)',
+                'gpt-4-turbo': 'GPT-4 Turbo',
+                'gpt-4': 'GPT-4',
+                'gpt-3.5-turbo': 'GPT-3.5 Turbo'
+            };
+            
+            for (const [modelValue, modelLabel] of Object.entries(fallbackModels)) {
+                const selected = (selectedModel === modelValue) ? 'selected' : '';
+                modelOptions += '<option value="' + modelValue + '" ' + selected + '>' + modelLabel + '</option>';
+            }
+        }
+        
+        return modelOptions;
+    }
+
     // Initialize when DOM is ready
     $(document).ready(function () {
         initializeWorkflowEditor();
@@ -278,6 +311,7 @@
         const systemPrompt = step.system_prompt || '';
         const userMessage = step.user_message || '';
         const expectedFormat = step.expected_format || 'text';
+        const model = step.model || '';
         const maxTokens = step.max_tokens || '';
         const temperature = step.temperature !== undefined ? step.temperature : 0.7;
         const outputVariables = (step.output_variables || []).join(', ');
@@ -292,6 +326,13 @@
                 <label for="step-${index}-user-message">User Message Template</label>
                 <textarea id="step-${index}-user-message" name="steps[${index}][user_message]" rows="4" required>${escapeHtml(userMessage)}</textarea>
                 <small>💬 <strong>Example:</strong> "Title: {title}\\nContent: {content}\\nTarget Language: {target_language}\\n\\nPlease review this translated content and provide your analysis."</small>
+            </div>
+            <div class="workflow-step-field">
+                <label for="step-${index}-model">AI Model</label>
+                <select id="step-${index}-model" name="steps[${index}][model]">
+                    ${generateModelOptions(model)}
+                </select>
+                <small>🤖 OpenAI model to use for this step (overrides global setting in OpenAI Configuration)</small>
             </div>
             <div class="workflow-step-field">
                 <label for="step-${index}-expected-format">Expected Response Format</label>
@@ -626,6 +667,7 @@
                 if (currentType === 'ai_assistant' || newType === 'ai_assistant') {
                     stepData.system_prompt = $(`#step-${index}-system-prompt`).val();
                     stepData.user_message = $(`#step-${index}-user-message`).val();
+                    stepData.model = $(`#step-${index}-model`).val();
                     stepData.expected_format = $(`#step-${index}-expected-format`).val();
                     stepData.output_variables = $(`#step-${index}-output-variables`).val();
                     stepData.max_tokens = $(`#step-${index}-max-tokens`).val() || null;
@@ -685,6 +727,7 @@
             enabled: true,
             system_prompt: '',
             user_message: '',
+            model: '',
             expected_format: 'text',
             temperature: 0.7
         };
@@ -801,9 +844,13 @@
             if (stepData.type === 'ai_assistant') {
                 stepData.system_prompt = $(`#step-${index}-system-prompt`).val();
                 stepData.user_message = $(`#step-${index}-user-message`).val();
+                stepData.model = $(`#step-${index}-model`).val();
                 stepData.expected_format = $(`#step-${index}-expected-format`).val();
                 stepData.max_tokens = $(`#step-${index}-max-tokens`).val() || null;
                 stepData.temperature = parseFloat($(`#step-${index}-temperature`).val()) || 0.7;
+
+                // Debug: Log model selection
+                console.log(`Step ${index} model:`, stepData.model);
 
                 const outputVars = $(`#step-${index}-output-variables`).val();
                 if (outputVars) {
@@ -842,6 +889,9 @@
 
         // Show loading state
         form.addClass('workflow-loading');
+
+        // Debug: Log the workflow object being sent
+        console.log('Saving workflow:', workflow);
 
         // Send AJAX request
         $.ajax({

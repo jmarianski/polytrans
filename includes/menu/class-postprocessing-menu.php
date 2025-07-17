@@ -95,6 +95,7 @@ class PolyTrans_Postprocessing_Menu
         wp_localize_script('polytrans-workflows', 'polytransWorkflows', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('polytrans_workflows_nonce'),
+            'models' => $this->get_openai_models(),
             'strings' => [
                 'confirmDelete' => __('Are you sure you want to delete this workflow?', 'polytrans'),
                 'confirmDuplicate' => __('Create a copy of this workflow?', 'polytrans'),
@@ -616,6 +617,40 @@ class PolyTrans_Postprocessing_Menu
     }
 
     /**
+     * Get OpenAI models from the settings provider
+     */
+    private function get_openai_models()
+    {
+        // Check if OpenAI settings provider class exists
+        if (!class_exists('PolyTrans_OpenAI_Settings_Provider')) {
+            return [];
+        }
+
+        try {
+            $provider = new PolyTrans_OpenAI_Settings_Provider();
+            $reflection = new ReflectionClass($provider);
+            $method = $reflection->getMethod('get_grouped_models');
+            $method->setAccessible(true);
+            return $method->invoke($provider);
+        } catch (Exception $e) {
+            // Fallback to basic models if we can't access the provider
+            return [
+                'GPT-4o Models' => [
+                    'gpt-4o' => 'GPT-4o (Latest)',
+                    'gpt-4o-mini' => 'GPT-4o Mini (Fast & Cost-effective)',
+                ],
+                'GPT-4 Models' => [
+                    'gpt-4-turbo' => 'GPT-4 Turbo',
+                    'gpt-4' => 'GPT-4',
+                ],
+                'GPT-3.5 Models' => [
+                    'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
+                ]
+            ];
+        }
+    }
+
+    /**
      * Sanitize workflow data from form submission
      */
     private function sanitize_workflow_data($workflow_data)
@@ -687,6 +722,7 @@ class PolyTrans_Postprocessing_Menu
                 case 'ai_assistant':
                     $sanitized_step['system_prompt'] = $this->sanitize_prompt_field($step['system_prompt'] ?? '');
                     $sanitized_step['user_message'] = $this->sanitize_prompt_field($step['user_message'] ?? '');
+                    $sanitized_step['model'] = $this->sanitize_model_field($step['model'] ?? '');
                     $sanitized_step['expected_format'] = sanitize_text_field($step['expected_format'] ?? 'text');
                     $sanitized_step['max_tokens'] = !empty($step['max_tokens']) ? intval($step['max_tokens']) : null;
                     $sanitized_step['temperature'] = !empty($step['temperature']) ? floatval($step['temperature']) : 0.7;
@@ -782,6 +818,30 @@ class PolyTrans_Postprocessing_Menu
         $prompt = str_replace(array("\r\n", "\r"), "\n", $prompt);
 
         return trim($prompt);
+    }
+
+    /**
+     * Sanitize model field and validate against available models
+     */
+    private function sanitize_model_field($model)
+    {
+        if (empty($model)) {
+            return '';
+        }
+
+        $model = sanitize_text_field($model);
+        
+        // Get available models from the OpenAI settings provider
+        $available_models = $this->get_openai_models();
+        
+        // Flatten the grouped models to get all valid model values
+        $valid_models = [];
+        foreach ($available_models as $group => $models) {
+            $valid_models = array_merge($valid_models, array_keys($models));
+        }
+        
+        // Return the model if it's valid, otherwise return empty string
+        return in_array($model, $valid_models) ? $model : '';
     }
 
     /**
