@@ -63,7 +63,8 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         return [
             'openai_api_key',
             'openai_source_language',
-            'openai_assistants'
+            'openai_assistants',
+            'openai_model'
         ];
     }
 
@@ -75,6 +76,7 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         $openai_api_key = $settings['openai_api_key'] ?? '';
         $openai_source_language = $settings['openai_source_language'] ?? ($languages[0] ?? 'en');
         $openai_assistants = $settings['openai_assistants'] ?? [];
+        $openai_model = $settings['openai_model'] ?? 'gpt-4o-mini';
 ?>
         <div class="openai-config-section">
             <h2><?php echo esc_html($this->get_tab_label()); ?></h2>
@@ -109,6 +111,13 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
                     <?php endforeach; ?>
                 </select>
                 <br><small><?php esc_html_e('OpenAI will translate all content to this language first, then to the target language if needed. This enables multi-step translation through your preferred intermediate language.', 'polytrans'); ?></small>
+            </div>
+
+            <!-- Model Selection Section -->
+            <div class="openai-model-section" style="margin-top:2em;">
+                <h3><?php esc_html_e('Default Model', 'polytrans'); ?></h3>
+                <?php $this->render_model_selection($openai_model); ?>
+                <br><small><?php esc_html_e('Default OpenAI model to use for translations and AI Assistant steps. This can be overridden per workflow step.', 'polytrans'); ?></small>
             </div>
 
             <!-- Assistant Mapping Section -->
@@ -178,6 +187,17 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
             }
         }
 
+        // Validate model selection
+        if (isset($posted_data['openai_model'])) {
+            $allowed_models = $this->get_all_available_models();
+            $model = sanitize_text_field($posted_data['openai_model']);
+            if (in_array($model, $allowed_models)) {
+                $validated['openai_model'] = $model;
+            } else {
+                $validated['openai_model'] = 'gpt-4o-mini';
+            }
+        }
+
         return $validated;
     }
 
@@ -189,7 +209,8 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         return [
             'openai_api_key' => '',
             'openai_source_language' => 'en',
-            'openai_assistants' => []
+            'openai_assistants' => [],
+            'openai_model' => 'gpt-4o-mini' // Default model
         ];
     }
 
@@ -268,6 +289,7 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         wp_localize_script($js_handle, 'polytrans_openai', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('polytrans_openai_nonce'),
+            'models' => $this->get_grouped_models(),
             'strings' => [
                 'validating' => __('Validating...', 'polytrans'),
                 'valid' => __('API key is valid', 'polytrans'),
@@ -419,6 +441,98 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
     }
 
     /**
+     * Get grouped models for UI display - SINGLE SOURCE OF TRUTH
+     */
+    private function get_grouped_models()
+    {
+        return [
+            'GPT-4o Models (Latest)' => [
+                'gpt-4o' => 'GPT-4o (Latest)',
+                'gpt-4o-mini' => 'GPT-4o Mini (Fast & Cost-effective)',
+                'gpt-4o-2024-11-20' => 'GPT-4o (2024-11-20)',
+                'gpt-4o-2024-08-06' => 'GPT-4o (2024-08-06)',
+                'gpt-4o-2024-05-13' => 'GPT-4o (2024-05-13)',
+                'gpt-4o-mini-2024-07-18' => 'GPT-4o Mini (2024-07-18)',
+            ],
+            'GPT-4 Turbo Models' => [
+                'gpt-4-turbo' => 'GPT-4 Turbo (Latest)',
+                'gpt-4-turbo-2024-04-09' => 'GPT-4 Turbo (2024-04-09)',
+                'gpt-4-turbo-preview' => 'GPT-4 Turbo Preview',
+                'gpt-4-0125-preview' => 'GPT-4 Turbo (0125-preview)',
+                'gpt-4-1106-preview' => 'GPT-4 Turbo (1106-preview)',
+            ],
+            'GPT-4 Models' => [
+                'gpt-4' => 'GPT-4 (Latest)',
+                'gpt-4-0613' => 'GPT-4 (0613)',
+                'gpt-4-0314' => 'GPT-4 (0314)',
+            ],
+            'GPT-3.5 Turbo Models' => [
+                'gpt-3.5-turbo' => 'GPT-3.5 Turbo (Latest)',
+                'gpt-3.5-turbo-0125' => 'GPT-3.5 Turbo (0125)',
+                'gpt-3.5-turbo-1106' => 'GPT-3.5 Turbo (1106)',
+                'gpt-3.5-turbo-0613' => 'GPT-3.5 Turbo (0613)',
+                'gpt-3.5-turbo-16k' => 'GPT-3.5 Turbo 16K (Latest)',
+                'gpt-3.5-turbo-16k-0613' => 'GPT-3.5 Turbo 16K (0613)',
+            ],
+        ];
+    }
+
+    /**
+     * Get all available OpenAI models (flattened from grouped models)
+     */
+    private function get_all_available_models()
+    {
+        $models = [];
+        foreach ($this->get_grouped_models() as $group => $group_models) {
+            $models = array_merge($models, array_keys($group_models));
+        }
+        return $models;
+    }
+
+    /**
+     * Render model selection dropdown
+     */
+    private function render_model_selection($selected_model)
+    {
+        $grouped_models = $this->get_grouped_models();
+        
+        echo '<select name="openai_model" id="openai-model" style="max-width:300px;">';
+        
+        foreach ($grouped_models as $group_name => $models) {
+            echo '<optgroup label="' . esc_attr($group_name) . '">';
+            foreach ($models as $model_value => $model_label) {
+                $selected = selected($selected_model, $model_value, false);
+                echo '<option value="' . esc_attr($model_value) . '" ' . $selected . '>' . esc_html($model_label) . '</option>';
+            }
+            echo '</optgroup>';
+        }
+        
+        echo '</select>';
+    }
+
+    /**
+     * Validate OpenAI API key using the OpenAI API
+     */
+    private function validate_openai_api_key($api_key)
+    {
+        $response = wp_remote_get('https://api.openai.com/v1/models', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $api_key,
+                'User-Agent' => 'PolyTrans/1.0'
+            ],
+            'timeout' => 10
+        ]);
+
+        if (is_wp_error($response)) {
+            return false;
+        }
+
+        $response_code = wp_remote_retrieve_response_code($response);
+
+        return $response_code === 200;
+    }
+
+    /**
      * AJAX handler for validating OpenAI API key
      */
     public function ajax_validate_openai_key()
@@ -444,27 +558,12 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         }
 
         // Validate the OpenAI API key
-        $response = wp_remote_get('https://api.openai.com/v1/models', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $api_key,
-                'User-Agent' => 'PolyTrans/1.0'
-            ],
-            'timeout' => 10
-        ]);
+        $is_valid_key = $this->validate_openai_api_key($api_key);
 
-        if (is_wp_error($response)) {
-            wp_send_json_error(__('Failed to validate API key: ', 'polytrans') . $response->get_error_message());
-        }
-
-        $response_code = wp_remote_retrieve_response_code($response);
-
-        if ($response_code === 200) {
+        if ($is_valid_key) {
             wp_send_json_success(__('API key is valid!', 'polytrans'));
         } else {
-            $body = wp_remote_retrieve_body($response);
-            $error_data = json_decode($body, true);
-            $error_message = isset($error_data['error']['message']) ? $error_data['error']['message'] : __('Invalid API key.', 'polytrans');
-            wp_send_json_error($error_message);
+            wp_send_json_error(__('Invalid API key.', 'polytrans'));
         }
     }
 
