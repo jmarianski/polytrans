@@ -57,7 +57,7 @@ class PolyTrans_Workflow_Output_Processor
         // Handle user attribution if specified in workflow
         $original_user_id = get_current_user_id();
         $attribution_user_id = null;
-        
+
         if (!$test_mode && $workflow && isset($workflow['attribution_user']) && !empty($workflow['attribution_user'])) {
             $attribution_user_id = intval($workflow['attribution_user']);
             if ($attribution_user_id > 0) {
@@ -117,6 +117,12 @@ class PolyTrans_Workflow_Output_Processor
                 'original_user' => $original_user_id,
                 'attribution_user' => $attribution_user_id
             ]);
+        }
+
+        // In production mode, refresh context from database to get actual current values
+        // In test mode, the context is already updated through apply_change_to_context
+        if (!$test_mode && !empty($changes)) {
+            $updated_context = $this->refresh_context_from_database($updated_context);
         }
 
         return [
@@ -925,5 +931,53 @@ class PolyTrans_Workflow_Output_Processor
                     'error' => sprintf('Unknown action type: %s', $change['action_type'])
                 ];
         }
+    }
+
+    /**
+     * Refresh context from database (for production mode)
+     * Updates the context with current database values after changes have been made
+     */
+    private function refresh_context_from_database($context)
+    {
+        // Get the translated post ID from context
+        $translated_post_id = null;
+        if (isset($context['translated_post_id'])) {
+            $translated_post_id = $context['translated_post_id'];
+        } elseif (isset($context['translated_post']['ID'])) {
+            $translated_post_id = $context['translated_post']['ID'];
+        }
+
+        if (!$translated_post_id) {
+            return $context; // No post ID to refresh from
+        }
+
+        // Get the current post from database
+        $current_post = get_post($translated_post_id);
+        if (!$current_post) {
+            return $context; // Post not found
+        }
+
+        // Update context with current database values
+        $context['title'] = $current_post->post_title;
+        $context['content'] = $current_post->post_content;
+        $context['excerpt'] = $current_post->post_excerpt;
+
+        // Update translated_post structure if it exists
+        if (isset($context['translated_post'])) {
+            $context['translated_post']['title'] = $current_post->post_title;
+            $context['translated_post']['content'] = $current_post->post_content;
+            $context['translated_post']['excerpt'] = $current_post->post_excerpt;
+            $context['translated_post']['ID'] = $current_post->ID;
+            $context['translated_post']['post_author'] = $current_post->post_author;
+            $context['translated_post']['post_status'] = $current_post->post_status;
+            $context['translated_post']['post_type'] = $current_post->post_type;
+            $context['translated_post']['post_date'] = $current_post->post_date;
+            $context['translated_post']['post_modified'] = $current_post->post_modified;
+
+            // Refresh post meta
+            $context['translated_post']['meta'] = get_post_meta($current_post->ID);
+        }
+
+        return $context;
     }
 }

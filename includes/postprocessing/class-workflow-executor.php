@@ -171,17 +171,16 @@ class PolyTrans_Workflow_Executor
                     );
 
                     if ($output_result['success']) {
-                        $processed_actions = $output_result['processed_actions'] ?? [];
-                        $actions_processed = is_array($processed_actions) ? count($processed_actions) : 0;
+                        $actions_processed = $output_result['processed_actions'] ?? 0;
                         $output_processing_info = " (processed {$actions_processed} actions)";
+                        
+                        // Update execution context with changes (both test mode and production mode)
+                        if (isset($output_result['updated_context'])) {
+                            $execution_context = $output_result['updated_context'];
+                        }
                     } else {
                         $output_processing_errors = $output_result['errors'] ?? ['Unknown error'];
                         $output_processing_info = " (action processing failed)";
-                    }
-
-                    // In test mode, update the execution context with the changes
-                    if ($test_mode && isset($output_result['updated_context'])) {
-                        $execution_context = $output_result['updated_context'];
                     }
                 }
 
