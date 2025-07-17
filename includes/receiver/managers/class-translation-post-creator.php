@@ -19,7 +19,12 @@ class PolyTrans_Translation_Post_Creator
      */
     public function create_post(array $translated, $original_post_id)
     {
-        $original_post_type = get_post_type($original_post_id);
+        $original_post = get_post($original_post_id);
+        if (!$original_post) {
+            return new WP_Error('invalid_post', 'Could not retrieve original post');
+        }
+
+        $original_post_type = $original_post->post_type;
         if (!$original_post_type) {
             return new WP_Error('invalid_post_type', 'Could not determine original post type');
         }
@@ -30,6 +35,7 @@ class PolyTrans_Translation_Post_Creator
             'post_excerpt' => $this->sanitize_excerpt(isset($translated['excerpt']) ? $translated['excerpt'] : ''),
             'post_status'  => 'pending', // Will be updated later based on settings
             'post_type'    => $original_post_type,
+            'post_author'  => $original_post->post_author, // Preserve original post author
         ];
 
         $new_post_id = wp_insert_post($postarr);
@@ -39,7 +45,72 @@ class PolyTrans_Translation_Post_Creator
             return $new_post_id;
         }
 
+        // Log the author attribution for audit purposes
+        $original_author = get_user_by('id', $original_post->post_author);
+        $author_name = $original_author ? $original_author->display_name : 'Unknown';
+        PolyTrans_Logs_Manager::log("Created translated post {$new_post_id} with preserved author attribution", "info", [
+            'source' => 'translation_post_creator',
+            'original_post_id' => $original_post_id,
+            'translated_post_id' => $new_post_id,
+            'original_author_id' => $original_post->post_author,
+            'original_author_name' => $author_name,
+            'post_type' => $original_post_type
+        ]);
+
+        // Ensure initial revision is created with correct author
+        $this->create_initial_revision($new_post_id, $original_post->post_author);
+
         return $new_post_id;
+    }
+
+    /**
+     * Create an initial revision for the post with the correct author
+     * 
+     * @param int $post_id The post ID
+     * @param int $author_id The author ID to use for the revision
+     */
+    private function create_initial_revision($post_id, $author_id)
+    {
+        // Only create revision if post type supports revisions
+        if (!post_type_supports(get_post_type($post_id), 'revisions')) {
+            return;
+        }
+
+        // Get the post
+        $post = get_post($post_id);
+        if (!$post) {
+            return;
+        }
+
+        // Store original current user
+        $original_user_id = get_current_user_id();
+        
+        // Temporarily switch to the author for revision creation
+        wp_set_current_user($author_id);
+
+        // Force WordPress to create a revision
+        // This is better than manually creating revision as it respects all WP revision settings
+        $revision_id = wp_save_post_revision($post_id);
+        
+        // Restore original user
+        wp_set_current_user($original_user_id);
+        
+        if ($revision_id && !is_wp_error($revision_id)) {
+            PolyTrans_Logs_Manager::log("Created initial revision {$revision_id} for post {$post_id} with author {$author_id}", "debug", [
+                'source' => 'translation_post_creator',
+                'post_id' => $post_id,
+                'revision_id' => $revision_id,
+                'author_id' => $author_id,
+                'method' => 'wp_save_post_revision'
+            ]);
+        } else {
+            PolyTrans_Logs_Manager::log("Failed to create initial revision for post {$post_id} or no revision needed", "debug", [
+                'source' => 'translation_post_creator',
+                'post_id' => $post_id,
+                'author_id' => $author_id,
+                'revision_result' => $revision_id
+            ]);
+        }
     }
 
     /**

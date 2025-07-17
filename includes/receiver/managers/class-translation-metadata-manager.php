@@ -80,12 +80,32 @@ class PolyTrans_Translation_Metadata_Manager
         $original_post = get_post($original_post_id);
         
         if (!$original_post) {
-            error_log("[polytrans] set_author: Could not find original post with ID $original_post_id");
+            PolyTrans_Logs_Manager::log("Could not find original post with ID $original_post_id for author attribution", "warning", [
+                'source' => 'translation_metadata_manager',
+                'original_post_id' => $original_post_id,
+                'translated_post_id' => $new_post_id
+            ]);
             return;
         }
         
         if (!isset($original_post->post_author) || empty($original_post->post_author)) {
-            error_log("[polytrans] set_author: Original post $original_post_id has no author or empty author");
+            PolyTrans_Logs_Manager::log("Original post $original_post_id has no author or empty author", "warning", [
+                'source' => 'translation_metadata_manager', 
+                'original_post_id' => $original_post_id,
+                'translated_post_id' => $new_post_id
+            ]);
+            return;
+        }
+
+        // Check if the author is already correctly set to avoid unnecessary update
+        $current_post = get_post($new_post_id);
+        if ($current_post && $current_post->post_author == $original_post->post_author) {
+            PolyTrans_Logs_Manager::log("Author already correctly set for translated post $new_post_id", "debug", [
+                'source' => 'translation_metadata_manager',
+                'original_post_id' => $original_post_id,
+                'translated_post_id' => $new_post_id,
+                'author_id' => $original_post->post_author
+            ]);
             return;
         }
         
@@ -95,9 +115,23 @@ class PolyTrans_Translation_Metadata_Manager
         ]);
         
         if (is_wp_error($update_result)) {
-            error_log("[polytrans] set_author: Failed to update post $new_post_id author - " . $update_result->get_error_message());
+            PolyTrans_Logs_Manager::log("Failed to update post $new_post_id author", "error", [
+                'source' => 'translation_metadata_manager',
+                'original_post_id' => $original_post_id,
+                'translated_post_id' => $new_post_id,
+                'author_id' => $original_post->post_author,
+                'error' => $update_result->get_error_message()
+            ]);
         } else {
-            error_log("[polytrans] set_author: Successfully set author {$original_post->post_author} for post $new_post_id");
+            $original_author = get_user_by('id', $original_post->post_author);
+            $author_name = $original_author ? $original_author->display_name : 'Unknown';
+            PolyTrans_Logs_Manager::log("Successfully updated author for translated post $new_post_id", "info", [
+                'source' => 'translation_metadata_manager',
+                'original_post_id' => $original_post_id,
+                'translated_post_id' => $new_post_id,
+                'author_id' => $original_post->post_author,
+                'author_name' => $author_name
+            ]);
         }
     }
 
