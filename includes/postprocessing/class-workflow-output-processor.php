@@ -116,11 +116,12 @@ class PolyTrans_Workflow_Output_Processor
             if (isset($step_results['data']) && is_array($step_results['data'])) {
                 $available_vars = array_keys($step_results['data']);
             }
-            
+
             return [
                 'success' => false,
-                'error' => sprintf('Source variable "%s" not found in step results. Available variables: %s', 
-                    $source_variable, 
+                'error' => sprintf(
+                    'Source variable "%s" not found in step results. Available variables: %s',
+                    $source_variable,
                     empty($available_vars) ? 'none' : implode(', ', $available_vars)
                 ),
                 'available_variables' => $available_vars,
@@ -660,11 +661,12 @@ class PolyTrans_Workflow_Output_Processor
             if (isset($step_results['data']) && is_array($step_results['data'])) {
                 $available_vars = array_keys($step_results['data']);
             }
-            
+
             return [
                 'success' => false,
-                'error' => sprintf('Source variable "%s" not found in step results. Available variables: %s', 
-                    $source_variable, 
+                'error' => sprintf(
+                    'Source variable "%s" not found in step results. Available variables: %s',
+                    $source_variable,
                     empty($available_vars) ? 'none' : implode(', ', $available_vars)
                 ),
                 'available_variables' => $available_vars

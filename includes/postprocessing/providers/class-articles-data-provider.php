@@ -250,7 +250,7 @@ class PolyTrans_Articles_Data_Provider implements PolyTrans_Variable_Provider_In
             return 'No recent articles available.';
         }
 
-        $formatted = "Recent Articles Available for Internal Linking:\n\n";
+        $formatted = "\n";
         foreach ($articles as $index => $article) {
             $formatted .= sprintf(
                 "%d. **%s**\n   - Post ID: %d\n   - Slug: %s\n   - URL: %s\n   - Excerpt: %s\n   - First 500 chars: %s\n   - Categories: %s\n   - Tags: %s\n   - Word Count: %d\n\n",
