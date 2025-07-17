@@ -283,6 +283,9 @@ class PolyTrans_Postprocessing_Menu
             if (!$workflow) {
                 wp_die(__('Workflow not found.', 'polytrans'));
             }
+
+            // Ensure workflow has proper default values for any missing fields
+            $workflow = $this->normalize_workflow_data($workflow);
         }
 
         // Get available languages
@@ -407,14 +410,18 @@ class PolyTrans_Postprocessing_Menu
 
         // Sanitize workflow data
         $workflow = $this->sanitize_workflow_data($workflow_data);
+        $saveResult = $storage_manager->save_workflow($workflow);
 
-        if ($storage_manager->save_workflow($workflow)) {
+        if ($saveResult['success']) {
             wp_send_json_success([
                 'message' => __('Workflow saved successfully!', 'polytrans'),
                 'workflow_id' => $workflow['id']
             ]);
         } else {
-            wp_send_json_error('Failed to save workflow');
+            wp_send_json_error([
+                'message' => __('Failed to save workflow.', 'polytrans'),
+                'errors' => $saveResult['errors'] ?? []
+            ]);
         }
     }
 
@@ -585,7 +592,7 @@ class PolyTrans_Postprocessing_Menu
             'enabled' => !empty($workflow_data['enabled']),
             'triggers' => [
                 'on_translation_complete' => !empty($workflow_data['triggers']['on_translation_complete']),
-                'manual_only' => !empty($workflow_data['triggers']['manual_only']),
+                'manual_only' => $workflow_data['triggers']['manual_only'] !== 'false',
                 'conditions' => $this->sanitize_trigger_conditions($workflow_data['triggers']['conditions'] ?? [])
             ],
             'steps' => $this->sanitize_workflow_steps($workflow_data['steps'] ?? [])
@@ -733,5 +740,35 @@ class PolyTrans_Postprocessing_Menu
         $prompt = str_replace(array("\r\n", "\r"), "\n", $prompt);
 
         return trim($prompt);
+    }
+
+    /**
+     * Normalize workflow data to ensure all required fields are present with default values
+     */
+    private function normalize_workflow_data($workflow)
+    {
+        // Ensure triggers section exists with all required fields
+        if (!isset($workflow['triggers'])) {
+            $workflow['triggers'] = [];
+        }
+
+        // Set default values for missing trigger fields
+        $workflow['triggers'] = array_merge([
+            'on_translation_complete' => true,
+            'manual_only' => false,
+            'conditions' => []
+        ], $workflow['triggers']);
+
+        // Ensure other required fields exist
+        $workflow = array_merge([
+            'id' => '',
+            'name' => '',
+            'description' => '',
+            'language' => 'en',
+            'enabled' => true,
+            'steps' => []
+        ], $workflow);
+
+        return $workflow;
     }
 }

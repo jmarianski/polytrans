@@ -313,6 +313,10 @@ class PolyTrans_Translation_Extension
                         ];
 
                         update_post_meta($original_post_id, $log_key, $log);
+
+                        // Fire action for post-processing workflows
+                        do_action('polytrans_translation_completed', $original_post_id, $created_post_id, $target_language);
+
                         PolyTrans_Logs_Manager::log("External translation completed successfully for post $original_post_id -> $created_post_id", "info");
                     }
                 } catch (Exception $e) {

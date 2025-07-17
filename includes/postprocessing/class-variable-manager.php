@@ -36,7 +36,11 @@ class PolyTrans_Variable_Manager
                     }
                 } catch (Exception $e) {
                     // Log error but continue with other providers
-                    error_log("PolyTrans Variable Provider Error: " . $e->getMessage());
+                    PolyTrans_Logs_Manager::log("Variable Provider Error: " . $e->getMessage(), 'error', [
+                        'source' => 'variable_manager',
+                        'provider_class' => get_class($provider),
+                        'exception' => $e->getMessage()
+                    ]);
                 }
             }
         }

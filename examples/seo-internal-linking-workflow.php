@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Example SEO Internal Linking Workflow Template
  * 
@@ -147,4 +148,3 @@ Consider the article categories, tags, and content themes when making recommenda
  * 3. Editorial workflow - Present suggestions to editors for review
  * 4. Analytics - Track which suggestions are most effective
  */
-?>

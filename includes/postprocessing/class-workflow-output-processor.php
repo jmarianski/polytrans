@@ -17,7 +17,7 @@ class PolyTrans_Workflow_Output_Processor
     /**
      * Get singleton instance
      */
-    public static function get_instance()
+    public static function get_instance(): self
     {
         if (null === self::$instance) {
             self::$instance = new self();
@@ -82,7 +82,7 @@ class PolyTrans_Workflow_Output_Processor
 
         return [
             'success' => empty($errors),
-            'actions_processed' => $processed_actions,
+            'processed_actions' => $processed_actions,
             'errors' => $errors,
             'changes' => $changes,
             'updated_context' => $updated_context,

@@ -55,6 +55,9 @@ class PolyTrans_Translation_Status_Manager
         update_post_meta($original_post_id, '_polytrans_translation_target_' . $target_language, $new_post_id);
         update_post_meta($original_post_id, '_polytrans_translation_post_id_' . $target_language, $new_post_id);
 
+        // Fire action for post-processing workflows
+        do_action('polytrans_translation_completed', $original_post_id, $new_post_id, $target_language);
+
         error_log("[polytrans] Updated translation status for post $original_post_id -> $new_post_id (language: $target_language)");
     }
 
@@ -148,16 +151,16 @@ class PolyTrans_Translation_Status_Manager
     public function check_stuck_translations($timeout_hours = 24)
     {
         global $wpdb;
-        
+
         $results = [
             'checked' => 0,
             'fixed' => 0,
             'stuck' => []
         ];
-        
+
         // Non-terminal states - include both local and external workflow status values
         $non_terminal_states = ['started', 'translating', 'processing'];
-        
+
         // Get all post meta entries with these statuses
         $status_query = $wpdb->prepare(
             "SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} 
@@ -165,27 +168,27 @@ class PolyTrans_Translation_Status_Manager
             AND meta_value IN ('started', 'translating', 'processing')",
             '_polytrans_translation_status_%'
         );
-        
+
         $stuck_translations = $wpdb->get_results($status_query);
         $results['checked'] = count($stuck_translations);
-        
+
         $timeout_seconds = $timeout_hours * 3600; // Convert hours to seconds
         $now = time();
-        
+
         foreach ($stuck_translations as $item) {
             // Extract language from meta key
             preg_match('/_polytrans_translation_status_(.+)$/', $item->meta_key, $matches);
             if (empty($matches[1])) continue;
-            
+
             $post_id = $item->post_id;
             $language = $matches[1];
             $status_key = $item->meta_key;
             $log_key = '_polytrans_translation_log_' . $language;
-            
+
             // Get the last log entry to determine the start time
             $log = get_post_meta($post_id, $log_key, true);
             $start_time = 0;
-            
+
             if (is_array($log) && !empty($log)) {
                 // Find the most recent "started" or "process started" entry
                 foreach (array_reverse($log) as $entry) {
@@ -196,20 +199,20 @@ class PolyTrans_Translation_Status_Manager
                         break;
                     }
                 }
-                
+
                 // If we can't find a start entry, use the oldest log entry
                 if ($start_time === 0 && isset($log[0]['timestamp'])) {
                     $start_time = $log[0]['timestamp'];
                 }
             }
-            
+
             // If we still don't have a start time, use current time minus timeout (worst case assumption)
             if ($start_time === 0) {
                 $start_time = $now - $timeout_seconds - 1; // Ensure it's considered stuck
             }
-            
+
             $elapsed_seconds = $now - $start_time;
-            
+
             // If it's been longer than the timeout, mark as failed
             if ($elapsed_seconds > $timeout_seconds) {
                 // Add to the results
@@ -219,10 +222,10 @@ class PolyTrans_Translation_Status_Manager
                     'status' => $item->meta_value,
                     'elapsed_hours' => round($elapsed_seconds / 3600, 1)
                 ];
-                
+
                 // Update the status to failed
                 update_post_meta($post_id, $status_key, 'failed');
-                
+
                 // Add a log entry about the timeout
                 $log = is_array($log) ? $log : [];
                 $log[] = [
@@ -234,9 +237,9 @@ class PolyTrans_Translation_Status_Manager
                     )
                 ];
                 update_post_meta($post_id, $log_key, $log);
-                
+
                 $results['fixed']++;
-                
+
                 error_log(sprintf(
                     '[polytrans] Fixed stuck translation: Post %d, language %s was in "%s" status for %s hours',
                     $post_id,
@@ -246,7 +249,7 @@ class PolyTrans_Translation_Status_Manager
                 ));
             }
         }
-        
+
         return $results;
     }
 
@@ -258,7 +261,7 @@ class PolyTrans_Translation_Status_Manager
     public function get_status_summary()
     {
         global $wpdb;
-        
+
         $status_query = $wpdb->prepare(
             "SELECT meta_value as status, COUNT(*) as count 
             FROM {$wpdb->postmeta} 
@@ -266,9 +269,9 @@ class PolyTrans_Translation_Status_Manager
             GROUP BY meta_value",
             '_polytrans_translation_status_%'
         );
-        
+
         $results = $wpdb->get_results($status_query);
-        
+
         $summary = [
             'total' => 0,
             'not_started' => 0,
@@ -278,7 +281,7 @@ class PolyTrans_Translation_Status_Manager
             'completed' => 0,
             'failed' => 0
         ];
-        
+
         if ($results) {
             foreach ($results as $row) {
                 $status = $row->status;
@@ -287,7 +290,7 @@ class PolyTrans_Translation_Status_Manager
                 $summary['total'] += $count;
             }
         }
-        
+
         return $summary;
     }
 }
