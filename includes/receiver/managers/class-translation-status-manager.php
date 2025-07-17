@@ -55,9 +55,6 @@ class PolyTrans_Translation_Status_Manager
         update_post_meta($original_post_id, '_polytrans_translation_target_' . $target_language, $new_post_id);
         update_post_meta($original_post_id, '_polytrans_translation_post_id_' . $target_language, $new_post_id);
 
-        // Fire action for post-processing workflows
-        do_action('polytrans_translation_completed', $original_post_id, $new_post_id, $target_language);
-
         error_log("[polytrans] Updated translation status for post $original_post_id -> $new_post_id (language: $target_language)");
     }
 

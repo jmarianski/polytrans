@@ -111,9 +111,20 @@ class PolyTrans_Workflow_Output_Processor
         // Get the value from step results
         $value = $this->get_variable_value($step_results, $source_variable);
         if ($value === null) {
+            // Get available variables for debugging
+            $available_vars = [];
+            if (isset($step_results['data']) && is_array($step_results['data'])) {
+                $available_vars = array_keys($step_results['data']);
+            }
+            
             return [
                 'success' => false,
-                'error' => sprintf('Source variable "%s" not found in step results', $source_variable)
+                'error' => sprintf('Source variable "%s" not found in step results. Available variables: %s', 
+                    $source_variable, 
+                    empty($available_vars) ? 'none' : implode(', ', $available_vars)
+                ),
+                'available_variables' => $available_vars,
+                'step_data' => $step_results['data'] ?? null
             ];
         }
 
@@ -644,9 +655,19 @@ class PolyTrans_Workflow_Output_Processor
         // Get the value from step results
         $value = $this->get_variable_value($step_results, $source_variable);
         if ($value === null) {
+            // Get available variables for debugging
+            $available_vars = [];
+            if (isset($step_results['data']) && is_array($step_results['data'])) {
+                $available_vars = array_keys($step_results['data']);
+            }
+            
             return [
                 'success' => false,
-                'error' => sprintf('Source variable "%s" not found in step results', $source_variable)
+                'error' => sprintf('Source variable "%s" not found in step results. Available variables: %s', 
+                    $source_variable, 
+                    empty($available_vars) ? 'none' : implode(', ', $available_vars)
+                ),
+                'available_variables' => $available_vars
             ];
         }
 
