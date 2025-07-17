@@ -30,6 +30,7 @@ class PolyTrans_Post_Autocomplete
     private function __construct()
     {
         add_action('wp_ajax_polytrans_search_posts', [$this, 'ajax_search_posts']);
+        add_action('wp_ajax_polytrans_get_recent_posts', [$this, 'ajax_get_recent_posts']);
     }
 
     /**
@@ -115,6 +116,97 @@ class PolyTrans_Post_Autocomplete
                 'original_post_id' => $original_post_id,
                 'meta' => $custom_fields,
                 'label' => $post->post_title . ' (' . ucfirst($post->post_type) . ' #' . $post->ID . ')' . ($is_translation ? ' [Translation]' : ''),
+                'description' => wp_trim_words($excerpt, 15) . '...'
+            ];
+        }
+
+        wp_send_json_success(['posts' => $results]);
+    }
+
+    /**
+     * AJAX handler for getting recent posts by language
+     */
+    public function ajax_get_recent_posts()
+    {
+        check_ajax_referer('polytrans_workflows_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized', 403);
+        }
+
+        $language = sanitize_text_field($_POST['language'] ?? '');
+        $limit = intval($_POST['limit'] ?? 20);
+
+        // Limit the max number of posts to prevent performance issues
+        if ($limit > 50) {
+            $limit = 50;
+        }
+
+        $args = [
+            'post_type' => ['post', 'page'],
+            'post_status' => ['publish', 'draft', 'private'],
+            'posts_per_page' => $limit,
+            'orderby' => 'date',
+            'order' => 'DESC',
+            'meta_query' => [
+                'relation' => 'OR',
+                [
+                    'key' => '_polytrans_original_post_id',
+                    'compare' => 'NOT EXISTS'
+                ],
+                [
+                    'key' => '_polytrans_original_post_id',
+                    'value' => '',
+                    'compare' => '='
+                ]
+            ]
+        ];
+
+        // Filter by language if Polylang is available and language is specified
+        if ($language && function_exists('pll_get_post_language')) {
+            $args['lang'] = $language;
+        }
+
+        $posts = get_posts($args);
+
+        $results = [];
+        foreach ($posts as $post) {
+            // Get post meta for additional context
+            $post_meta = get_post_meta($post->ID);
+            $excerpt = !empty($post->post_excerpt) ? $post->post_excerpt : wp_trim_words($post->post_content, 20);
+
+            // Check if this is a translated post
+            $original_post_id = get_post_meta($post->ID, '_polytrans_original_post_id', true);
+            $is_translation = !empty($original_post_id);
+
+            // Include some common meta fields that might be useful for testing
+            $custom_fields = [];
+            $common_meta_keys = [
+                '_yoast_wpseo_title',
+                '_yoast_wpseo_metadesc',
+                'custom_field_example',
+                '_featured_text',
+                '_subtitle'
+            ];
+
+            foreach ($common_meta_keys as $meta_key) {
+                $meta_value = get_post_meta($post->ID, $meta_key, true);
+                if (!empty($meta_value)) {
+                    $custom_fields[$meta_key] = $meta_value;
+                }
+            }
+
+            $results[] = [
+                'id' => $post->ID,
+                'title' => $post->post_title,
+                'content' => $post->post_content,
+                'excerpt' => $excerpt,
+                'post_type' => $post->post_type,
+                'post_status' => $post->post_status,
+                'post_date' => $post->post_date,
+                'is_translation' => $is_translation,
+                'original_post_id' => $original_post_id,
+                'meta' => $custom_fields,
                 'description' => wp_trim_words($excerpt, 15) . '...'
             ];
         }

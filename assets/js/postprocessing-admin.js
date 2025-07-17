@@ -955,16 +955,14 @@
                     </div>
                     
                     <div id="existing-post-selector" style="display:none; margin-top:10px;">
-                        <label for="post-search-input">Search for Post:</label>
-                        <div class="post-search-container" style="position:relative;">
-                            <input type="text" id="post-search-input" placeholder="Type to search posts..." style="width:100%; padding-right:30px;">
-                            <div id="post-search-results" class="post-search-results" style="display:none; position:absolute; z-index:1000; background:white; border:1px solid #ccc; max-height:200px; overflow-y:auto; width:100%; box-shadow:0 2px 5px rgba(0,0,0,0.2);"></div>
-                        </div>
+                        <label for="recent-posts-dropdown">Select from Last 20 Posts (in workflow language):</label>
+                        <select id="recent-posts-dropdown" style="width:100%; margin-bottom:10px;">
+                            <option value="">Loading posts...</option>
+                        </select>
                         <div id="selected-post-info" style="margin-top:10px; padding:10px; background:#f9f9f9; border-radius:4px; display:none;">
                             <strong>Selected Post:</strong>
                             <div id="selected-post-details"></div>
                         </div>
-                        <input type="hidden" id="selected-post-id" value="">
                     </div>
                     
                     <div id="sample-post-data" style="margin-top:10px;">
@@ -1013,6 +1011,8 @@ However, the integration of AI in healthcare also raises important questions abo
             if ($(this).val() === 'existing') {
                 $('#existing-post-selector').show();
                 $('#sample-post-data').hide();
+                // Load recent posts when switching to existing post mode
+                loadRecentPosts();
             } else {
                 $('#existing-post-selector').hide();
                 $('#sample-post-data').show();
@@ -1024,116 +1024,88 @@ However, the integration of AI in healthcare also raises important questions abo
             runWorkflowTest();
         });
 
-        // Post search functionality
-        initPostSearch();
+        // Recent posts dropdown change
+        $('#recent-posts-dropdown').on('change', function () {
+            const selectedPostId = $(this).val();
+            if (selectedPostId) {
+                const selectedPost = window.recentPostsData.find(p => p.id == selectedPostId);
+                if (selectedPost) {
+                    displaySelectedPost(selectedPost);
+                }
+            } else {
+                $('#selected-post-info').hide();
+            }
+        });
     }
 
     /**
-     * Initialize post search functionality
+     * Load recent posts for the workflow's target language
      */
-    function initPostSearch() {
-        let searchTimeout;
-        let selectedPostData = null;
-
-        $('#post-search-input').on('input', function () {
-            clearTimeout(searchTimeout);
-            const searchTerm = $(this).val().trim();
-
-            if (searchTerm.length < 2) {
-                $('#post-search-results').hide();
-                return;
-            }
-
-            searchTimeout = setTimeout(() => {
-                searchPosts(searchTerm);
-            }, 300);
-        });
-
-        // Hide results when clicking outside
-        $(document).on('click', function (e) {
-            if (!$(e.target).closest('.post-search-container').length) {
-                $('#post-search-results').hide();
-            }
-        });
-
-        function searchPosts(searchTerm) {
-            $.ajax({
-                url: polytransWorkflows.ajaxUrl,
-                type: 'POST',
-                data: {
-                    action: 'polytrans_search_posts',
-                    nonce: polytransWorkflows.nonce,
-                    search: searchTerm,
-                    post_type: 'any'
-                },
-                success: function (response) {
-                    if (response.success && response.data.posts) {
-                        displayPostResults(response.data.posts);
-                    }
-                },
-                error: function () {
-                    $('#post-search-results').html('<div style="padding:10px; color:#dc3232;">Error searching posts</div>').show();
+    function loadRecentPosts() {
+        const workflow = window.polytransWorkflowTestData;
+        const dropdown = $('#recent-posts-dropdown');
+        
+        dropdown.html('<option value="">Loading posts...</option>');
+        
+        $.ajax({
+            url: polytransWorkflows.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'polytrans_get_recent_posts',
+                nonce: polytransWorkflows.nonce,
+                language: workflow.language,
+                limit: 20
+            },
+            success: function (response) {
+                if (response.success && response.data.posts) {
+                    const posts = response.data.posts;
+                    window.recentPostsData = posts; // Store for later use
+                    
+                    let options = '<option value="">Select a post...</option>';
+                    posts.forEach(post => {
+                        const dateStr = new Date(post.post_date).toLocaleDateString();
+                        options += `<option value="${post.id}">${escapeHtml(post.title)} (${dateStr})</option>`;
+                    });
+                    
+                    dropdown.html(options);
+                } else {
+                    dropdown.html('<option value="">No posts found</option>');
                 }
-            });
-        }
-
-        function displayPostResults(posts) {
-            const resultsContainer = $('#post-search-results');
-
-            if (posts.length === 0) {
-                resultsContainer.html('<div style="padding:10px; color:#666;">No posts found</div>').show();
-                return;
+            },
+            error: function () {
+                dropdown.html('<option value="">Error loading posts</option>');
             }
+        });
+    }
 
-            let html = '';
-            posts.forEach(post => {
-                html += `
-                    <div class="post-search-result" data-post-id="${post.id}" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                        <div style="font-weight:bold; color:#0073aa;">${escapeHtml(post.title)}</div>
-                        <div style="font-size:12px; color:#666;">
-                            ${escapeHtml(post.post_type)} #${post.id} | ${escapeHtml(post.post_status)}
-                            ${post.is_translation ? ' | <span style="color:#d63638;">Translation</span>' : ''}
-                        </div>
-                        <div style="font-size:11px; color:#888; margin-top:2px;">${escapeHtml(post.description)}</div>
-                    </div>
-                `;
-            });
+    /**
+     * Display selected post information
+     */
+    function displaySelectedPost(post) {
+        const metaHtml = Object.keys(post.meta).length > 0
+            ? `<div style="margin-top:5px;"><strong>Meta fields:</strong> ${Object.keys(post.meta).join(', ')}</div>`
+            : '';
 
-            resultsContainer.html(html).show();
+        $('#selected-post-details').html(`
+            <div><strong>Title:</strong> ${escapeHtml(post.title)}</div>
+            <div><strong>Type:</strong> ${escapeHtml(post.post_type)} | <strong>ID:</strong> ${post.id} | <strong>Status:</strong> ${escapeHtml(post.post_status)}</div>
+            <div><strong>Date:</strong> ${new Date(post.post_date).toLocaleDateString()}</div>
+            ${post.is_translation ? '<div style="color:#d63638;"><strong>Translation of:</strong> Post #' + post.original_post_id + '</div>' : ''}
+            <div style="margin-top:5px;"><strong>Content preview:</strong> ${escapeHtml(post.description)}</div>
+            ${metaHtml}
+        `);
+        $('#selected-post-info').show();
+    }
 
-            // Bind click events for results
-            $('.post-search-result').on('click', function () {
-                const postId = $(this).data('post-id');
-                const selectedPost = posts.find(p => p.id == postId);
-                selectPost(selectedPost);
-            });
+    /**
+     * Get selected post data for test runner
+     */
+    function getSelectedPostData() {
+        const selectedPostId = $('#recent-posts-dropdown').val();
+        if (selectedPostId && window.recentPostsData) {
+            return window.recentPostsData.find(p => p.id == selectedPostId);
         }
-
-        function selectPost(post) {
-            selectedPostData = post;
-            $('#selected-post-id').val(post.id);
-            $('#post-search-input').val(post.title);
-            $('#post-search-results').hide();
-
-            // Display selected post info
-            const metaHtml = Object.keys(post.meta).length > 0
-                ? `<div style="margin-top:5px;"><strong>Meta fields:</strong> ${Object.keys(post.meta).join(', ')}</div>`
-                : '';
-
-            $('#selected-post-details').html(`
-                <div><strong>Title:</strong> ${escapeHtml(post.title)}</div>
-                <div><strong>Type:</strong> ${escapeHtml(post.post_type)} | <strong>ID:</strong> ${post.id} | <strong>Status:</strong> ${escapeHtml(post.post_status)}</div>
-                ${post.is_translation ? '<div style="color:#d63638;"><strong>Translation of:</strong> Post #' + post.original_post_id + '</div>' : ''}
-                <div style="margin-top:5px;"><strong>Content preview:</strong> ${escapeHtml(post.description)}</div>
-                ${metaHtml}
-            `);
-            $('#selected-post-info').show();
-        }
-
-        // Make selected post data available to test runner
-        window.getSelectedPostData = function () {
-            return selectedPostData;
-        };
+        return null;
     }
 
     /**
@@ -1198,9 +1170,9 @@ However, the integration of AI in healthcare also raises important questions abo
             testContext.quality_score = 0.85;
             testContext.word_count = testContext.original_post.content.split(' ').length;
         } else {
-            const selectedPostData = window.getSelectedPostData && window.getSelectedPostData();
+            const selectedPostData = getSelectedPostData();
             if (!selectedPostData) {
-                showNotice('error', 'Please search for and select a post');
+                showNotice('error', 'Please select a post from the dropdown');
                 return;
             }
 
