@@ -294,6 +294,68 @@ class PolyTrans_Translation_Handler
             }
         }
 
+        // Get recent articles in target language for context
+        $context_articles = [];
+        if (class_exists('PolyTrans_Articles_Data_Provider')) {
+            $articles_provider = new PolyTrans_Articles_Data_Provider();
+            
+            // Prepare context for the articles provider
+            $context = [
+                'articles_count' => 20,
+                'post_id' => $post_id, // Exclude current post
+                'article_post_types' => ['post'],
+                'language' => $target_lang
+            ];
+            
+            $variables = $articles_provider->get_variables($context);
+            $recent_articles = $variables['recent_articles'] ?? [];
+            
+            if (!empty($recent_articles)) {
+                foreach ($recent_articles as $article) {
+                    $context_articles[] = [
+                        'id' => $article['id'],
+                        'title' => $article['title'],
+                        'content' => $article['content'],
+                        'excerpt' => $article['excerpt'],
+                        'date' => $article['date'],
+                        'url' => $article['url'],
+                        'categories' => $article['categories'],
+                        'tags' => $article['tags']
+                    ];
+                }
+                
+                PolyTrans_Logs_Manager::log(
+                    "Added " . count($context_articles) . " recent articles in $target_lang as translation context for post $post_id", 
+                    "info"
+                );
+                
+                // Add payload structure info to log
+                $log[] = [
+                    'timestamp' => time(),
+                    'msg' => sprintf(
+                        __('Payload includes: source article + %d context articles in %s', 'polytrans'),
+                        count($context_articles),
+                        $target_lang
+                    )
+                ];
+                update_post_meta($post_id, $log_key, $log);
+            } else {
+                PolyTrans_Logs_Manager::log(
+                    "No recent articles found in $target_lang for translation context for post $post_id", 
+                    "info"
+                );
+                
+                $log[] = [
+                    'timestamp' => time(),
+                    'msg' => sprintf(
+                        __('No context articles found in %s - sending only source article', 'polytrans'),
+                        $target_lang
+                    )
+                ];
+                update_post_meta($post_id, $log_key, $log);
+            }
+        }
+
         // Prepare payload for the external translation request
         $payload = [
             'source_language' => $source_lang,
@@ -305,7 +367,8 @@ class PolyTrans_Translation_Handler
                 'content' => $post->post_content,
                 'excerpt' => $post->post_excerpt,
                 'meta' => json_decode(json_encode($meta), true)
-            ]
+            ],
+            'context_articles' => $context_articles
         ];
 
         // Add authentication if needed
