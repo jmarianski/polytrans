@@ -313,7 +313,7 @@ class PolyTrans_Translation_Handler
                 'articles_count' => 20,
                 'post_id' => $post_id, // Exclude current post
                 'article_post_types' => ['post'],
-                'language' => $target_lang
+                'target_language' => $target_lang
             ];
             
             $variables = $articles_provider->get_variables($context);

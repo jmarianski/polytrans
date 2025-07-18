@@ -40,7 +40,7 @@ class PolyTrans_Articles_Data_Provider implements PolyTrans_Variable_Provider_In
         $article_count = $context['articles_count'] ?? 20;
         $exclude_current = $context['post_id'] ?? null;
         $post_types = $context['article_post_types'] ?? ['post'];
-        $language = $context['language'] ?? null;
+        $language = $context['target_language'] ?? null;
 
         // Get recent articles
         $recent_articles = $this->get_recent_articles($article_count, $exclude_current, $post_types, $language);

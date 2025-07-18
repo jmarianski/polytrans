@@ -511,7 +511,12 @@ class PolyTrans_Logs_Manager
         $orderby = in_array($args['orderby'], ['id', 'created_at', 'level', 'source', 'user_id']) ? $args['orderby'] : 'created_at';
         $order = in_array(strtoupper($args['order']), ['ASC', 'DESC']) ? strtoupper($args['order']) : 'DESC';
 
-        $sql .= " ORDER BY $orderby $order";
+        // Always include ID as secondary sort to ensure consistent ordering for logs with same timestamp
+        if ($orderby !== 'id') {
+            $sql .= " ORDER BY $orderby $order, id $order";
+        } else {
+            $sql .= " ORDER BY $orderby $order";
+        }
 
         // Pagination
         $page = max(1, intval($args['page']));

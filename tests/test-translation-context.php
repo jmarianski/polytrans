@@ -36,7 +36,7 @@ function test_translation_payload_with_context() {
             'articles_count' => 5, // Use smaller count for testing
             'post_id' => null, // No exclusion for test
             'article_post_types' => ['post'],
-            'language' => $lang
+            'target_language' => $lang
         ];
         
         $variables = $articles_provider->get_variables($context);
