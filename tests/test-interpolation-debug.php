@@ -11,7 +11,7 @@ require_once('/home/jm/projects/trans-info/transinfo-wp-docker/public/wp-config.
 $test_workflow = [
     'id' => 'test_interpolation',
     'name' => 'Test Interpolation',
-    'target_languages' => ['en'],
+    'target_language' => 'en',
     'enabled' => true,
     'steps' => [
         [
