@@ -54,7 +54,9 @@ Processes translation requests from external services.
     "excerpt": "Article excerpt",
     "meta": {
       "rank_math_title": "SEO Title",
-      "rank_math_description": "SEO Description"
+      "rank_math_description": "SEO Description",
+      "_yoast_wpseo_title": "Yoast SEO Title",
+      "_yoast_wpseo_metadesc": "Yoast Meta Description"
       (...)
     }
   }
@@ -71,7 +73,9 @@ Processes translation requests from external services.
     "excerpt": "Extracto del artículo",
     "meta": {
       "rank_math_title": "Título SEO",
-      "rank_math_description": "Descripción SEO"
+      "rank_math_description": "Descripción SEO",
+      "_yoast_wpseo_title": "Título SEO Yoast",
+      "_yoast_wpseo_metadesc": "Meta descripción Yoast"
       (...)
     }
   },
@@ -95,6 +99,15 @@ Processes translation requests from external services.
 - `403` - Forbidden (insufficient permissions)
 - `500` - Internal Server Error
 
+**SEO Metadata Handling:**
+- **Both RankMath and Yoast SEO fields** are included in the translation payload and **are translated**
+- Translated SEO fields are applied to the target post
+- If translation fails for metadata fields, original values are used as fallback
+- Supported SEO fields:
+  - **Yoast SEO**: `_yoast_wpseo_title`, `_yoast_wpseo_metadesc`, `_yoast_wpseo_focuskw`, `_yoast_wpseo_opengraph-title`, `_yoast_wpseo_opengraph-description`, `_yoast_wpseo_twitter-title`, `_yoast_wpseo_twitter-description`
+  - **RankMath**: `rank_math_title`, `rank_math_description`, `rank_math_facebook_title`, `rank_math_facebook_description`, `rank_math_twitter_title`, `rank_math_twitter_description`, `rank_math_focus_keyword`
+- All other metadata fields are filtered out of the translation payload
+
 ---
 
 #### POST `/translation/receive-post`
@@ -112,7 +125,9 @@ Receives completed translations from external translation services.
     "excerpt": "Extracto traducido",
     "meta": {
       "rank_math_title": "Título SEO Traducido",
-      "rank_math_description": "Descripción SEO Traducida"
+      "rank_math_description": "Descripción SEO Traducida",
+      "_yoast_wpseo_title": "Título SEO Yoast Traducido",
+      "_yoast_wpseo_metadesc": "Meta descripción Yoast Traducida"
       (...)
     }
   },
@@ -152,6 +167,12 @@ Receives completed translations from external translation services.
   "message": "Translation received and post created successfully"
 }
 ```
+
+**SEO Metadata Processing:**
+- **Both RankMath and Yoast SEO fields** in the `meta` object are **translated values**, not copies of the original
+- The system applies translated SEO metadata to the new post
+- If specific SEO fields are missing from the translation, original values are used as fallback
+- Both Yoast SEO and RankMath metadata are supported for translation
 
 **Response (Error):**
 ```json
@@ -286,7 +307,14 @@ When sending translation requests to external endpoints, the payload includes:
       "rank_math_facebook_description": "Facebook Description",
       "rank_math_twitter_title": "Twitter Title",
       "rank_math_twitter_description": "Twitter Description",
-      "rank_math_focus_keyword": "focus keyword"
+      "rank_math_focus_keyword": "focus keyword",
+      "_yoast_wpseo_title": "Yoast SEO Title",
+      "_yoast_wpseo_metadesc": "Yoast Meta Description",
+      "_yoast_wpseo_focuskw": "yoast focus keyword",
+      "_yoast_wpseo_opengraph-title": "OpenGraph Title",
+      "_yoast_wpseo_opengraph-description": "OpenGraph Description",
+      "_yoast_wpseo_twitter-title": "Twitter Title",
+      "_yoast_wpseo_twitter-description": "Twitter Description"
       (...)
     }
   },

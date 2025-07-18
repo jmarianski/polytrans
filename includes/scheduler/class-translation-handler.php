@@ -9,8 +9,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Define allowed Rank Math meta keys as a constant
-const POLYTRANS_ALLOWED_RANK_MATH_META_KEYS = [
+// Define allowed SEO meta keys for translation as a constant
+const POLYTRANS_ALLOWED_SEO_META_KEYS = [
+    // RankMath SEO fields
     'rank_math_title',
     'rank_math_description',
     'rank_math_facebook_title',
@@ -18,6 +19,14 @@ const POLYTRANS_ALLOWED_RANK_MATH_META_KEYS = [
     'rank_math_twitter_title',
     'rank_math_twitter_description',
     'rank_math_focus_keyword',
+    // Yoast SEO fields
+    '_yoast_wpseo_title',
+    '_yoast_wpseo_metadesc',
+    '_yoast_wpseo_focuskw',
+    '_yoast_wpseo_opengraph-title',
+    '_yoast_wpseo_opengraph-description',
+    '_yoast_wpseo_twitter-title',
+    '_yoast_wpseo_twitter-description',
 ];
 
 class PolyTrans_Translation_Handler
@@ -285,7 +294,7 @@ class PolyTrans_Translation_Handler
 
         // Prepare metadata
         $meta = get_post_meta($post_id);
-        $allowed_meta_keys = defined('POLYTRANS_ALLOWED_RANK_MATH_META_KEYS') ? POLYTRANS_ALLOWED_RANK_MATH_META_KEYS : [];
+        $allowed_meta_keys = defined('POLYTRANS_ALLOWED_SEO_META_KEYS') ? POLYTRANS_ALLOWED_SEO_META_KEYS : [];
         $meta = array_intersect_key($meta, array_flip($allowed_meta_keys));
 
         foreach ($meta as $k => $v) {
