@@ -55,6 +55,7 @@ Processes translation requests from external services.
     "meta": {
       "rank_math_title": "SEO Title",
       "rank_math_description": "SEO Description"
+      (...)
     }
   }
 }
@@ -71,6 +72,7 @@ Processes translation requests from external services.
     "meta": {
       "rank_math_title": "Título SEO",
       "rank_math_description": "Descripción SEO"
+      (...)
     }
   },
   "source_language": "en",
@@ -111,6 +113,7 @@ Receives completed translations from external translation services.
     "meta": {
       "rank_math_title": "Título SEO Traducido",
       "rank_math_description": "Descripción SEO Traducida"
+      (...)
     }
   },
   "context_articles": [
@@ -284,6 +287,7 @@ When sending translation requests to external endpoints, the payload includes:
       "rank_math_twitter_title": "Twitter Title",
       "rank_math_twitter_description": "Twitter Description",
       "rank_math_focus_keyword": "focus keyword"
+      (...)
     }
   },
   "context_articles": [
