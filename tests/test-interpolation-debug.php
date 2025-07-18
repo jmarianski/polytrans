@@ -11,7 +11,7 @@ require_once('/home/jm/projects/trans-info/transinfo-wp-docker/public/wp-config.
 $test_workflow = [
     'id' => 'test_interpolation',
     'name' => 'Test Interpolation',
-    'language' => 'en',
+    'target_languages' => ['en'],
     'enabled' => true,
     'steps' => [
         [
@@ -33,7 +33,7 @@ $test_context = [
     'title' => 'Test Article Title',
     'content' => 'This is a test article content that should be interpolated into the prompts.',
     'excerpt' => 'Test excerpt',
-    'language' => 'en',
+    'target_language' => 'en',
     'translated_post' => [
         'ID' => 123,
         'post_title' => 'Test Article Title',

@@ -17,15 +17,15 @@ function test_articles_data_provider()
     $test_contexts = [
         [
             'name' => 'Default (20 articles)',
-            'context' => ['language' => 'en']
+            'context' => ['target_language' => 'en']
         ],
         [
             'name' => 'Custom count (10 articles)',
-            'context' => ['articles_count' => 10, 'language' => 'en']
+            'context' => ['articles_count' => 10, 'target_language' => 'en']
         ],
         [
             'name' => 'Exclude specific post',
-            'context' => ['articles_count' => 15, 'post_id' => 1, 'language' => 'en']
+            'context' => ['articles_count' => 15, 'post_id' => 1, 'target_language' => 'en']
         ]
     ];
 
