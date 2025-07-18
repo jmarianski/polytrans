@@ -537,7 +537,7 @@ class PolyTrans_Workflow_Manager
             $workflow = [
                 'id' => 'test_' . uniqid(),
                 'name' => 'Test Workflow',
-                'target_languages' => [$test_context['target_language'] ?? 'en'],
+                'target_language' => $test_context['target_language'] ?? 'en',
                 'enabled' => true,
                 'steps' => $workflow_data['steps'] ?? []
             ];
