@@ -368,7 +368,7 @@ class PolyTrans_Background_Processor
             self::log("Preparing content for translation", "info", ['post_id' => $post_id]);
 
             $meta = get_post_meta($post_id);
-            $allowed_meta_keys = defined('POLYTRANS_ALLOWED_RANK_MATH_META_KEYS') ? POLYTRANS_ALLOWED_RANK_MATH_META_KEYS : [];
+            $allowed_meta_keys = defined('POLYTRANS_ALLOWED_SEO_META_KEYS') ? POLYTRANS_ALLOWED_SEO_META_KEYS : [];
             $meta = array_intersect_key($meta, array_flip($allowed_meta_keys));
 
             foreach ($meta as $k => $v) {

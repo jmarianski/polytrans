@@ -362,10 +362,144 @@ polytrans/
 
 ## Requirements
 
-- WordPress 5.0 or higher
-- PHP 7.4 or higher
-- Polylang plugin (recommended for full multilingual support)
-- OpenAI API key (only if using OpenAI provider)
+### Core Requirements
+- **WordPress**: 5.0 or higher
+- **PHP**: 7.4 or higher
+- **Database**: MySQL 5.7+ or MariaDB 10.1+
+
+### PHP Extensions
+- **JSON Extension**: Required for API communication and data processing
+- **cURL Extension**: Required for external API calls (OpenAI, Google Translate, external translation services)
+- **mbstring Extension**: Required for proper Unicode/UTF-8 string handling in multilingual content
+- **OpenSSL Extension**: Required for secure HTTPS communication with external APIs
+
+### WordPress Features
+- **REST API**: Plugin uses WordPress REST API extensively
+- **AJAX**: Required for admin interface interactions
+- **Cron/WP-Cron**: Required for background processing (can be disabled in favor of external cron)
+- **Post Revisions**: Required for proper attribution tracking
+- **User Capabilities**: Requires `edit_posts`, `manage_options`, and other standard WordPress capabilities
+
+### Plugin Dependencies
+
+#### Required
+- **None** - The plugin works standalone
+
+#### Recommended
+- **Polylang**: For full multilingual support and automatic language detection
+  - Version: 3.0 or higher recommended
+  - Provides: Language detection, post language assignments, taxonomy translations
+  - **Without Polylang**: Plugin falls back to default languages (Polish, English, Italian)
+  - **Functionalities that break without Polylang**:
+    - ❌ **Automatic language detection**: Cannot detect post language automatically
+    - ❌ **Post language assignment**: New translated posts won't be assigned proper language
+    - ❌ **Translation relationships**: Posts won't be linked as translations of each other
+    - ❌ **Context article filtering**: Recent articles won't be filtered by target language
+    - ❌ **Tag translation management**: Cannot properly manage multilingual taxonomy translations
+    - ❌ **Language-specific content queries**: Falls back to hardcoded language list
+    - ⚠️ **Limited language support**: Only supports Polish, English, Italian (hardcoded)
+
+#### Optional but Useful
+- **Yoast SEO**: For SEO metadata translation support
+  - **With Yoast SEO**: 
+    - ✅ **SEO metadata translation**: Yoast SEO fields are included in translation payload and translated
+    - ✅ **Supported Yoast SEO fields** (included in translation):
+      - `_yoast_wpseo_title`
+      - `_yoast_wpseo_metadesc`
+      - `_yoast_wpseo_focuskw`
+      - `_yoast_wpseo_opengraph-title`
+      - `_yoast_wpseo_opengraph-description`
+      - `_yoast_wpseo_twitter-title`
+      - `_yoast_wpseo_twitter-description`
+    - ✅ **SEO context in workflows**: Yoast SEO data available in post processing workflows
+    - ✅ **Search functionality**: Post search includes Yoast SEO fields
+  - **Without Yoast SEO**: 
+    - ❌ **No SEO metadata**: Yoast-specific fields won't be present or translated
+    - ❌ **SEO context missing**: No Yoast data in workflows or search
+    - ℹ️ **Core functionality intact**: Basic translation still works
+    
+- **RankMath**: For SEO metadata translation support
+  - **With RankMath**: 
+    - ✅ **SEO metadata translation**: RankMath fields are included in translation payload and translated
+    - ✅ **Supported RankMath fields** (included in translation):
+      - `rank_math_title`
+      - `rank_math_description` 
+      - `rank_math_facebook_title`
+      - `rank_math_facebook_description`
+      - `rank_math_twitter_title`
+      - `rank_math_twitter_description`
+      - `rank_math_focus_keyword`
+    - ✅ **SEO context in workflows**: RankMath data available in post processing workflows
+    - ✅ **Search functionality**: Post search includes RankMath SEO fields
+  - **Without RankMath**: 
+    - ❌ **No SEO metadata**: RankMath-specific fields won't be present or translated
+    - ❌ **SEO context missing**: No RankMath data in workflows or search
+    - ℹ️ **Core functionality intact**: Basic translation still works
+
+### External API Requirements
+
+#### For OpenAI Translation Provider
+- **OpenAI API Key**: Required for AI-powered translation
+- **OpenAI API Access**: Requires active OpenAI account with API credits
+- **Internet Connection**: Required for API communication
+- **HTTPS**: Required for secure API communication
+
+#### For Google Translate Provider
+- **No API Key Required**: Uses public Google Translate API
+- **Internet Connection**: Required for translation requests
+- **HTTPS**: Required for secure communication
+
+### Server Requirements
+
+#### Web Server
+- **Apache** 2.4+ or **Nginx** 1.18+
+- **HTTPS Support**: Recommended for secure API communication
+- **URL Rewriting**: Required for WordPress permalinks
+
+#### Memory and Performance
+- **PHP Memory Limit**: 256MB minimum, 512MB recommended
+- **PHP Execution Time**: 300 seconds recommended for translation processing
+- **PHP Max Input Vars**: 3000+ recommended for complex workflows
+
+#### File Permissions
+- **WordPress uploads directory**: Must be writable for temporary files
+- **Plugin directory**: Must be readable by web server
+
+### Network Requirements
+- **Outbound HTTPS**: Required for external API calls
+- **Inbound HTTPS**: Required for receiving webhook translations
+- **Firewall**: May need configuration for webhook endpoints
+
+### Development/Testing Requirements
+- **PHPUnit**: 9.0+ for running tests
+- **Composer**: For dependency management
+- **PHP_CodeSniffer**: For code quality checks
+- **PHPMD**: For code analysis
+
+### Browser Compatibility (Admin Interface)
+- **Chrome**: 90+
+- **Firefox**: 88+
+- **Safari**: 14+
+- **Edge**: 90+
+- **JavaScript**: Must be enabled for admin interface
+
+### Performance Considerations
+- **Background Processing**: Plugin can use WordPress cron or external cron for better performance
+- **Database**: Regular optimization recommended for large translation volumes
+- **Caching**: Compatible with most WordPress caching plugins
+
+### Security Considerations
+- **SSL/TLS**: Required for production environments
+- **API Key Security**: Store API keys securely (not in version control)
+- **User Permissions**: Proper WordPress user role management
+- **Input Validation**: All inputs are sanitized and validated
+
+### Compatibility Notes
+- **WordPress Multisite**: Not tested/supported
+- **PHP 8.0+**: Fully compatible
+- **WordPress 6.0+**: Fully compatible
+- **Classic Editor**: Compatible
+- **Gutenberg/Block Editor**: Compatible
 
 ## License
 
