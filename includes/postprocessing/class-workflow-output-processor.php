@@ -146,14 +146,15 @@ class PolyTrans_Workflow_Output_Processor
         $source_variable = $action['source_variable'] ?? '';
         $target = $action['target'] ?? '';
 
-        if (empty($action_type) || empty($source_variable)) {
+        if (empty($action_type)) {
             return [
                 'success' => false,
-                'error' => 'Action type and source variable are required'
+                'error' => 'Action type is required'
             ];
         }
 
         // Get the value from step results
+        // If source_variable is empty, auto-detect the main response
         $value = $this->get_variable_value($step_results, $source_variable);
         if ($value === null) {
             // Get available variables for debugging
@@ -162,11 +163,14 @@ class PolyTrans_Workflow_Output_Processor
                 $available_vars = array_keys($step_results['data']);
             }
 
+            $error_msg = empty($source_variable)
+                ? 'No response data available from step'
+                : sprintf('Source variable "%s" not found in step results', $source_variable);
+
             return [
                 'success' => false,
-                'error' => sprintf(
-                    'Source variable "%s" not found in step results. Available variables: %s',
-                    $source_variable,
+                'error' => $error_msg . sprintf(
+                    '. Available variables: %s',
                     empty($available_vars) ? 'none' : implode(', ', $available_vars)
                 ),
                 'available_variables' => $available_vars,
@@ -214,10 +218,17 @@ class PolyTrans_Workflow_Output_Processor
 
     /**
      * Get variable value from step results using dot notation
+     * If variable_path is empty, automatically detects the best response variable
      */
     private function get_variable_value($step_results, $variable_path)
     {
         $data = $step_results['data'] ?? [];
+
+        // If no variable path specified, auto-detect the main response
+        if (empty($variable_path)) {
+            return $this->auto_detect_response_value($data);
+        }
+
         $path_parts = explode('.', $variable_path);
 
         $current = $data;
@@ -230,6 +241,45 @@ class PolyTrans_Workflow_Output_Processor
         }
 
         return $current;
+    }
+
+    /**
+     * Auto-detect the main response value from step results
+     * For plain text responses, returns ai_response
+     * For JSON responses, tries to find the most relevant content
+     */
+    private function auto_detect_response_value($data)
+    {
+        if (!is_array($data) || empty($data)) {
+            return null;
+        }
+
+        // Priority order for auto-detection:
+        // 1. If there's an 'ai_response' (plain text format), use that
+        // 2. If there's a 'content' variable, use that  
+        // 3. If there's an 'assistant_response', use that
+        // 4. If there's only one variable, use that
+        // 5. Otherwise, return the first available value
+
+        if (isset($data['ai_response'])) {
+            return $data['ai_response'];
+        }
+
+        if (isset($data['content'])) {
+            return $data['content'];
+        }
+
+        if (isset($data['assistant_response'])) {
+            return $data['assistant_response'];
+        }
+
+        // If only one variable, use it
+        if (count($data) === 1) {
+            return reset($data);
+        }
+
+        // Return first available value as fallback
+        return reset($data);
     }
 
     /**
@@ -554,22 +604,27 @@ class PolyTrans_Workflow_Output_Processor
         $source_variable = $action['source_variable'] ?? '';
         $target = $action['target'] ?? '';
 
-        if (empty($action_type) || empty($source_variable)) {
+        if (empty($action_type)) {
             return [
                 'would_succeed' => false,
                 'action_type' => $action_type,
-                'description' => 'Action missing required fields (type and source_variable)',
+                'description' => 'Action type is required',
                 'details' => null
             ];
         }
 
         // Get the value from step results
+        // If source_variable is empty, auto-detect the main response
         $value = $this->get_variable_value($step_results, $source_variable);
         if ($value === null) {
+            $error_msg = empty($source_variable)
+                ? 'No response data available from step'
+                : sprintf('Source variable "%s" not found in step results', $source_variable);
+
             return [
                 'would_succeed' => false,
                 'action_type' => $action_type,
-                'description' => sprintf('Source variable "%s" not found in step results', $source_variable),
+                'description' => $error_msg,
                 'details' => null
             ];
         }
