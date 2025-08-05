@@ -13,7 +13,7 @@
     // Helper function to generate model options from localized data
     function generateModelOptions(selectedModel) {
         let modelOptions = '<option value="" ' + (selectedModel === '' ? 'selected' : '') + '>Use Global Setting</option>';
-        
+
         if (typeof polytransWorkflows !== 'undefined' && polytransWorkflows.models) {
             for (const [groupName, models] of Object.entries(polytransWorkflows.models)) {
                 modelOptions += '<optgroup label="' + groupName + '">';
@@ -33,13 +33,13 @@
                 'gpt-4': 'GPT-4',
                 'gpt-3.5-turbo': 'GPT-3.5 Turbo'
             };
-            
+
             for (const [modelValue, modelLabel] of Object.entries(fallbackModels)) {
                 const selected = (selectedModel === modelValue) ? 'selected' : '';
                 modelOptions += '<option value="' + modelValue + '" ' + selected + '>' + modelLabel + '</option>';
             }
         }
-        
+
         return modelOptions;
     }
 
@@ -97,9 +97,9 @@
         const container = $('#workflow-editor-container');
 
         const html = `
-            <div class="workflow-editor-container">
-                <div class="workflow-basic-settings">
-                    <h2>${polytransWorkflows.strings.basicSettings || 'Basic Settings'}</h2>
+            <div class="workflow-basic-settings">
+                <h2>${polytransWorkflows.strings.basicSettings || 'Basic Settings'}</h2>
+                <div class="inside">
                     <table class="form-table">
                         <tr>
                             <th><label for="workflow-name">Name</label></th>
@@ -162,24 +162,27 @@
                         </tr>
                     </table>
                 </div>
+            </div>
 
-                <div class="workflow-trigger-settings">
-                    <h3>Trigger Settings</h3>
+            <div class="workflow-trigger-settings">
+                <h3>Trigger Settings</h3>
+                <div class="inside">
                     <div class="trigger-options">
                         <label>
                             <input type="checkbox" name="trigger_on_translation" ${(workflowData.triggers && workflowData.triggers.on_translation_complete) ? 'checked' : ''}>
                             Run after translation completion
                         </label>
-                        <br>
                         <label>
                             <input type="checkbox" name="trigger_manual_only" ${(workflowData.triggers && workflowData.triggers.manual_only === true) ? 'checked' : ''}>
                             Manual execution only
                         </label>
                     </div>
                 </div>
+            </div>
 
-                <div class="workflow-steps-container">
-                    <h3>Workflow Steps</h3>
+            <div class="workflow-steps-container">
+                <h3>Workflow Steps</h3>
+                <div class="inside">
                     <div id="workflow-steps">
                         ${renderWorkflowSteps()}
                     </div>
@@ -1094,9 +1097,9 @@ However, the integration of AI in healthcare also raises important questions abo
     function loadRecentPosts() {
         const workflow = window.polytransWorkflowTestData;
         const dropdown = $('#recent-posts-dropdown');
-        
+
         dropdown.html('<option value="">Loading posts...</option>');
-        
+
         $.ajax({
             url: polytransWorkflows.ajaxUrl,
             type: 'POST',
@@ -1110,13 +1113,13 @@ However, the integration of AI in healthcare also raises important questions abo
                 if (response.success && response.data.posts) {
                     const posts = response.data.posts;
                     window.recentPostsData = posts; // Store for later use
-                    
+
                     let options = '<option value="">Select a post...</option>';
                     posts.forEach(post => {
                         const dateStr = new Date(post.post_date).toLocaleDateString();
                         options += `<option value="${post.id}">${escapeHtml(post.title)} (${dateStr})</option>`;
                     });
-                    
+
                     dropdown.html(options);
                 } else {
                     dropdown.html('<option value="">No posts found</option>');
@@ -1291,7 +1294,7 @@ However, the integration of AI in healthcare also raises important questions abo
     }
 
     /**
-     * Display test results
+     * Display test results with enhanced expandable sections and side-by-side comparisons
      */
     function displayTestResults(response) {
         const resultsContainer = $('#test-results');
@@ -1300,32 +1303,52 @@ However, the integration of AI in healthcare also raises important questions abo
             const data = response.data;
             let html = `
                 <div class="test-results success">
-                    <h4>Test Results - Success</h4>
-                    <p><strong>Steps Executed:</strong> ${data.steps_executed || 0}</p>
-                    <p><strong>Execution Time:</strong> ${(data.execution_time || 0).toFixed(3)} seconds</p>
+                    <h4>✅ Test Results - Success</h4>
+                    
+                    <div class="execution-details">
+                        <div class="execution-detail">
+                            <span class="value">${data.steps_executed || 0}</span>
+                            <span class="label">Steps Executed</span>
+                        </div>
+                        <div class="execution-detail">
+                            <span class="value">${(data.execution_time || 0).toFixed(3)}s</span>
+                            <span class="label">Execution Time</span>
+                        </div>
+                        <div class="execution-detail">
+                            <span class="value">${data.step_results ? data.step_results.filter(s => s.success).length : 0}</span>
+                            <span class="label">Successful Steps</span>
+                        </div>
+                    </div>
                     
                     <div class="step-results">
-                        <h5>Step Results:</h5>
             `;
 
             if (data.step_results && data.step_results.length > 0) {
                 data.step_results.forEach((stepResult, index) => {
                     const statusClass = stepResult.success ? 'success' : 'error';
+                    const statusIcon = stepResult.success ? '✅' : '❌';
+                    const isFirstStep = index === 0;
+
                     html += `
                         <div class="step-result ${statusClass}">
-                            <h4>Step ${index + 1}</h4>
-                            <p><strong>Status:</strong> ${stepResult.success ? 'Success' : 'Failed'}</p>
-                            ${stepResult.error ? `<p><strong>Error:</strong> ${escapeHtml(stepResult.error)}</p>` : ''}
-                            
-                            ${stepResult.data ? `
-                                <div class="step-result-data">
-                                    <strong>Output:</strong>
-                                    <pre>${escapeHtml(JSON.stringify(stepResult.data, null, 2))}</pre>
+                            <details ${isFirstStep ? 'open' : ''}>
+                                <summary>
+                                    <span>
+                                        ${statusIcon} Step ${index + 1}: ${escapeHtml(stepResult.step_name || `Step ${index + 1}`)}
+                                    </span>
+                                    <div class="step-status-indicator">
+                                        <span class="step-status-badge ${statusClass}">
+                                            ${stepResult.success ? 'Success' : 'Failed'}
+                                        </span>
+                                    </div>
+                                </summary>
+                                <div class="step-result-content">
+                                    ${stepResult.error ? renderStepError(stepResult.error) : ''}
+                                    ${renderStepInputsAndPrompts(stepResult)}
+                                    ${stepResult.data ? renderAIResponse(stepResult.data) : ''}
+                                    ${stepResult.output_processing ? renderOutputProcessingResults(stepResult.output_processing) : ''}
                                 </div>
-                            ` : ''}
-                            
-                            ${stepResult.output_processing ? renderOutputProcessingResults(stepResult.output_processing) : ''}
-                            ${renderStepInputs(stepResult)}
+                            </details>
                         </div>
                     `;
                 });
@@ -1333,26 +1356,7 @@ However, the integration of AI in healthcare also raises important questions abo
 
             // Show final context if available
             if (data.final_context && data.test_mode) {
-                html += `
-                    <div class="final-context">
-                        <h5>📋 Final Context (Updated Variables)</h5>
-                        <div class="context-variables">
-                            <p><strong>title:</strong> ${escapeHtml(data.final_context.title || 'N/A')}</p>
-                            <p><strong>content:</strong> ${escapeHtml((data.final_context.content || 'N/A').substring(0, 200))}${(data.final_context.content || '').length > 200 ? '...' : ''}</p>
-                            <p><strong>excerpt:</strong> ${escapeHtml(data.final_context.excerpt || 'N/A')}</p>
-                            ${data.final_context.translated_post && data.final_context.translated_post.meta ? `
-                                <div class="meta-fields">
-                                    <strong>Meta fields:</strong>
-                                    <ul>
-                                        ${Object.entries(data.final_context.translated_post.meta).map(([key, value]) =>
-                    `<li><code>${escapeHtml(key)}</code>: ${escapeHtml(String(value))}</li>`
-                ).join('')}
-                                    </ul>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
+                html += renderFinalContext(data.final_context);
             }
 
             html += `
@@ -1365,8 +1369,8 @@ However, the integration of AI in healthcare also raises important questions abo
         } else {
             const html = `
                 <div class="test-results error">
-                    <h4>Test Results - Failed</h4>
-                    <p><strong>Error:</strong> ${escapeHtml(response.data?.error || 'Unknown error')}</p>
+                    <h4>❌ Test Results - Failed</h4>
+                    ${renderStepError(response.data?.error || 'Unknown error')}
                 </div>
             `;
             resultsContainer.html(html).show();
@@ -1375,170 +1379,196 @@ However, the integration of AI in healthcare also raises important questions abo
     }
 
     /**
-     * Render output processing results
+     * Render step error
+     */
+    function renderStepError(error) {
+        return `
+            <div class="step-error">
+                <h6>🚨 Error Details</h6>
+                <div class="step-error-content">${escapeHtml(error)}</div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render AI response content
+     */
+    function renderAIResponse(data) {
+        if (!data) return '';
+
+        let content = '';
+        if (typeof data === 'string') {
+            content = data;
+        } else if (data.content) {
+            content = data.content;
+        } else {
+            content = JSON.stringify(data, null, 2);
+        }
+
+        return `
+            <div class="ai-response">
+                <h6>🤖 AI Response</h6>
+                <div class="ai-response-content">${escapeHtml(content)}</div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render step inputs and prompts
+     */
+    function renderStepInputsAndPrompts(stepResult) {
+        if (!stepResult.inputs && !stepResult.prompts) return '';
+
+        let html = '<div class="step-inputs"><h6>📋 Step Configuration</h6>';
+
+        if (stepResult.inputs) {
+            html += '<div class="input-variables">';
+            html += '<h6>Input Variables</h6>';
+            html += '<div class="variable-list">';
+
+            Object.entries(stepResult.inputs).forEach(([key, value]) => {
+                const displayValue = typeof value === 'string' ?
+                    (value.length > 100 ? value.substring(0, 100) + '...' : value) :
+                    JSON.stringify(value);
+                html += `<div class="variable-item"><strong>{${escapeHtml(key)}}:</strong> ${escapeHtml(displayValue)}</div>`;
+            });
+
+            html += '</div></div>';
+        }
+
+        if (stepResult.prompts) {
+            if (stepResult.prompts.system_prompt) {
+                html += `
+                    <div class="system-prompt">
+                        <h6>System Prompt <span class="prompt-badge">Interpolated</span></h6>
+                        <div class="prompt-content">${escapeHtml(stepResult.prompts.system_prompt)}</div>
+                    </div>
+                `;
+            }
+
+            if (stepResult.prompts.user_message) {
+                html += `
+                    <div class="user-prompt">
+                        <h6>User Message <span class="prompt-badge">Interpolated</span></h6>
+                        <div class="prompt-content">${escapeHtml(stepResult.prompts.user_message)}</div>
+                    </div>
+                `;
+            }
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    /**
+     * Render final context
+     */
+    function renderFinalContext(finalContext) {
+        return `
+            <div class="final-context">
+                <details>
+                    <summary>
+                        <span>📋 Final Context (Updated Variables)</span>
+                    </summary>
+                    <div class="step-result-content">
+                        <div class="context-variables">
+                            <div class="variable-item"><strong>title:</strong> ${escapeHtml(finalContext.title || 'N/A')}</div>
+                            <div class="variable-item"><strong>content:</strong> ${escapeHtml((finalContext.content || 'N/A').substring(0, 200))}${(finalContext.content || '').length > 200 ? '...' : ''}</div>
+                            <div class="variable-item"><strong>excerpt:</strong> ${escapeHtml(finalContext.excerpt || 'N/A')}</div>
+                            ${finalContext.translated_post && finalContext.translated_post.meta ? `
+                                <div class="meta-fields">
+                                    <h6>Meta fields:</h6>
+                                    <div class="variable-list">
+                                        ${Object.entries(finalContext.translated_post.meta).map(([key, value]) =>
+            `<div class="variable-item"><strong>${escapeHtml(key)}:</strong> ${escapeHtml(String(value))}</div>`
+        ).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </details>
+            </div>
+        `;
+    }
+
+    /**
+     * Render output processing results with enhanced side-by-side comparisons
      */
     function renderOutputProcessingResults(outputProcessing) {
         if (!outputProcessing) return '';
 
         let html = `
             <div class="output-processing-results">
-                <h5>🎯 Output Actions</h5>
-                <p><strong>Actions processed:</strong> ${outputProcessing.actions_processed || 0}</p>
+                <details>
+                    <summary>
+                        <span>🎯 Output Actions (${outputProcessing.actions_processed || 0} processed)</span>
+                    </summary>
+                    <div class="step-result-content">
         `;
 
         if (outputProcessing.errors && outputProcessing.errors.length > 0) {
             html += `
-                <div class="output-errors">
-                    <strong>Errors:</strong>
-                    <ul>
-                        ${outputProcessing.errors.map(error => `<li>${escapeHtml(error)}</li>`).join('')}
-                    </ul>
+                <div class="step-error">
+                    <h6>🚨 Processing Errors</h6>
+                    <div class="step-error-content">
+                        ${outputProcessing.errors.map(error => escapeHtml(error)).join('\n')}
+                    </div>
                 </div>
             `;
         }
 
         if (outputProcessing.changes && outputProcessing.changes.length > 0) {
-            html += `<div class="changes-list">`;
             outputProcessing.changes.forEach((change, index) => {
+                const hasChanges = change.current_value !== change.new_value;
+
                 html += `
                     <div class="change-item">
                         <h6>Action ${index + 1}: ${escapeHtml(change.action_type)}</h6>
                         <p><strong>Target:</strong> ${escapeHtml(change.target_description)}</p>
-                        <p><strong>Change:</strong> ${escapeHtml(change.change_description)}</p>
-                        <div class="change-details">
-                            <div class="current-value">
-                                <strong>Current Value</strong>
-                                <div class="value-preview">${escapeHtml(String(change.current_value))}</div>
-                            </div>
-                            <div class="new-value">
-                                <strong>New Value</strong>
-                                <div class="value-preview">${escapeHtml(String(change.new_value))}</div>
-                            </div>
-                        </div>
-                    </div>
+                        <p><strong>Status:</strong> ${hasChanges ? '✅ Applied' : '⚠️ No changes'}</p>
                 `;
-            });
-            html += `</div>`;
-        }
 
-        html += `</div>`;
-        return html;
-    }
-
-    /**
-     * Render step input variables and prompts
-     */
-    function renderStepInputs(stepResult) {
-        if (!stepResult.step_config && !stepResult.input_variables) return '';
-
-        let html = `
-            <div class="step-inputs">
-                <h5>📥 Input Variables & Prompts</h5>
-        `;
-
-        // Show input variables
-        if (stepResult.input_variables) {
-            html += `
-                <div class="input-variables">
-                    <h6>Input Variables:</h6>
-                    <div class="variable-list">
-            `;
-
-            Object.entries(stepResult.input_variables).forEach(([key, value]) => {
-                if (key === 'meta' && typeof value === 'object') {
+                if (hasChanges) {
+                    // Show side-by-side comparison for changes
                     html += `
-                        <div class="variable-item">
-                            <strong>${escapeHtml(key)}:</strong>
-                            <ul style="margin-left: 20px;">
-                                ${Object.entries(value).map(([metaKey, metaValue]) =>
-                        `<li><code>${escapeHtml(metaKey)}</code>: ${escapeHtml(String(metaValue))}</li>`
-                    ).join('')}
-                            </ul>
+                        <div class="content-comparison">
+                            <div class="comparison-side before">
+                                <h6>Before</h6>
+                                <div class="comparison-content">${escapeHtml(String(change.current_value || '(empty)'))}</div>
+                            </div>
+                            <div class="comparison-side after">
+                                <h6>After</h6>
+                                <div class="comparison-content">${escapeHtml(String(change.new_value || '(empty)'))}</div>
+                            </div>
                         </div>
                     `;
                 } else {
-                    const displayValue = typeof value === 'string' && value.length > 200
-                        ? value.substring(0, 200) + '...'
-                        : String(value);
+                    // Show single content view when no changes
                     html += `
-                        <div class="variable-item">
-                            <strong>${escapeHtml(key)}:</strong> ${escapeHtml(displayValue)}
+                        <div class="single-content">
+                            <h6>Content (Unchanged)</h6>
+                            <div class="comparison-content">${escapeHtml(String(change.current_value || '(empty)'))}</div>
                         </div>
                     `;
                 }
-            });
 
+                html += `</div>`;
+            });
+        } else if (outputProcessing.actions_processed > 0) {
             html += `
-                    </div>
+                <div class="single-content">
+                    <h6>ℹ️ Info</h6>
+                    <div class="comparison-content">Actions were processed but no content changes were made.</div>
                 </div>
             `;
         }
 
-        // Show prompts for AI steps - use interpolated versions if available
-        if (stepResult.step_config && (stepResult.step_type === 'ai_assistant' || stepResult.step_type === 'predefined_assistant')) {
-
-            // For AI Assistant steps, show both system and user prompts
-            if (stepResult.step_type === 'ai_assistant') {
-                // Use interpolated system prompt if available, otherwise raw
-                const systemPrompt = stepResult.interpolated_system_prompt || stepResult.step_config.system_prompt;
-                const isSystemInterpolated = !!stepResult.interpolated_system_prompt;
-                if (systemPrompt) {
-                    html += `
-                        <div class="system-prompt">
-                            <h6>System Prompt <span class="prompt-badge ${isSystemInterpolated ? '' : 'raw'}">${isSystemInterpolated ? 'Interpolated' : 'Raw Template'}</span>:</h6>
-                            <pre class="prompt-content">${escapeHtml(systemPrompt)}</pre>
-                        </div>
-                    `;
-                }
-            }
-
-            // Use interpolated user message if available, otherwise raw
-            const userMessage = stepResult.interpolated_user_message || stepResult.step_config.user_message;
-            const isUserInterpolated = !!stepResult.interpolated_user_message;
-            if (userMessage) {
-                html += `
-                    <div class="user-prompt">
-                        <h6>User Message <span class="prompt-badge ${isUserInterpolated ? '' : 'raw'}">${isUserInterpolated ? 'Interpolated' : 'Raw Template'}</span>:</h6>
-                        <pre class="prompt-content">${escapeHtml(userMessage)}</pre>
+        html += `
                     </div>
-                `;
-            }
-
-            if (stepResult.step_config.assistant_id) {
-                html += `
-                    <div class="assistant-info">
-                        <h6>Assistant ID:</h6>
-                        <div class="assistant-id">${escapeHtml(stepResult.step_config.assistant_id)}</div>
-                    </div>
-                `;
-            }
-
-            // Show AI parameters
-            const params = [];
-            if (stepResult.step_config.temperature !== undefined) {
-                params.push(`Temperature: ${stepResult.step_config.temperature}`);
-            }
-            if (stepResult.step_config.max_tokens) {
-                params.push(`Max Tokens: ${stepResult.step_config.max_tokens}`);
-            }
-            if (stepResult.step_config.expected_format) {
-                params.push(`Expected Format: ${stepResult.step_config.expected_format}`);
-            }
-            if (stepResult.tokens_used) {
-                params.push(`Tokens Used: ${stepResult.tokens_used}`);
-            }
-
-            if (params.length > 0) {
-                html += `
-                    <div class="ai-parameters">
-                        <h6>AI Parameters:</h6>
-                        <div class="parameters-list">${params.join(', ')}</div>
-                    </div>
-                `;
-            }
-        }
-
-        html += `</div>`;
+                </details>
+            </div>
+        `;
         return html;
     }
 

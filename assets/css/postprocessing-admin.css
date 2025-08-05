@@ -14,21 +14,36 @@
     font-weight: bold;
 }
 
-.workflow-editor-container {
+/* Workflow Editor Sections - Clean and Consistent Styling */
+.workflow-basic-settings,
+.workflow-trigger-settings,
+.workflow-steps-container {
     background: #fff;
     border: 1px solid #c3c4c7;
-    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    border-radius: 4px;
     margin-bottom: 20px;
-    border-radius: 6px;
-    overflow: hidden;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
 }
 
-.workflow-basic-settings {
+.workflow-basic-settings .inside,
+.workflow-trigger-settings .inside,
+.workflow-steps-container .inside {
     padding: 20px;
-    border-bottom: 1px solid #c3c4c7;
-    background: #fcfcfc;
 }
 
+.workflow-basic-settings h2,
+.workflow-trigger-settings h3,
+.workflow-steps-container h3 {
+    margin: 0 0 15px 0;
+    padding: 15px 20px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #e1e1e1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+/* Remove duplicate workflow-basic-settings table styling since it's now properly contained */
 .workflow-basic-settings .form-table th {
     width: 200px;
     padding-top: 15px;
@@ -39,8 +54,9 @@
     padding-top: 10px;
 }
 
-.workflow-steps-container {
-    padding: 20px;
+/* Steps container content styling */
+.workflow-steps-container .add-workflow-step {
+    margin-top: 20px;
 }
 
 .workflow-step {
@@ -179,7 +195,7 @@
     background: #856404;
 }
 
-.workflow-step-field .form-control {
+.workflow-step-field .form-control,
 .workflow-step-field select,
 .workflow-step-field textarea {
     width: 100%;
@@ -204,17 +220,17 @@
     padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
-    margin-bottom: 20px;
+    margin-top: 20px;
+    transition: background-color 0.2s ease;
 }
 
 .add-workflow-step:hover {
     background: #135e96;
 }
 
+/* Workflow Actions Section */
 .workflow-editor-actions {
-    padding: 20px;
-    background: #f9f9f9;
-    border-top: 1px solid #c3c4c7;
+    margin-top: 20px;
 }
 
 .variable-docs-panel {
@@ -303,12 +319,13 @@
     margin-bottom: 0;
 }
 
+/* Enhanced Test Results - Expandable Sections with Side-by-Side Comparisons */
 .test-results {
     margin-top: 20px;
-    padding: 15px;
+    padding: 20px;
     background: #f9f9f9;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 6px;
 }
 
 .test-results.success {
@@ -321,12 +338,25 @@
     background: #fdf0f0;
 }
 
+.test-results h4 {
+    margin: 0 0 20px 0;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+/* Expandable Step Results */
+.step-results {
+    margin-top: 20px;
+}
+
 .step-result {
     margin-bottom: 15px;
-    padding: 10px;
     background: #fff;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 6px;
+    overflow: hidden;
 }
 
 .step-result.success {
@@ -337,27 +367,280 @@
     border-left: 4px solid #dc3232;
 }
 
-.step-result h4 {
-    margin: 0 0 10px 0;
-    font-size: 14px;
+/* Expandable Details/Summary Styling */
+.step-result details {
+    border: none;
 }
 
-.step-result-data {
-    background: #f9f9f9;
+.step-result summary {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 1px solid #e9ecef;
+    transition: background-color 0.2s ease;
+}
+
+.step-result summary:hover {
+    background: #e9ecef;
+}
+
+.step-result summary::-webkit-details-marker {
+    display: none;
+}
+
+.step-result summary::before {
+    content: '▶';
+    font-size: 12px;
+    margin-right: 8px;
+    transition: transform 0.2s ease;
+}
+
+.step-result details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.step-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.step-status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.step-status-badge.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.step-status-badge.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Step Content */
+.step-result-content {
+    padding: 20px;
+}
+
+/* Side-by-Side Comparison for Changes */
+.content-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.comparison-side {
+    padding: 15px;
+}
+
+.comparison-side.before {
+    background: #fff5f5;
+    border-right: 1px solid #e9ecef;
+}
+
+.comparison-side.after {
+    background: #f0fff4;
+}
+
+.comparison-side h6 {
+    margin: 0 0 10px 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+}
+
+.comparison-side.before h6 {
+    color: #dc3545;
+}
+
+.comparison-side.after h6 {
+    color: #28a745;
+}
+
+.comparison-content {
+    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #495057;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.5);
     padding: 10px;
     border-radius: 3px;
-    font-family: monospace;
-    font-size: 12px;
-    white-space: pre-wrap;
-    overflow-x: auto;
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.workflow-trigger-settings {
-    background: #f9f9f9;
-    padding: 15px;
-    border: 1px solid #ddd;
+/* Single content view (no changes) */
+.single-content {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
     border-radius: 4px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.single-content h6 {
+    margin: 0 0 10px 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+}
+
+/* AI Response Styling */
+.ai-response {
+    background: #e8f4fd;
+    border: 1px solid #b8daff;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.ai-response h6 {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #004085;
+}
+
+.ai-response-content {
+    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #004085;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Execution Details */
+.execution-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
     margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+}
+
+.execution-detail {
+    text-align: center;
+}
+
+.execution-detail .value {
+    display: block;
+    font-size: 18px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.execution-detail .label {
+    display: block;
+    font-size: 12px;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+}
+
+/* Error Display */
+.step-error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.step-error h6 {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #721c24;
+}
+
+.step-error-content {
+    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #721c24;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .content-comparison {
+        grid-template-columns: 1fr;
+    }
+    
+    .comparison-side.before {
+        border-right: none;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .execution-details {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+}
+
+/* Form field styling consistency */
+.workflow-field-group {
+    margin-bottom: 20px;
+}
+
+.workflow-field-group:last-child {
+    margin-bottom: 0;
+}
+
+.workflow-field-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.workflow-field-group input,
+.workflow-field-group select,
+.workflow-field-group textarea {
+    width: 100%;
+    max-width: 500px;
+}
+
+/* Trigger settings specific styling */
+.trigger-options label {
+    display: block;
+    margin-bottom: 12px;
+    font-weight: normal;
+    color: #23282d;
+}
+
+.trigger-options input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.1);
 }
 
 .trigger-conditions {
@@ -479,16 +762,27 @@
     padding: 8px 12px;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
-    font-family: 'Courier New', monospace;
+    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
     font-size: 12px;
     color: #0073aa;
     cursor: pointer;
     transition: all 0.2s ease;
+    margin-bottom: 8px;
+    line-height: 1.4;
 }
 
 .variable-item:hover {
     background: #e8f4fd;
     border-color: #0073aa;
+}
+
+.variable-item:last-child {
+    margin-bottom: 0;
+}
+
+.variable-item strong {
+    color: #007cba;
+    font-weight: 600;
 }
 
 .variable-item .var-name {
@@ -737,286 +1031,109 @@
     background: #e7f3ff;
     border: 1px solid #b8daff;
     border-radius: 6px;
-    padding: 15px;
     margin-top: 20px;
 }
 
-.final-context h5 {
-    margin: 0 0 15px 0;
-    color: #004085;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.context-variables p {
-    margin: 0 0 8px 0;
-    font-size: 12px;
-    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
-}
-
-.context-variables strong {
-    color: #004085;
-    font-weight: 600;
-}
-
-.meta-fields {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #b8daff;
-}
-
-.meta-fields ul {
-    margin: 5px 0 0 0;
-    padding-left: 20px;
-}
-
-.meta-fields li {
-    font-size: 11px;
-    margin-bottom: 3px;
-    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
-}
-
-.meta-fields code {
-    background: rgba(0,0,0,0.1);
-    padding: 1px 3px;
-    border-radius: 2px;
-    font-size: 10px;
-}
-
-/* Step Input Variables and Prompts */
-.step-inputs {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    padding: 15px;
-    margin-top: 15px;
-}
-
-.step-inputs h5 {
-    margin: 0 0 15px 0;
-    color: #495057;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.step-inputs h6 {
-    margin: 0 0 8px 0;
-    color: #343a40;
-    font-size: 13px;
-    font-weight: 600;
-    border-bottom: 1px solid #e9ecef;
-    padding-bottom: 5px;
-}
-
-.input-variables {
-    margin-bottom: 15px;
-}
-
-.variable-list {
-    background: #fff;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-    padding: 10px;
-}
-
-.variable-item {
-    margin-bottom: 8px;
-    font-size: 12px;
-    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
-}
-
-.variable-item:last-child {
-    margin-bottom: 0;
-}
-
-.variable-item strong {
-    color: #007cba;
-    font-weight: 600;
-}
-
-.system-prompt, .user-prompt {
-    margin-bottom: 15px;
-}
-
-.prompt-content {
-    background: #fff;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-    padding: 10px;
-    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
-    font-size: 11px;
-    line-height: 1.4;
-    white-space: pre-wrap;
-    color: #495057;
-    max-height: 300px;
-    overflow-y: auto;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-}
-
-.system-prompt .prompt-content {
-    border-left: 4px solid #007cba;
-    background: #f0f8ff;
-}
-
-.user-prompt .prompt-content {
-    border-left: 4px solid #28a745;
-    background: #f0fff4;
-}
-
-.assistant-info {
-    margin-bottom: 15px;
-}
-
-.assistant-id {
-    background: #fff;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-    padding: 8px;
-    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
-    font-size: 11px;
-    color: #495057;
-}
-
-.ai-parameters {
-    margin-bottom: 10px;
-}
-
-.parameters-list {
-    background: #fff;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-    padding: 8px;
-    font-size: 11px;
-    color: #6c757d;
-}
-
-/* Raw vs Interpolated prompt styling */
-.system-prompt .prompt-content {
-    border-left: 4px solid #007cba;
-    background: #f0f8ff;
-}
-
-.user-prompt .prompt-content {
-    border-left: 4px solid #28a745;
-    background: #f0fff4;
-}
-
-/* Badge for indicating interpolated prompts */
-.prompt-badge {
-    display: inline-block;
-    background: #28a745;
-    color: white;
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 10px;
-    margin-left: 8px;
-    font-weight: normal;
-}
-
-.prompt-badge.raw {
-    background: #6c757d;
-}
-
-/* Post search functionality */
-.post-search-container {
-    position: relative;
-}
-
-.post-search-results {
-    position: absolute;
-    z-index: 1000;
-    background: white;
-    border: 1px solid #ccc;
-    border-top: none;
-    max-height: 300px;
-    overflow-y: auto;
-    width: 100%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    border-radius: 0 0 4px 4px;
-}
-
-.post-search-result {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
+.final-context summary {
+    background: #cce7ff;
+    padding: 15px 20px;
     cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    color: #004085;
+    border-bottom: 1px solid #b8daff;
     transition: background-color 0.2s ease;
 }
 
-.post-search-result:hover {
-    background-color: #f8f9fa;
+.final-context summary:hover {
+    background: #b8daff;
 }
 
-.post-search-result:last-child {
-    border-bottom: none;
+.final-context summary::-webkit-details-marker {
+    display: none;
 }
 
-.post-search-result .post-title {
-    font-weight: 600;
-    color: #0073aa;
-    margin-bottom: 4px;
-}
-
-.post-search-result .post-meta {
+.final-context summary::before {
+    content: '▶';
     font-size: 12px;
-    color: #666;
-    margin-bottom: 2px;
-}
-
-.post-search-result .post-description {
-    font-size: 11px;
-    color: #888;
-    line-height: 1.4;
-}
-
-#selected-post-info {
-    background: #f0f8ff;
-    border: 1px solid #b0d4f1;
-    border-radius: 4px;
-    padding: 12px;
-    margin-top: 10px;
-}
-
-#selected-post-info .post-detail {
-    margin-bottom: 4px;
-}
-
-#selected-post-info .post-detail strong {
-    font-weight: 600;
-}
-
-.test-data-options {
-    margin: 10px 0;
-}
-
-.test-data-options label {
-    display: block;
-    margin-bottom: 8px;
-    cursor: pointer;
-}
-
-.test-data-options input[type="radio"] {
     margin-right: 8px;
+    transition: transform 0.2s ease;
 }
 
-/* User autocomplete styling for workflow editor */
-.workflow-basic-settings .user-autocomplete-input {
-    width: 100%;
-    max-width: 350px;
-    padding: 6px 10px;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    font-size: 14px;
+.final-context details[open] summary::before {
+    transform: rotate(90deg);
 }
 
-.workflow-basic-settings .user-autocomplete-input:focus {
-    border-color: #007cba;
-    box-shadow: 0 0 0 1px #007cba;
-    outline: none;
+/* Improved spacing for step configuration sections */
+.step-inputs {
+    margin-top: 20px;
 }
 
-.workflow-basic-settings .user-autocomplete-clear {
-    margin-left: 0.5em;
-    padding: 6px 12px;
-    font-size: 12px;
+.step-inputs h6 {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 6px;
+}
+
+.input-variables,
+.system-prompt,
+.user-prompt {
+    margin-bottom: 20px;
+}
+
+.input-variables:last-child,
+.system-prompt:last-child,
+.user-prompt:last-child {
+    margin-bottom: 0;
+}
+
+/* Enhanced scrollbar styling for content areas */
+.comparison-content::-webkit-scrollbar,
+.ai-response-content::-webkit-scrollbar,
+.prompt-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.comparison-content::-webkit-scrollbar-track,
+.ai-response-content::-webkit-scrollbar-track,
+.prompt-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.comparison-content::-webkit-scrollbar-thumb,
+.ai-response-content::-webkit-scrollbar-thumb,
+.prompt-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+.comparison-content::-webkit-scrollbar-thumb:hover,
+.ai-response-content::-webkit-scrollbar-thumb:hover,
+.prompt-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* Add some animation for the expandable sections */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.step-result-content {
+    animation: fadeIn 0.3s ease-out;
 }
