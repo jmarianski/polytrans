@@ -175,6 +175,9 @@
                     } else {
                         console.error('Assistant loading failed:', response.data);
                         $error.show().find('p').text(response.data || 'Unknown error');
+                        
+                        // Update selects to show error state instead of "Loading..."
+                        this.handleAssistantLoadingError(response.data || 'Failed to load assistants');
                     }
                 }.bind(this),
                 error: function (xhr, status, error) {
@@ -185,6 +188,9 @@
                         responseText: xhr.responseText
                     });
                     $error.show().find('p').text('Network error: ' + error);
+                    
+                    // Update selects to show error state instead of "Loading..."
+                    this.handleAssistantLoadingError('Network error: ' + error);
                 }.bind(this),
                 complete: function () {
                     $loading.hide();
@@ -200,31 +206,77 @@
 
         populateAssistantSelects: function () {
             var assistants = this.assistants || [];
+            console.log('populateAssistantSelects called with', assistants.length, 'assistants');
 
-            $('.assistant-select').each(function () {
-                var $select = $(this);
-                var selectedValue = $select.data('selected') || $select.val();
+            // Use a slight delay to ensure DOM is ready
+            setTimeout(function() {
+                // Target both sets of assistant select elements
+                var $selects = $('.openai-assistant-select, .assistant-select');
+                console.log('Found', $selects.length, 'select elements');
 
-                // Clear existing options (except the first "Not selected" option)
-                $select.find('option:not(:first)').remove();
+                if ($selects.length === 0) {
+                    console.log('No select elements found. Available elements:', $('.openai-assistants-section').length ? 'Section found' : 'Section not found');
+                    return;
+                }
 
-                // Add assistant options
-                assistants.forEach(function (assistant) {
-                    var option = $('<option></option>')
-                        .attr('value', assistant.id)
-                        .text(assistant.name + ' (' + assistant.model + ')');
-                    $select.append(option);
+                $selects.each(function () {
+                    var $select = $(this);
+                    var pairKey = $select.data('pair');
+                    var currentValue = '';
+                    var $hiddenInput;
+
+                    // Handle both UI systems
+                    if ($select.hasClass('openai-assistant-select')) {
+                        // New UI system (class-openai-settings-ui.php)
+                        $hiddenInput = $('.openai-assistant-hidden[data-pair="' + pairKey + '"]');
+                        currentValue = $hiddenInput.val() || '';
+                    } else if ($select.hasClass('assistant-select')) {
+                        // Legacy UI system (class-openai-settings-provider.php)
+                        var hiddenInputId = $select.data('hidden-input');
+                        $hiddenInput = $('#' + hiddenInputId);
+                        currentValue = $hiddenInput.val() || $select.data('selected') || '';
+                    }
+
+                    console.log('Processing pair:', pairKey, 'currentValue:', currentValue);
+
+                    // Clear existing options
+                    $select.empty();
+
+                    // Add default "not selected" option
+                    $select.append($('<option></option>')
+                        .attr('value', '')
+                        .text('No assistant selected'));
+
+                    // Add assistant options
+                    assistants.forEach(function (assistant) {
+                        var option = $('<option></option>')
+                            .attr('value', assistant.id)
+                            .text(assistant.name + ' (' + assistant.model + ')');
+                        $select.append(option);
+                    });
+
+                    // Set the selected value to match the hidden input
+                    $select.val(currentValue);
+
+                    // Handle selection changes - update the hidden input
+                    $select.off('change.openai').on('change.openai', function() {
+                        var newValue = $(this).val();
+                        $hiddenInput.val(newValue);
+                    });
                 });
 
-                // Set the selected value if it exists
-                if (selectedValue) {
-                    $select.val(selectedValue);
-                    if ($select.val() !== selectedValue) {
-                        // Value doesn't exist in the list, reset to "Not selected"
-                        $select.val('');
+                // Show success message when assistants are loaded
+                if (assistants.length > 0) {
+                    var $section = $('#openai-assistants-section');
+                    var $loadingMsg = $section.find('.assistants-loading-message');
+                    if ($loadingMsg.length === 0) {
+                        $section.prepend('<div class="assistants-loading-message" style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:8px 12px;border-radius:4px;margin-bottom:15px;font-size:13px;">✓ Loaded ' + assistants.length + ' assistants from your OpenAI account</div>');
                     }
+                    setTimeout(function() {
+                        $section.find('.assistants-loading-message').fadeOut();
+                    }, 3000);
                 }
-            });
+            }.bind(this), 100);
         },
 
         updateAssistantLabels: function () {
@@ -241,6 +293,11 @@
             // Temporary override for testing - remove "|| true" when ready for production
             if ((apiKey && apiKey.trim() !== '') || true) {
                 $section.show();
+                
+                // If assistants are already loaded, populate the selects
+                if (this.assistantsLoaded) {
+                    this.populateAssistantSelects();
+                }
             } else {
                 $section.hide();
             }
@@ -312,6 +369,42 @@
             var className = type === 'success' ? 'notice-success' : 'notice-error';
             var html = '<div class="notice ' + className + ' inline"><p>' + message + '</p></div>';
             $container.html(html);
+        },
+
+        handleAssistantLoadingError: function(errorMessage) {
+            // When assistants fail to load, update selects to show error but preserve hidden values
+            $('.openai-assistant-select, .assistant-select').each(function () {
+                var $select = $(this);
+                var pairKey = $select.data('pair');
+                var currentValue = '';
+                var $hiddenInput;
+
+                // Handle both UI systems
+                if ($select.hasClass('openai-assistant-select')) {
+                    // New UI system (class-openai-settings-ui.php)
+                    $hiddenInput = $('.openai-assistant-hidden[data-pair="' + pairKey + '"]');
+                    currentValue = $hiddenInput.val() || '';
+                } else if ($select.hasClass('assistant-select')) {
+                    // Legacy UI system (class-openai-settings-provider.php)
+                    var hiddenInputId = $select.data('hidden-input');
+                    $hiddenInput = $('#' + hiddenInputId);
+                    currentValue = $hiddenInput.val() || $select.data('selected') || '';
+                }
+
+                // Clear and show error option
+                $select.empty();
+                $select.append($('<option></option>')
+                    .attr('value', '')
+                    .text('⚠ Failed to load assistants'));
+
+                // If there was a current value, add it as an option so it's preserved
+                if (currentValue) {
+                    $select.append($('<option></option>')
+                        .attr('value', currentValue)
+                        .text('Current: ' + currentValue)
+                        .prop('selected', true));
+                }
+            });
         }
     };
 

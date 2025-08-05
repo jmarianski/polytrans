@@ -388,15 +388,24 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
                             </small>
                         </td>
                         <td>
+                            <!-- Hidden input to preserve the actual saved value -->
+                            <input type="hidden"
+                                name="openai_assistants[<?php echo esc_attr($assistant_key); ?>]"
+                                id="assistant_hidden_<?php echo esc_attr($assistant_key); ?>"
+                                value="<?php echo esc_attr($selected_assistant); ?>"
+                                class="assistant-hidden-input" />
+
+                            <!-- Visible select for user interaction -->
                             <select class="assistant-select"
                                 id="assistant_select_<?php echo esc_attr($assistant_key); ?>"
-                                name="openai_assistants[<?php echo esc_attr($assistant_key); ?>]"
                                 style="width:100%;max-width:350px;"
                                 data-pair="<?php echo esc_attr($assistant_key); ?>"
-                                data-selected="<?php echo esc_attr($selected_assistant); ?>">
+                                data-selected="<?php echo esc_attr($selected_assistant); ?>"
+                                data-hidden-input="assistant_hidden_<?php echo esc_attr($assistant_key); ?>">
                                 <option value=""><?php esc_html_e('Not selected', 'polytrans'); ?></option>
                                 <!-- Options will be populated via JavaScript when assistants are loaded -->
                             </select>
+
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -495,9 +504,9 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
     private function render_model_selection($selected_model)
     {
         $grouped_models = $this->get_grouped_models();
-        
+
         echo '<select name="openai_model" id="openai-model" style="max-width:300px;">';
-        
+
         foreach ($grouped_models as $group_name => $models) {
             echo '<optgroup label="' . esc_attr($group_name) . '">';
             foreach ($models as $model_value => $model_label) {
@@ -506,7 +515,7 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
             }
             echo '</optgroup>';
         }
-        
+
         echo '</select>';
     }
 

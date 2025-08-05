@@ -351,7 +351,7 @@ class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
                 'Authorization' => 'Bearer ' . $provider_settings['api_key']
             ],
             'body' => json_encode($request),
-            'timeout' => 60
+            'timeout' => 120
         ];
 
         $response = wp_remote_request($api_url, $args);

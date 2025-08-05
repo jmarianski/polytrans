@@ -1137,3 +1137,40 @@
 .step-result-content {
     animation: fadeIn 0.3s ease-out;
 }
+
+/* OpenAI Assistant Settings Styling */
+.openai-assistant-select {
+    margin-bottom: 4px;
+}
+
+.assistant-loading-indicator {
+    font-size: 12px;
+    margin-top: 2px;
+    min-height: 16px;
+}
+
+.current-assistant-name {
+    font-weight: 500;
+}
+
+.current-assistant-id {
+    font-family: monospace;
+    font-size: 11px;
+}
+
+.no-assistant-selected {
+    color: #666;
+    font-style: italic;
+}
+
+.assistants-loading-message {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.language-pair-group {
+    transition: border-color 0.2s ease;
+}
+
+.language-pair-group:hover {
+    border-color: #007cba !important;
+}
