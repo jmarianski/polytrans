@@ -343,7 +343,7 @@
                     <option value="text" ${expectedFormat === 'text' ? 'selected' : ''}>Plain Text</option>
                     <option value="json" ${expectedFormat === 'json' ? 'selected' : ''}>JSON Object</option>
                 </select>
-                <small>How the AI should format its response</small>
+                <small><strong>Plain Text:</strong> For complete content (like rewritten posts) - leave Source Variable empty in output actions. <strong>JSON:</strong> For structured data - specify exact variables in output actions.</small>
             </div>
             <div class="workflow-step-field">
                 <label for="step-${index}-output-variables">Output Variables (for JSON format)</label>
@@ -460,7 +460,10 @@
         return `
             <div class="workflow-step-field output-actions-section">
                 <h4>🎯 Output Actions</h4>
-                <p style="margin: 0 0 15px 0; font-size: 13px; color: #666;">Configure where to save the results from this step. You can save different output variables to different locations.</p>
+                <p style="margin: 0 0 15px 0; font-size: 13px; color: #666;">Configure where to save the results from this step.</p>
+                <div style="background: #f8f9fa; border: 1px solid #e1e5e9; border-radius: 4px; padding: 12px; margin-bottom: 15px; font-size: 13px; color: #555;">
+                    <strong>💡 Pro Tip:</strong> For plain text responses (like rewritten content), leave the "Source Variable" field empty and the system will automatically use the AI's complete response. For JSON responses, specify which variable to use (e.g., "title", "content").
+                </div>
                 <div class="output-actions-list" data-step-index="${index}">
                     ${actionsHtml}
                 </div>
@@ -485,9 +488,9 @@
                 </div>
                 <div class="output-action-fields">
                     <div class="workflow-step-field">
-                        <label>Source Variable</label>
+                        <label>Source Variable <span style="color:#888;">(optional)</span></label>
                         <input type="text" name="steps[${stepIndex}][output_actions][${actionIndex}][source_variable]" value="${escapeHtml(sourceVariable)}" placeholder="e.g., assistant_response, reviewed_title">
-                        <small>Which variable from the step results to use</small>
+                        <small>Which variable to use. <strong>Leave empty</strong> to automatically use the main AI response (recommended for plain text responses).</small>
                     </div>
                     <div class="workflow-step-field">
                         <label>Action Type</label>
@@ -877,8 +880,8 @@
                     target: $(this).find('input[name$="[target]"]').val()
                 };
 
-                // Only add valid actions
-                if (action.type && action.source_variable) {
+                // Only add valid actions (type is required, source_variable is optional)
+                if (action.type) {
                     outputActions.push(action);
                 }
             });
