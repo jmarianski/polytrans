@@ -59,7 +59,7 @@ class PolyTrans_OpenAI_Settings_UI
             <div id="openai-assistants-section" class="openai-assistants-section" style="margin-top:2em;">
                 <h3><?php esc_html_e('Translation Assistants', 'polytrans'); ?></h3>
                 <p><?php esc_html_e('Configure OpenAI assistants for different language pairs. Each assistant should be trained for a specific translation direction (e.g., "en_to_pl").', 'polytrans'); ?></p>
-                
+
                 <div class="assistants-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1em;margin-top:1em;">
                     <?php
                     // Generate all possible language pairs
@@ -117,7 +117,7 @@ class PolyTrans_OpenAI_Settings_UI
                         </div>
                     <?php endforeach; ?>
                 </div>
-                
+
                 <div style="margin-top:1em;">
                     <small>
                         <?php esc_html_e('Assistant IDs start with "asst_". Leave blank for language pairs you don\'t want to support. You can create assistants at', 'polytrans'); ?>
@@ -130,7 +130,7 @@ class PolyTrans_OpenAI_Settings_UI
             <div class="openai-test-section" style="margin-top:2em;padding:1em;background:#f9f9f9;border-radius:4px;">
                 <h3><?php esc_html_e('Test Translation', 'polytrans'); ?></h3>
                 <p><?php esc_html_e('Test your OpenAI configuration with a sample translation.', 'polytrans'); ?></p>
-                
+
                 <div style="display:flex;gap:1em;margin-bottom:1em;">
                     <select id="test-source-lang" style="max-width:150px;">
                         <?php foreach ($languages as $i => $lang): ?>
@@ -148,7 +148,7 @@ class PolyTrans_OpenAI_Settings_UI
                         <?php endforeach; ?>
                     </select>
                 </div>
-                
+
                 <textarea id="test-text" placeholder="<?php esc_attr_e('Enter text to translate...', 'polytrans'); ?>" style="width:100%;height:80px;margin-bottom:0.5em;"></textarea>
                 <button type="button" id="test-openai-translation" class="button"><?php esc_html_e('Test Translation', 'polytrans'); ?></button>
                 <div id="test-translation-result" style="margin-top:1em;"></div>
@@ -180,7 +180,7 @@ class PolyTrans_OpenAI_Settings_UI
             foreach ($posted_data['openai_assistants'] as $pair => $assistant_id) {
                 $pair = sanitize_text_field($pair);
                 $assistant_id = sanitize_text_field($assistant_id);
-                
+
                 // Only save non-empty assistant IDs
                 if (!empty($assistant_id)) {
                     $validated['openai_assistants'][$pair] = $assistant_id;
