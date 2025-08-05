@@ -175,7 +175,7 @@
                     } else {
                         console.error('Assistant loading failed:', response.data);
                         $error.show().find('p').text(response.data || 'Unknown error');
-                        
+
                         // Update selects to show error state instead of "Loading..."
                         this.handleAssistantLoadingError(response.data || 'Failed to load assistants');
                     }
@@ -188,7 +188,7 @@
                         responseText: xhr.responseText
                     });
                     $error.show().find('p').text('Network error: ' + error);
-                    
+
                     // Update selects to show error state instead of "Loading..."
                     this.handleAssistantLoadingError('Network error: ' + error);
                 }.bind(this),
@@ -209,7 +209,7 @@
             console.log('populateAssistantSelects called with', assistants.length, 'assistants');
 
             // Use a slight delay to ensure DOM is ready
-            setTimeout(function() {
+            setTimeout(function () {
                 // Target both sets of assistant select elements
                 var $selects = $('.openai-assistant-select, .assistant-select');
                 console.log('Found', $selects.length, 'select elements');
@@ -259,7 +259,7 @@
                     $select.val(currentValue);
 
                     // Handle selection changes - update the hidden input
-                    $select.off('change.openai').on('change.openai', function() {
+                    $select.off('change.openai').on('change.openai', function () {
                         var newValue = $(this).val();
                         $hiddenInput.val(newValue);
                     });
@@ -272,7 +272,7 @@
                     if ($loadingMsg.length === 0) {
                         $section.prepend('<div class="assistants-loading-message" style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:8px 12px;border-radius:4px;margin-bottom:15px;font-size:13px;">✓ Loaded ' + assistants.length + ' assistants from your OpenAI account</div>');
                     }
-                    setTimeout(function() {
+                    setTimeout(function () {
                         $section.find('.assistants-loading-message').fadeOut();
                     }, 3000);
                 }
@@ -293,7 +293,7 @@
             // Temporary override for testing - remove "|| true" when ready for production
             if ((apiKey && apiKey.trim() !== '') || true) {
                 $section.show();
-                
+
                 // If assistants are already loaded, populate the selects
                 if (this.assistantsLoaded) {
                     this.populateAssistantSelects();
@@ -371,7 +371,7 @@
             $container.html(html);
         },
 
-        handleAssistantLoadingError: function(errorMessage) {
+        handleAssistantLoadingError: function (errorMessage) {
             // When assistants fail to load, update selects to show error but preserve hidden values
             $('.openai-assistant-select, .assistant-select').each(function () {
                 var $select = $(this);

@@ -1301,7 +1301,7 @@ However, the integration of AI in healthcare also raises important questions abo
 
         // Check the actual workflow success, not the AJAX success
         const workflowSuccess = response.data && response.data.success;
-        
+
         if (workflowSuccess) {
             const data = response.data;
             let html = `
@@ -1373,7 +1373,7 @@ However, the integration of AI in healthcare also raises important questions abo
             // Handle workflow failure - could be AJAX error or workflow execution failure
             const data = response.data || {};
             let errorMessage = 'Unknown error';
-            
+
             if (response.success === false) {
                 // AJAX-level error
                 errorMessage = response.data?.error || response.data || 'AJAX request failed';
@@ -1446,7 +1446,7 @@ However, the integration of AI in healthcare also raises important questions abo
                         </div>
                     </div>
                 `;
-                
+
                 resultsContainer.html(html).show();
                 errorMessage = 'Workflow completed with errors. Check the failed steps above for details.';
             } else {
@@ -1459,7 +1459,7 @@ However, the integration of AI in healthcare also raises important questions abo
                 `;
                 resultsContainer.html(html).show();
             }
-            
+
             showNotice('error', errorMessage);
         }
     }

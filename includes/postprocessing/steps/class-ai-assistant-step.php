@@ -429,7 +429,7 @@ class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
         $method = $reflection->getMethod('get_grouped_models');
         $method->setAccessible(true);
         $grouped_models = $method->invoke($provider);
-        
+
         $models = [];
         foreach ($grouped_models as $group => $group_models) {
             $models = array_merge($models, array_keys($group_models));
