@@ -56,7 +56,7 @@ class PolyTrans_OpenAI_Settings_UI
             </div>
 
             <!-- Assistants Section -->
-            <div class="openai-assistants-section" style="margin-top:2em;">
+            <div id="openai-assistants-section" class="openai-assistants-section" style="margin-top:2em;">
                 <h3><?php esc_html_e('Translation Assistants', 'polytrans'); ?></h3>
                 <p><?php esc_html_e('Configure OpenAI assistants for different language pairs. Each assistant should be trained for a specific translation direction (e.g., "en_to_pl").', 'polytrans'); ?></p>
                 
@@ -92,12 +92,26 @@ class PolyTrans_OpenAI_Settings_UI
                                     <label style="display:block;font-weight:500;">
                                         <?php echo esc_html(sprintf(__('To %s', 'polytrans'), $target_name)); ?>
                                     </label>
-                                    <input type="text"
+                                    <!-- Hidden input to preserve the actual value -->
+                                    <input type="hidden"
                                         name="openai_assistants[<?php echo esc_attr($pair_key); ?>]"
                                         value="<?php echo esc_attr($assistant_id); ?>"
-                                        placeholder="asst_..."
-                                        style="width:100%;max-width:250px;"
-                                        class="openai-assistant-input" />
+                                        class="openai-assistant-hidden"
+                                        data-pair="<?php echo esc_attr($pair_key); ?>" />
+                                    <!-- Visible select for user interaction -->
+                                    <select class="openai-assistant-select"
+                                        data-pair="<?php echo esc_attr($pair_key); ?>"
+                                        data-selected="<?php echo esc_attr($assistant_id); ?>"
+                                        style="width:100%;max-width:250px;">
+                                        <option value=""><?php esc_html_e('Loading assistants...', 'polytrans'); ?></option>
+                                    </select>
+                                    <div class="assistant-loading-indicator" style="font-size:12px;color:#666;margin-top:2px;">
+                                        <?php if (empty($assistant_id)): ?>
+                                            <span class="no-assistant-selected"><?php esc_html_e('No assistant selected', 'polytrans'); ?></span>
+                                        <?php else: ?>
+                                            <span class="current-assistant-id"><?php echo esc_html(sprintf(__('Current: %s', 'polytrans'), $assistant_id)); ?></span>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             <?php endforeach; ?>
                         </div>

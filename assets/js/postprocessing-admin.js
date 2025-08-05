@@ -1299,7 +1299,10 @@ However, the integration of AI in healthcare also raises important questions abo
     function displayTestResults(response) {
         const resultsContainer = $('#test-results');
 
-        if (response.success) {
+        // Check the actual workflow success, not the AJAX success
+        const workflowSuccess = response.data && response.data.success;
+        
+        if (workflowSuccess) {
             const data = response.data;
             let html = `
                 <div class="test-results success">
@@ -1367,14 +1370,97 @@ However, the integration of AI in healthcare also raises important questions abo
             resultsContainer.html(html).show();
             showNotice('success', polytransWorkflows.strings.testSuccess);
         } else {
-            const html = `
-                <div class="test-results error">
-                    <h4>❌ Test Results - Failed</h4>
-                    ${renderStepError(response.data?.error || 'Unknown error')}
-                </div>
-            `;
-            resultsContainer.html(html).show();
-            showNotice('error', response.data?.error || polytransWorkflows.strings.testError);
+            // Handle workflow failure - could be AJAX error or workflow execution failure
+            const data = response.data || {};
+            let errorMessage = 'Unknown error';
+            
+            if (response.success === false) {
+                // AJAX-level error
+                errorMessage = response.data?.error || response.data || 'AJAX request failed';
+            } else if (data.step_results && data.step_results.length > 0) {
+                // Workflow executed but had step failures - show detailed results
+                let html = `
+                    <div class="test-results error">
+                        <h4>❌ Test Results - Failed</h4>
+                        
+                        <div class="execution-details">
+                            <div class="execution-detail">
+                                <span class="value">${data.steps_executed || 0}</span>
+                                <span class="label">Steps Executed</span>
+                            </div>
+                            <div class="execution-detail">
+                                <span class="value">${(data.execution_time || 0).toFixed(3)}s</span>
+                                <span class="label">Execution Time</span>
+                            </div>
+                            <div class="execution-detail">
+                                <span class="value">${data.step_results ? data.step_results.filter(s => s.success).length : 0}</span>
+                                <span class="label">Successful Steps</span>
+                            </div>
+                            <div class="execution-detail">
+                                <span class="value">${data.step_results ? data.step_results.filter(s => !s.success).length : 0}</span>
+                                <span class="label">Failed Steps</span>
+                            </div>
+                        </div>
+                        
+                        <div class="step-results">
+                `;
+
+                if (data.step_results && data.step_results.length > 0) {
+                    data.step_results.forEach((stepResult, index) => {
+                        const statusClass = stepResult.success ? 'success' : 'error';
+                        const statusIcon = stepResult.success ? '✅' : '❌';
+                        const isFirstStep = index === 0;
+                        const shouldExpand = !stepResult.success; // Auto-expand failed steps
+
+                        html += `
+                            <div class="step-result ${statusClass}">
+                                <details ${isFirstStep || shouldExpand ? 'open' : ''}>
+                                    <summary>
+                                        <span>
+                                            ${statusIcon} Step ${index + 1}: ${escapeHtml(stepResult.step_name || `Step ${index + 1}`)}
+                                        </span>
+                                        <div class="step-status-indicator">
+                                            <span class="step-status-badge ${statusClass}">
+                                                ${stepResult.success ? 'Success' : 'Failed'}
+                                            </span>
+                                        </div>
+                                    </summary>
+                                    <div class="step-result-content">
+                                        ${stepResult.error ? renderStepError(stepResult.error) : ''}
+                                        ${renderStepInputsAndPrompts(stepResult)}
+                                        ${stepResult.data ? renderAIResponse(stepResult.data) : ''}
+                                        ${stepResult.output_processing ? renderOutputProcessingResults(stepResult.output_processing) : ''}
+                                    </div>
+                                </details>
+                            </div>
+                        `;
+                    });
+                }
+
+                // Show final context if available
+                if (data.final_context && data.test_mode) {
+                    html += renderFinalContext(data.final_context);
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+                
+                resultsContainer.html(html).show();
+                errorMessage = 'Workflow completed with errors. Check the failed steps above for details.';
+            } else {
+                // Simple error case
+                const html = `
+                    <div class="test-results error">
+                        <h4>❌ Test Results - Failed</h4>
+                        ${renderStepError(errorMessage)}
+                    </div>
+                `;
+                resultsContainer.html(html).show();
+            }
+            
+            showNotice('error', errorMessage);
         }
     }
 

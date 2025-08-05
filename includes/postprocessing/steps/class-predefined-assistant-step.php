@@ -278,7 +278,7 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
                 'OpenAI-Beta' => 'assistants=v2'
             ],
             'body' => json_encode($thread_data),
-            'timeout' => 60
+            'timeout' => 120
         ]);
 
         if (is_wp_error($response)) {
@@ -323,7 +323,7 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
                 'OpenAI-Beta' => 'assistants=v2'
             ],
             'body' => json_encode($run_data),
-            'timeout' => 60
+            'timeout' => 120
         ]);
 
         if (is_wp_error($response)) {
@@ -365,7 +365,8 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
                 'headers' => [
                     'Authorization' => 'Bearer ' . $provider_settings['api_key'],
                     'OpenAI-Beta' => 'assistants=v2'
-                ]
+                ],
+                'timeout' => 30
             ]);
 
             if (is_wp_error($response)) {
@@ -408,7 +409,8 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
             'headers' => [
                 'Authorization' => 'Bearer ' . $provider_settings['api_key'],
                 'OpenAI-Beta' => 'assistants=v2'
-            ]
+            ],
+            'timeout' => 30
         ]);
 
         if (is_wp_error($response)) {
