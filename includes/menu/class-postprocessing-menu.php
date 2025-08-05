@@ -83,10 +83,10 @@ class PolyTrans_Postprocessing_Menu
 
         // Enqueue user autocomplete assets
         wp_enqueue_script(
-            'polytrans-user-autocomplete', 
-            POLYTRANS_PLUGIN_URL . 'assets/js/core/user-autocomplete.js', 
-            ['jquery-ui-autocomplete'], 
-            POLYTRANS_VERSION, 
+            'polytrans-user-autocomplete',
+            POLYTRANS_PLUGIN_URL . 'assets/js/core/user-autocomplete.js',
+            ['jquery-ui-autocomplete'],
+            POLYTRANS_VERSION,
             true
         );
         wp_enqueue_style('jquery-ui-autocomplete');
@@ -665,11 +665,11 @@ class PolyTrans_Postprocessing_Menu
             'name' => sanitize_text_field($workflow_data['name'] ?? ''),
             'description' => sanitize_textarea_field($workflow_data['description'] ?? ''),
             'language' => sanitize_text_field($workflow_data['language'] ?? 'en'),
-            'enabled' => !empty($workflow_data['enabled']),
+            'enabled' => $workflow_data['enabled'] === 'true',
             'attribution_user' => $attribution_user,
             'triggers' => [
                 'on_translation_complete' => !empty($workflow_data['triggers']['on_translation_complete']),
-                'manual_only' => $workflow_data['triggers']['manual_only'] !== 'false',
+                'manual_only' => $workflow_data['triggers']['manual_only'] === 'true',
                 'conditions' => $this->sanitize_trigger_conditions($workflow_data['triggers']['conditions'] ?? [])
             ],
             'steps' => $this->sanitize_workflow_steps($workflow_data['steps'] ?? [])
@@ -830,16 +830,16 @@ class PolyTrans_Postprocessing_Menu
         }
 
         $model = sanitize_text_field($model);
-        
+
         // Get available models from the OpenAI settings provider
         $available_models = $this->get_openai_models();
-        
+
         // Flatten the grouped models to get all valid model values
         $valid_models = [];
         foreach ($available_models as $group => $models) {
             $valid_models = array_merge($valid_models, array_keys($models));
         }
-        
+
         // Return the model if it's valid, otherwise return empty string
         return in_array($model, $valid_models) ? $model : '';
     }
