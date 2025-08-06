@@ -253,6 +253,44 @@ All endpoints support configurable authentication:
 - `polytrans_workflow_context` - Modify workflow execution context
 - `polytrans_workflow_steps` - Register custom workflow step types
 
+## 📖 Documentation
+
+📋 **[Complete Documentation Index](docs/README.md)** - Find all documentation organized by audience and topic
+
+### 👥 **For Users**
+- 📦 [Installation Guide](docs/user-guide/INSTALLATION.md) - Get PolyTrans installed
+- ⚡ [Quick Start Tutorial](QUICK_START.md) - First translation in 5 minutes
+- 🖥️ [User Interface Guide](docs/user-guide/INTERFACE.md) - Learn the admin interface
+- ❓ [FAQ & Troubleshooting](docs/user-guide/FAQ.md) - Common questions and solutions
+
+### ⚙️ **For Administrators**
+- 🔧 [Configuration Guide](docs/admin/CONFIGURATION.md) - Complete setup reference
+- 🔄 [Workflow Management](docs/admin/WORKFLOW-TRIGGERING.md) - Automate post-processing
+- 📝 [Workflow Logging](docs/admin/WORKFLOW-LOGGING.md) - Monitor system activity
+- 📖 [Plain Text Workflow Guide](docs/admin/PLAIN_TEXT_WORKFLOW_GUIDE.md) - Advanced workflows
+- ⚡ [Performance Tuning](docs/admin/PERFORMANCE.md) - Optimize for your environment
+- 🔒 [Security Settings](docs/admin/SECURITY.md) - Secure your translation setup
+
+### 🔧 **For Developers**
+- 📡 [API Documentation](docs/developer/API-DOCUMENTATION.md) - REST API reference
+- 🏗️ [Architecture Overview](docs/developer/ARCHITECTURE.md) - System design and structure
+- 💻 [Development Setup](docs/developer/DEVELOPMENT_SETUP.md) - Local dev environment
+- 🤝 [Contributing Guidelines](docs/developer/CONTRIBUTING.md) - How to contribute
+- 🔌 [Plugin Hooks & Filters](docs/developer/HOOKS.md) - WordPress integration
+- 📊 [Code Quality Status](docs/developer/CODE_QUALITY_STATUS.md) - Development status
+
+### 📋 **Reference**
+- 📝 [Changelog](CHANGELOG.md) - Version history and changes
+- ⚙️ [Task Queue System](docs/reference/TASK_QUEUE.md) - Background processing
+- 📊 [Workflow Logging](docs/admin/WORKFLOW-LOGGING.md) - System monitoring
+- 📈 [Implementation Status](docs/reference/POLYTRANS_STATUS.md) - Current system status
+
+### 🎯 **Examples & Use Cases**
+- 📝 [Blog Post Translation](docs/examples/BLOG_POSTS.md) - Complete blog translation workflow
+- 🛒 [E-commerce Translation](docs/examples/ECOMMERCE.md) - Product catalog translation
+- 🎯 [Landing Page Translation](docs/examples/LANDING_PAGES.md) - Marketing content translation
+- ⚙️ [SEO Workflow Example](examples/seo-internal-linking-workflow.php) - Live workflow code
+
 ## Security Considerations
 
 ### User Context Management

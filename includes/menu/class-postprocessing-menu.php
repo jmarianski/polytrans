@@ -40,6 +40,7 @@ class PolyTrans_Postprocessing_Menu
         add_action('wp_ajax_polytrans_test_workflow', [$this, 'ajax_test_workflow']);
         add_action('wp_ajax_polytrans_search_posts', [$this, 'ajax_search_posts']);
         add_action('wp_ajax_polytrans_get_post_data', [$this, 'ajax_get_post_data']);
+        add_action('wp_ajax_polytrans_load_openai_assistants_for_workflow', [$this, 'ajax_load_openai_assistants_for_workflow']);
     }
 
     /**
@@ -617,6 +618,96 @@ class PolyTrans_Postprocessing_Menu
     }
 
     /**
+     * AJAX: Load OpenAI assistants for workflow
+     */
+    public function ajax_load_openai_assistants_for_workflow()
+    {
+        // Check nonce
+        if (!check_ajax_referer('polytrans_workflows_nonce', 'nonce', false)) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+
+        // Get API key from settings
+        $settings = get_option('polytrans_settings', []);
+        $api_key = $settings['openai_api_key'] ?? '';
+
+        if (empty($api_key)) {
+            wp_send_json_error('OpenAI API key not configured');
+            return;
+        }
+
+        // Load assistants from OpenAI API
+        $response = wp_remote_get('https://api.openai.com/v1/assistants', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $api_key,
+                'User-Agent' => 'PolyTrans/1.0',
+                'OpenAI-Beta' => 'assistants=v2'
+            ],
+            'timeout' => 10
+        ]);
+
+        if (is_wp_error($response)) {
+            wp_send_json_error('Failed to load assistants: ' . $response->get_error_message());
+            return;
+        }
+
+        $response_code = wp_remote_retrieve_response_code($response);
+        if ($response_code !== 200) {
+            $body = wp_remote_retrieve_body($response);
+            $error_data = json_decode($body, true);
+            $error_message = isset($error_data['error']['message']) ? $error_data['error']['message'] : 'Failed to load assistants';
+            wp_send_json_error($error_message);
+            return;
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (!isset($data['data']) || !is_array($data['data'])) {
+            wp_send_json_error('No assistants found');
+            return;
+        }
+
+        $assistants = array_map(function ($assistant) {
+            return [
+                'id' => $assistant['id'],
+                'name' => $assistant['name'] ?? 'Unnamed Assistant',
+                'description' => $assistant['description'] ?? '',
+                'model' => $assistant['model'] ?? 'gpt-4'
+            ];
+        }, $data['data']);
+
+        wp_send_json_success($assistants);
+    }
+
+    /**
+     * Get OpenAI assistants from the settings provider
+     */
+    private function get_openai_assistants()
+    {
+        // Check if OpenAI settings provider class exists
+        if (!class_exists('PolyTrans_OpenAI_Settings_Provider')) {
+            return [];
+        }
+
+        try {
+            $provider = new PolyTrans_OpenAI_Settings_Provider();
+            $reflection = new ReflectionClass($provider);
+            $method = $reflection->getMethod('get_assistants');
+            $method->setAccessible(true);
+            return $method->invoke($provider);
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    /**
      * Get OpenAI models from the settings provider
      */
     private function get_openai_models()
@@ -789,7 +880,8 @@ class PolyTrans_Postprocessing_Menu
             ];
 
             // Only add if required fields are present
-            if (!empty($sanitized_action['type']) && !empty($sanitized_action['source_variable'])) {
+            // Allow empty source_variable as it can be auto-detected
+            if (!empty($sanitized_action['type'])) {
                 $sanitized_actions[] = $sanitized_action;
             }
         }

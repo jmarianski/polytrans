@@ -9,6 +9,8 @@
     let workflowData = {};
     let languages = {};
     let stepCounter = 0;
+    let cachedAssistants = null;
+    let assistantLoadPromise = null;
 
     // Helper function to generate model options from localized data
     function generateModelOptions(selectedModel) {
@@ -43,6 +45,75 @@
         return modelOptions;
     }
 
+    /**
+     * Load OpenAI assistants
+     */
+    function loadAssistants() {
+        // Return cached promise if already loading
+        if (assistantLoadPromise) {
+            return assistantLoadPromise;
+        }
+
+        // Return cached result if available
+        if (cachedAssistants) {
+            return Promise.resolve(cachedAssistants);
+        }
+
+        assistantLoadPromise = $.ajax({
+            url: polytransWorkflows.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'polytrans_load_openai_assistants_for_workflow',
+                nonce: polytransWorkflows.nonce
+            }
+        }).then(function (response) {
+            if (response.success) {
+                cachedAssistants = response.data;
+                return cachedAssistants;
+            } else {
+                throw new Error(response.data || 'Failed to load assistants');
+            }
+        }).always(function () {
+            assistantLoadPromise = null;
+        });
+
+        return assistantLoadPromise;
+    }
+
+    /**
+     * Populate assistant dropdown for a specific step
+     */
+    function populateAssistantDropdown(stepIndex, selectedAssistantId = '') {
+        const $select = $(`#step-${stepIndex}-assistant-id`);
+        if (!$select.length) {
+            return;
+        }
+
+        // Show loading state
+        $select.html('<option value="">Loading assistants...</option>');
+        $select.prop('disabled', true);
+
+        loadAssistants().then(function (assistants) {
+            // Clear and populate options
+            $select.empty();
+            $select.append('<option value="">Select an assistant...</option>');
+
+            assistants.forEach(function (assistant) {
+                const isSelected = assistant.id === selectedAssistantId ? 'selected' : '';
+                $select.append(`<option value="${assistant.id}" ${isSelected}>${assistant.name} (${assistant.model})</option>`);
+            });
+
+            $select.prop('disabled', false);
+        }).catch(function (error) {
+            console.error('Failed to load assistants:', error);
+            $select.html('<option value="">⚠ Failed to load assistants</option>');
+            $select.prop('disabled', false);
+
+            // Show error notification
+            showNotification('Failed to load OpenAI assistants: ' + error.message, 'error');
+        });
+    }
+
     // Initialize when DOM is ready
     $(document).ready(function () {
         initializeWorkflowEditor();
@@ -68,6 +139,17 @@
 
         renderWorkflowEditor();
         bindWorkflowEditorEvents();
+        
+        // Load assistants for any predefined assistant steps after rendering
+        setTimeout(() => {
+            if (workflowData.steps) {
+                workflowData.steps.forEach((step, index) => {
+                    if (step.type === 'predefined_assistant') {
+                        populateAssistantDropdown(index, step.assistant_id);
+                    }
+                });
+            }
+        }, 100);
     }
 
     /**
@@ -302,6 +384,11 @@
             html += renderVariableReferencePanel();
             html += renderPredefinedAssistantFields(step, index);
             html += renderOutputActionsSection(step, index);
+            
+            // Trigger assistant loading for predefined assistant steps
+            setTimeout(() => {
+                populateAssistantDropdown(index, step.assistant_id);
+            }, 10);
         }
 
         return html;
@@ -317,7 +404,16 @@
         const model = step.model || '';
         const maxTokens = step.max_tokens || '';
         const temperature = step.temperature !== undefined ? step.temperature : 0.7;
-        const outputVariables = (step.output_variables || []).join(', ');
+        
+        // Handle output_variables - it could be an array or a string
+        let outputVariables = '';
+        if (step.output_variables) {
+            if (Array.isArray(step.output_variables)) {
+                outputVariables = step.output_variables.join(', ');
+            } else if (typeof step.output_variables === 'string') {
+                outputVariables = step.output_variables;
+            }
+        }
 
         return `
             <div class="workflow-step-field">
@@ -369,16 +465,25 @@
     function renderPredefinedAssistantFields(step, index) {
         const assistantId = step.assistant_id || '';
         const userMessage = step.user_message || '';
-        const outputVariables = (step.output_variables || []).join(', ');
+        const expectedFormat = step.expected_format || 'text';
+        
+        // Handle output_variables - it could be an array or a string
+        let outputVariables = '';
+        if (step.output_variables) {
+            if (Array.isArray(step.output_variables)) {
+                outputVariables = step.output_variables.join(', ');
+            } else if (typeof step.output_variables === 'string') {
+                outputVariables = step.output_variables;
+            }
+        }
 
         return `
             <div class="workflow-step-field">
                 <label for="step-${index}-assistant-id">OpenAI Assistant</label>
-                <select id="step-${index}-assistant-id" name="steps[${index}][assistant_id]" required>
-                    <option value="">Select an assistant...</option>
-                    <!-- Assistant options will be populated by backend -->
+                <select id="step-${index}-assistant-id" name="steps[${index}][assistant_id]" required data-step-index="${index}">
+                    <option value="">Loading assistants...</option>
                 </select>
-                <small>⚙️ Choose a predefined OpenAI assistant configured in your settings. The assistant's system prompt, temperature, and other settings are already configured.</small>
+                <small>⚙️ Choose a predefined OpenAI assistant configured in your OpenAI account. The assistant's system prompt, temperature, and other settings are already configured.</small>
             </div>
             <div class="workflow-step-field">
                 <label for="step-${index}-user-message">User Message Template</label>
@@ -386,9 +491,17 @@
                 <small>💬 <strong>Example:</strong> "Please review this translated article:\\nTitle: {title}\\nContent: {content}\\nOriginal Title: {original_title}\\n\\nProvide your analysis and recommendations."</small>
             </div>
             <div class="workflow-step-field">
-                <label for="step-${index}-output-variables">Output Variables</label>
+                <label for="step-${index}-expected-format">Expected Response Format</label>
+                <select id="step-${index}-expected-format" name="steps[${index}][expected_format]">
+                    <option value="text" ${expectedFormat === 'text' ? 'selected' : ''}>Plain Text</option>
+                    <option value="json" ${expectedFormat === 'json' ? 'selected' : ''}>JSON Object</option>
+                </select>
+                <small><strong>Plain Text:</strong> Use "processed_content" as source variable in output actions. <strong>JSON:</strong> Specify variables below to extract from JSON response.</small>
+            </div>
+            <div class="workflow-step-field">
+                <label for="step-${index}-output-variables">Output Variables (for JSON format)</label>
                 <input type="text" id="step-${index}-output-variables" name="steps[${index}][output_variables]" value="${escapeHtml(outputVariables)}">
-                <small>📊 <strong>Example:</strong> "assistant_response, quality_rating, recommendations" - Variables to extract from the assistant's response for use in subsequent steps</small>
+                <small>📊 <strong>For JSON only:</strong> "quality_rating, recommendations" - Leave empty to include all JSON fields. <strong>For Plain Text:</strong> Always use "processed_content" as source variable.</small>
             </div>
         `;
     }
@@ -682,6 +795,7 @@
                 if (currentType === 'predefined_assistant' || newType === 'predefined_assistant') {
                     stepData.assistant_id = $(`#step-${index}-assistant-id`).val();
                     stepData.user_message = $(`#step-${index}-user_message`).val();
+                    stepData.expected_format = $(`#step-${index}-expected-format`).val();
                     stepData.output_variables = $(`#step-${index}-output-variables`).val();
                 }
 
@@ -691,6 +805,13 @@
                 // Re-render step content
                 const $content = $step.find('.workflow-step-content');
                 $content.html(renderStepContent(stepData, index));
+
+                // Load assistants if switching to predefined assistant
+                if (newType === 'predefined_assistant') {
+                    setTimeout(() => {
+                        populateAssistantDropdown(index, stepData.assistant_id);
+                    }, 10);
+                }
 
                 // Update header
                 $step.find('.workflow-step-header h4').text(`${stepData.name} (${stepData.type})`);
@@ -1683,6 +1804,13 @@ However, the integration of AI in healthcare also raises important questions abo
                 $(this).remove();
             });
         }, 5000);
+    }
+
+    /**
+     * Show notification message (alias for showNotice)
+     */
+    function showNotification(message, type = 'info') {
+        showNotice(type, message);
     }
 
     /**

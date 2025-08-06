@@ -130,9 +130,14 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
             $errors[] = 'User message is required';
         }
 
+        // Validate expected format if provided
+        if (isset($step_config['expected_format']) && !in_array($step_config['expected_format'], ['text', 'json'])) {
+            $errors[] = 'Expected format must be either "text" or "json"';
+        }
+
         // Validate output variables if provided
-        if (isset($step_config['output_variables']) && !is_array($step_config['output_variables'])) {
-            $errors[] = 'Output variables must be an array';
+        if (isset($step_config['output_variables']) && !is_array($step_config['output_variables']) && !is_string($step_config['output_variables'])) {
+            $errors[] = 'Output variables must be an array or string';
         }
 
         return [
@@ -147,11 +152,8 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
     public function get_output_variables()
     {
         return [
-            'assistant_response',
-            'processed_content',
-            'analysis',
-            'recommendations',
-            'score'
+            'assistant_response',  // Always available - raw response
+            'processed_content'    // Always available - for plain text or fallback
         ];
     }
 
@@ -160,12 +162,23 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
      */
     public function get_config_schema()
     {
+        $available_assistants = $this->get_available_assistants();
+        $assistant_options = [''];
+        
+        // Convert assistants to options format
+        foreach ($available_assistants as $assistant) {
+            $assistant_options[$assistant['id']] = $assistant['name'] . ' (' . $assistant['model'] . ')';
+        }
+
         return [
             'assistant_id' => [
                 'type' => 'select',
                 'label' => 'OpenAI Assistant',
                 'required' => true,
-                'options' => $this->get_available_assistants()
+                'options' => $assistant_options,
+                'data_attributes' => [
+                    'available-assistants' => json_encode($available_assistants)
+                ]
             ],
             'user_message' => [
                 'type' => 'textarea',
@@ -173,22 +186,82 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
                 'required' => true,
                 'placeholder' => 'Review this content:\nTitle: {title}\nContent: {content}'
             ],
+            'expected_format' => [
+                'type' => 'select',
+                'label' => 'Expected Response Format',
+                'required' => false,
+                'options' => [
+                    'text' => 'Plain Text',
+                    'json' => 'JSON Object'
+                ],
+                'default' => 'text'
+            ],
             'output_variables' => [
                 'type' => 'text',
-                'label' => 'Output Variables',
+                'label' => 'Output Variables (for JSON format)',
                 'description' => 'Comma-separated variable names to extract from response'
             ]
         ];
     }
 
     /**
-     * Get available assistants from settings
+     * Get available assistants from OpenAI API
      */
     private function get_available_assistants()
     {
-        // This would get assistants from OpenAI provider settings
-        // For now, return empty array - to be implemented when OpenAI provider is updated
-        return [];
+        $settings = get_option('polytrans_settings', []);
+        $api_key = $settings['openai_api_key'] ?? '';
+        
+        if (empty($api_key)) {
+            return [];
+        }
+
+        // Use cached assistants if available and recent (5 minutes)
+        $cached_assistants = get_transient('polytrans_openai_assistants');
+        if ($cached_assistants !== false) {
+            return $cached_assistants;
+        }
+
+        // Fetch assistants from OpenAI API
+        $response = wp_remote_get('https://api.openai.com/v1/assistants', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $api_key,
+                'User-Agent' => 'PolyTrans/1.0',
+                'OpenAI-Beta' => 'assistants=v2'
+            ],
+            'timeout' => 10
+        ]);
+
+        if (is_wp_error($response)) {
+            return [];
+        }
+
+        $response_code = wp_remote_retrieve_response_code($response);
+        if ($response_code !== 200) {
+            return [];
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (!isset($data['data']) || !is_array($data['data'])) {
+            return [];
+        }
+
+        $assistants = [];
+        foreach ($data['data'] as $assistant) {
+            $assistants[$assistant['id']] = [
+                'id' => $assistant['id'],
+                'name' => $assistant['name'] ?? 'Unnamed Assistant',
+                'description' => $assistant['description'] ?? '',
+                'model' => $assistant['model'] ?? 'gpt-4'
+            ];
+        }
+
+        // Cache for 5 minutes
+        set_transient('polytrans_openai_assistants', $assistants, 5 * MINUTE_IN_SECONDS);
+
+        return $assistants;
     }
 
     /**
@@ -197,19 +270,16 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
     private function get_ai_provider_settings()
     {
         $settings = get_option('polytrans_settings', []);
-        $provider = $settings['translation_provider'] ?? 'openai';
+        $api_key = $settings['openai_api_key'] ?? '';
 
-        // Get provider-specific settings
-        $provider_settings = $settings[$provider] ?? [];
-
-        if (empty($provider_settings['api_key'])) {
+        if (empty($api_key)) {
             return false;
         }
 
         return [
-            'api_key' => $provider_settings['api_key'],
-            'base_url' => $provider_settings['base_url'] ?? 'https://api.openai.com/v1',
-            'model' => $provider_settings['model'] ?? 'gpt-3.5-turbo'
+            'api_key' => $api_key,
+            'base_url' => $settings['openai_base_url'] ?? 'https://api.openai.com/v1',
+            'model' => $settings['openai_model'] ?? 'gpt-3.5-turbo'
         ];
     }
 
@@ -452,19 +522,37 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
     private function process_assistant_response($response_content, $step_config)
     {
         $result = ['assistant_response' => $response_content];
+        $expected_format = $step_config['expected_format'] ?? 'text';
 
-        // Try to parse as JSON if output variables are specified
-        $output_variables = $step_config['output_variables'] ?? [];
-        if (!empty($output_variables) && is_array($output_variables)) {
+        // Handle JSON format
+        if ($expected_format === 'json') {
             $json_data = json_decode($response_content, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($json_data)) {
-                // Extract specified variables
-                foreach ($output_variables as $var_name) {
-                    if (isset($json_data[$var_name])) {
-                        $result[$var_name] = $json_data[$var_name];
+                // If output variables are specified, extract them
+                $output_variables = $step_config['output_variables'] ?? '';
+                if (!empty($output_variables)) {
+                    // Convert comma-separated string to array
+                    if (is_string($output_variables)) {
+                        $output_variables = array_map('trim', explode(',', $output_variables));
                     }
+                    
+                    // Extract specified variables
+                    foreach ($output_variables as $var_name) {
+                        if (!empty($var_name) && isset($json_data[$var_name])) {
+                            $result[$var_name] = $json_data[$var_name];
+                        }
+                    }
+                } else {
+                    // If no specific variables, include all JSON data
+                    $result = array_merge($result, $json_data);
                 }
+            } else {
+                // JSON parsing failed, treat as text
+                $result['processed_content'] = $response_content;
             }
+        } else {
+            // Plain text format
+            $result['processed_content'] = $response_content;
         }
 
         return $result;
@@ -476,14 +564,9 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
     public function get_required_variables()
     {
         return [
+            // Only require basic variables that are commonly available
             'title',
-            'content',
-            'original_title',
-            'original_content',
-            'translated_title',
-            'translated_content',
-            'target_language',
-            'source_language'
+            'content'
         ];
     }
 }
