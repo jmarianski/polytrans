@@ -122,8 +122,9 @@ class polytrans_settings
             $settings_provider_class = $provider->get_settings_provider_class();
             if ($settings_provider_class && class_exists($settings_provider_class)) {
                 $settings_providers[$provider_id] = new $settings_provider_class();
-                // Enqueue assets for the selected provider
-                if ($provider_id === $translation_provider) {
+                // Always enqueue OpenAI assets since they're used in workflows regardless of main provider
+                // For other providers, only enqueue if they're the selected provider
+                if ($provider_id === 'openai' || $provider_id === $translation_provider) {
                     $settings_providers[$provider_id]->enqueue_assets();
                 }
             }
@@ -142,7 +143,7 @@ class polytrans_settings
                 <a href="#tag-settings" class="nav-tab" id="tag-tab"><?php esc_html_e('Tag Settings', 'polytrans'); ?></a>
                 <a href="#email-settings" class="nav-tab" id="email-tab"><?php esc_html_e('Email Settings', 'polytrans'); ?></a>
                 <?php foreach ($settings_providers as $provider_id => $settings_provider): ?>
-                    <a href="#<?php echo esc_attr($provider_id); ?>-settings" class="nav-tab provider-settings-tab" id="<?php echo esc_attr($provider_id); ?>-tab" style="<?php echo ($translation_provider !== $provider_id) ? 'display:none;' : ''; ?>">
+                    <a href="#<?php echo esc_attr($provider_id); ?>-settings" class="nav-tab provider-settings-tab" id="<?php echo esc_attr($provider_id); ?>-tab">
                         <?php echo esc_html($settings_provider->get_tab_label()); ?>
                     </a>
                 <?php endforeach; ?>
@@ -224,20 +225,6 @@ class polytrans_settings
             <script>
                 jQuery(document).ready(function($) {
                     // Handle provider selection changes
-                    $('.provider-selection-radio').on('change', function() {
-                        var selectedProvider = $(this).val();
-
-                        // Hide all provider settings tabs and content
-                        $('.provider-settings-tab').hide();
-                        $('.provider-settings-content').hide();
-
-                        // Show the tab and content for the selected provider (if it exists)
-                        var providerTab = $('#' + selectedProvider + '-tab');
-
-                        if (providerTab.length) {
-                            providerTab.show();
-                        }
-                    });
 
                     // Handle tab navigation
                     $('.nav-tab').on('click', function(e) {
