@@ -434,20 +434,13 @@
         updateProviderSection: function () {
             var provider = $('input[name="translation_provider"]:checked').val();
 
-            if (provider === 'openai') {
-                // Show the OpenAI config section if OpenAI is selected
-                // But respect the toggle button state
-                var $toggleButton = $('#toggle-openai-section');
+            // Always show OpenAI settings since they're used in workflows regardless of main translation provider
+            var $toggleButton = $('#toggle-openai-section');
+            $toggleButton.show();
 
-                $toggleButton.show();
-
-                // Initialize OpenAI manager if not already done
-                if (!OpenAIManager.initialized) {
-                    OpenAIManager.init();
-                }
-            } else {
-                $('#openai-config-section').hide();
-                $('#toggle-openai-section').hide();
+            // Initialize OpenAI manager if not already done
+            if (!OpenAIManager.initialized) {
+                OpenAIManager.init();
             }
         }
     };
@@ -456,11 +449,8 @@
     $(function () {
         TranslationProviderManager.init();
 
-        // Initialize section toggles
-        var provider = $('input[name="translation_provider"]:checked').val();
-        if (provider !== 'openai') {
-            $('#toggle-openai-section').hide();
-        }
+        // Always show OpenAI toggle since OpenAI settings are used in workflows
+        $('#toggle-openai-section').show();
     });
 
 })(jQuery);
