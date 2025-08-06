@@ -612,12 +612,17 @@
                             <option value="update_post_title" ${actionType === 'update_post_title' ? 'selected' : ''}>Update Post Title</option>
                             <option value="update_post_content" ${actionType === 'update_post_content' ? 'selected' : ''}>Update Post Content</option>
                             <option value="update_post_excerpt" ${actionType === 'update_post_excerpt' ? 'selected' : ''}>Update Post Excerpt</option>
+                            <option value="update_post_status" ${actionType === 'update_post_status' ? 'selected' : ''}>Update Post Status</option>
+                            <option value="update_post_date" ${actionType === 'update_post_date' ? 'selected' : ''}>Update Post Date/Schedule</option>
                             <option value="update_post_meta" ${actionType === 'update_post_meta' ? 'selected' : ''}>Update Post Meta Field</option>
                             <option value="append_to_post_content" ${actionType === 'append_to_post_content' ? 'selected' : ''}>Append to Post Content</option>
                             <option value="prepend_to_post_content" ${actionType === 'prepend_to_post_content' ? 'selected' : ''}>Prepend to Post Content</option>
                             <option value="save_to_option" ${actionType === 'save_to_option' ? 'selected' : ''}>Save to WordPress Option</option>
                         </select>
-                        <small>What to do with the variable</small>
+                        <small>What to do with the variable. 
+                            <strong>Status:</strong> AI can set publish/draft/pending/private status. 
+                            <strong>Date:</strong> AI can schedule posts with dates/times in various formats.
+                        </small>
                     </div>
                     <div class="workflow-step-field output-action-target" style="display: ${actionType === 'update_post_meta' || actionType === 'save_to_option' ? 'block' : 'none'}">
                         <label>Target Field</label>

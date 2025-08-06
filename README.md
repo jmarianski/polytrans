@@ -41,7 +41,7 @@ Advanced workflow automation system for translated content:
 
 - **AI-Powered Processing**: Custom AI assistants for content enhancement
 - **Multi-Step Workflows**: Chain processing steps for complex transformations
-- **Output Actions**: Automatically update post content, titles, meta, and more
+- **Output Actions**: Automatically update post content, titles, meta, status, and scheduling
 - **Test Mode**: Preview workflow changes before applying them
 - **Comprehensive Logging**: Full audit trail of all workflow executions
 
@@ -128,7 +128,7 @@ Advanced post-processing workflow engine:
 3. Configure workflow steps:
    - **AI Assistant Steps**: Use OpenAI for content processing
    - **Predefined Assistant Steps**: Use pre-configured prompts
-   - **Output Actions**: Define what should be updated (title, content, meta, etc.)
+   - **Output Actions**: Define what should be updated (content, status, scheduling, etc.) (title, content, meta, status, date, etc.)
 4. Set up triggers for when workflows should run
 5. Configure user attribution if needed
 
@@ -219,6 +219,34 @@ Advanced post-processing workflow engine:
 - **Better Validation**: Enhanced input validation and error handling
 - **Test Mode**: Comprehensive test mode for workflow validation
 - **Debug Support**: Extensive debugging tools and logging
+
+### 4. AI-Driven Post Status and Scheduling
+
+#### Post Status Automation
+- **Feature**: AI workflows can now automatically set post status based on content analysis
+- **Supported Actions**: `update_post_status` output action with intelligent status parsing
+- **AI Response Formats**: Handles various status formats (published→publish, draft, pending review→pending, etc.)
+- **Validation**: Validates against WordPress post status system with helpful error messages
+- **Benefits**: Automated content quality gates, intelligent publishing workflows
+
+#### Scheduled Publishing
+- **Feature**: AI workflows can schedule posts for optimal publishing times
+- **Supported Actions**: `update_post_date` output action with flexible date parsing  
+- **Date Formats**: Supports MySQL, ISO, US/European formats, and natural language (tomorrow, next week)
+- **WordPress Integration**: Automatically sets both `post_date` and `post_date_gmt` fields
+- **Benefits**: AI-driven optimal timing, automated content scheduling
+
+#### Example Use Cases
+- **Quality Gates**: AI determines if translated content meets quality standards before publishing
+- **Optimal Timing**: AI analyzes content and suggests best publish times based on audience and content type
+- **Editorial Workflow**: AI routes content through different review stages (draft→pending→publish)
+- **Seasonal Content**: AI schedules content based on relevance and timing analysis
+
+#### Implementation Details
+- **Files Modified**: `includes/postprocessing/class-workflow-output-processor.php`
+- **New Methods**: `update_post_status()`, `update_post_date()`, `parse_post_status()`, `parse_post_date()`
+- **Error Handling**: Comprehensive validation with helpful error messages and format examples
+- **Logging**: Full audit trail of all status and date changes with original AI responses
 
 ## REST API Endpoints
 
