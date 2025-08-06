@@ -54,6 +54,9 @@ class PolyTrans_Workflow_Output_Processor
         $changes = [];
         $updated_context = $context;
 
+        // Ensure context has current post data for accurate "before" values
+        $updated_context = $this->ensure_context_has_post_data($updated_context);
+
         // Handle user attribution if specified in workflow
         $original_user_id = get_current_user_id();
         $attribution_user_id = null;
@@ -207,6 +210,12 @@ class PolyTrans_Workflow_Output_Processor
 
             case 'save_to_option':
                 return $this->save_to_option($value, $target, $context);
+
+            case 'update_post_status':
+                return $this->update_post_status($value, $context);
+
+            case 'update_post_date':
+                return $this->update_post_date($value, $context);
 
             default:
                 return [
@@ -513,535 +522,468 @@ class PolyTrans_Workflow_Output_Processor
     }
 
     /**
-     * Get available output action types
+     * Update post status
      */
-    public function get_available_action_types()
+    private function update_post_status($value, $context)
     {
-        return [
-            'update_post_title' => [
-                'label' => __('Update Post Title', 'polytrans'),
-                'description' => __('Replace the post title with the output value', 'polytrans'),
-                'requires_target' => false
-            ],
-            'update_post_content' => [
-                'label' => __('Update Post Content', 'polytrans'),
-                'description' => __('Replace the post content with the output value', 'polytrans'),
-                'requires_target' => false
-            ],
-            'update_post_excerpt' => [
-                'label' => __('Update Post Excerpt', 'polytrans'),
-                'description' => __('Replace the post excerpt with the output value', 'polytrans'),
-                'requires_target' => false
-            ],
-            'update_post_meta' => [
-                'label' => __('Update Post Meta', 'polytrans'),
-                'description' => __('Save the output value to a post meta field', 'polytrans'),
-                'requires_target' => true,
-                'target_label' => __('Meta Key', 'polytrans')
-            ],
-            'append_to_post_content' => [
-                'label' => __('Append to Post Content', 'polytrans'),
-                'description' => __('Add the output value to the end of the post content', 'polytrans'),
-                'requires_target' => false
-            ],
-            'prepend_to_post_content' => [
-                'label' => __('Prepend to Post Content', 'polytrans'),
-                'description' => __('Add the output value to the beginning of the post content', 'polytrans'),
-                'requires_target' => false
-            ],
-            'save_to_option' => [
-                'label' => __('Save to WordPress Option', 'polytrans'),
-                'description' => __('Save the output value to a WordPress option', 'polytrans'),
-                'requires_target' => true,
-                'target_label' => __('Option Name', 'polytrans')
-            ]
-        ];
-    }
-
-    /**
-     * Simulate step outputs for testing - shows what would happen without actually executing
-     */
-    public function simulate_step_outputs($step_results, $output_actions, $context)
-    {
-        if (empty($output_actions)) {
+        $post_id = $context['translated_post_id'] ?? $context['original_post_id'] ?? null;
+        if (!$post_id) {
             return [
-                'success' => true,
-                'actions_simulated' => 0,
-                'simulations' => [],
-                'message' => 'No output actions to simulate'
+                'success' => false,
+                'error' => 'No post ID found in context'
             ];
         }
 
-        $simulations = [];
-        $actions_simulated = 0;
-
-        foreach ($output_actions as $action) {
-            try {
-                $simulation = $this->simulate_single_action($step_results, $action, $context);
-                $simulations[] = $simulation;
-                if ($simulation['would_succeed']) {
-                    $actions_simulated++;
-                }
-            } catch (Exception $e) {
-                $simulations[] = [
-                    'would_succeed' => false,
-                    'action_type' => $action['type'] ?? 'unknown',
-                    'description' => 'Simulation failed: ' . $e->getMessage(),
-                    'details' => null
-                ];
-            }
+        // Clean and validate the status value
+        $status = $this->parse_post_status($value);
+        if (!$status) {
+            return [
+                'success' => false,
+                'error' => sprintf('Invalid post status: "%s". Valid statuses are: %s', 
+                    $value, 
+                    implode(', ', $this->get_valid_post_statuses())
+                )
+            ];
         }
+
+        $result = wp_update_post([
+            'ID' => $post_id,
+            'post_status' => $status
+        ]);
+
+        if (is_wp_error($result)) {
+            return [
+                'success' => false,
+                'error' => 'Failed to update post status: ' . $result->get_error_message()
+            ];
+        }
+
+        PolyTrans_Logs_Manager::log("Updated post status to '{$status}' for post ID {$post_id}", 'info', [
+            'source' => 'workflow_output_processor',
+            'post_id' => $post_id,
+            'old_status' => get_post_field('post_status', $post_id),
+            'new_status' => $status,
+            'raw_ai_value' => $value
+        ]);
 
         return [
             'success' => true,
-            'actions_simulated' => $actions_simulated,
-            'simulations' => $simulations,
-            'message' => sprintf('Simulated %d output actions', count($simulations))
+            'message' => sprintf('Updated post status to "%s" for post ID %d', $status, $post_id)
         ];
     }
 
     /**
-     * Simulate a single output action
+     * Update post date (for scheduling)
      */
-    private function simulate_single_action($step_results, $action, $context)
+    private function update_post_date($value, $context)
     {
-        $action_type = $action['type'] ?? '';
-        $source_variable = $action['source_variable'] ?? '';
-        $target = $action['target'] ?? '';
-
-        if (empty($action_type)) {
+        $post_id = $context['translated_post_id'] ?? $context['original_post_id'] ?? null;
+        if (!$post_id) {
             return [
-                'would_succeed' => false,
-                'action_type' => $action_type,
-                'description' => 'Action type is required',
-                'details' => null
+                'success' => false,
+                'error' => 'No post ID found in context'
             ];
         }
 
-        // Get the value from step results
-        // If source_variable is empty, auto-detect the main response
-        $value = $this->get_variable_value($step_results, $source_variable);
-        if ($value === null) {
-            $error_msg = empty($source_variable)
-                ? 'No response data available from step'
-                : sprintf('Source variable "%s" not found in step results', $source_variable);
-
+        // Parse and validate the date
+        $parsed_date = $this->parse_post_date($value);
+        if (!$parsed_date) {
             return [
-                'would_succeed' => false,
-                'action_type' => $action_type,
-                'description' => $error_msg,
-                'details' => null
+                'success' => false,
+                'error' => sprintf('Invalid date format: "%s". Please provide a valid date/time.', $value)
             ];
         }
 
-        // Convert value to string for display
-        $display_value = is_string($value) ? $value : json_encode($value);
-        $preview_value = strlen($display_value) > 100 ? substr($display_value, 0, 100) . '...' : $display_value;
+        $result = wp_update_post([
+            'ID' => $post_id,
+            'post_date' => $parsed_date,
+            'post_date_gmt' => get_gmt_from_date($parsed_date)
+        ]);
 
-        // Simulate based on action type
-        switch ($action_type) {
-            case 'save_to_post_title':
-                return [
-                    'would_succeed' => true,
-                    'action_type' => $action_type,
-                    'description' => 'Would update post title',
-                    'details' => [
-                        'target' => 'Post Title',
-                        'new_value' => $preview_value,
-                        'source_variable' => $source_variable
-                    ]
-                ];
-
-            case 'save_to_post_content':
-                return [
-                    'would_succeed' => true,
-                    'action_type' => $action_type,
-                    'description' => 'Would update post content',
-                    'details' => [
-                        'target' => 'Post Content',
-                        'new_value' => $preview_value,
-                        'source_variable' => $source_variable
-                    ]
-                ];
-
-            case 'save_to_post_excerpt':
-                return [
-                    'would_succeed' => true,
-                    'action_type' => $action_type,
-                    'description' => 'Would update post excerpt',
-                    'details' => [
-                        'target' => 'Post Excerpt',
-                        'new_value' => $preview_value,
-                        'source_variable' => $source_variable
-                    ]
-                ];
-
-            case 'save_to_meta':
-                $meta_key = $target;
-                if (empty($meta_key)) {
-                    return [
-                        'would_succeed' => false,
-                        'action_type' => $action_type,
-                        'description' => 'Meta key (target) is required for save_to_meta action',
-                        'details' => null
-                    ];
-                }
-
-                return [
-                    'would_succeed' => true,
-                    'action_type' => $action_type,
-                    'description' => sprintf('Would update meta field "%s"', $meta_key),
-                    'details' => [
-                        'target' => 'Meta: ' . $meta_key,
-                        'new_value' => $preview_value,
-                        'source_variable' => $source_variable
-                    ]
-                ];
-
-            case 'append_to_post_content':
-                return [
-                    'would_succeed' => true,
-                    'action_type' => $action_type,
-                    'description' => 'Would append to post content',
-                    'details' => [
-                        'target' => 'Post Content (append)',
-                        'append_value' => $preview_value,
-                        'source_variable' => $source_variable
-                    ]
-                ];
-
-            case 'save_to_custom_field':
-                $field_name = $target;
-                if (empty($field_name)) {
-                    return [
-                        'would_succeed' => false,
-                        'action_type' => $action_type,
-                        'description' => 'Custom field name (target) is required',
-                        'details' => null
-                    ];
-                }
-
-                return [
-                    'would_succeed' => true,
-                    'action_type' => $action_type,
-                    'description' => sprintf('Would update custom field "%s"', $field_name),
-                    'details' => [
-                        'target' => 'Custom Field: ' . $field_name,
-                        'new_value' => $preview_value,
-                        'source_variable' => $source_variable
-                    ]
-                ];
-
-            default:
-                return [
-                    'would_succeed' => false,
-                    'action_type' => $action_type,
-                    'description' => sprintf('Unknown action type "%s"', $action_type),
-                    'details' => null
-                ];
+        if (is_wp_error($result)) {
+            return [
+                'success' => false,
+                'error' => 'Failed to update post date: ' . $result->get_error_message()
+            ];
         }
+
+        PolyTrans_Logs_Manager::log("Updated post date to '{$parsed_date}' for post ID {$post_id}", 'info', [
+            'source' => 'workflow_output_processor',
+            'post_id' => $post_id,
+            'new_date' => $parsed_date,
+            'new_date_gmt' => get_gmt_from_date($parsed_date),
+            'raw_ai_value' => $value
+        ]);
+
+        return [
+            'success' => true,
+            'message' => sprintf('Updated post date to "%s" for post ID %d', $parsed_date, $post_id)
+        ];
     }
 
     /**
-     * Create a change object that describes what would happen
+     * Parse post status from AI response
+     * Handles various formats and common mistakes
+     */
+    private function parse_post_status($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        // Clean the value - remove quotes, trim, lowercase
+        $status = strtolower(trim($value, ' "\''));
+
+        $valid_statuses = $this->get_valid_post_statuses();
+
+        // Exact match check
+        if (in_array($status, $valid_statuses)) {
+            return $status;
+        }
+
+        // Common variations and mistakes
+        $common_mistakes = [
+            'publish' => ['published', 'public', 'live'],
+            'draft' => ['drafted', 'drafty'],
+            'pending' => ['pending review', 'waiting for review'],
+            'private' => ['privat', 'private post'],
+            'future' => ['scheduled', 'schedule'],
+            'trash' => ['deleted', 'move to trash']
+        ];
+
+        foreach ($common_mistakes as $correct_status => $variations) {
+            if (in_array($status, $variations)) {
+                return $correct_status;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Parse post date from AI response
+     * Tries to extract a valid date/time string from various possible formats
+     */
+    private function parse_post_date($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        // Try parsing with DateTime first
+        $date = DateTime::createFromFormat('Y-m-d H:i:s', $value);
+        if ($date) {
+            return $date->format('Y-m-d H:i:s');
+        }
+
+        // Try parsing with custom formats
+        $formats = [
+            'Y-m-d H:i:s',
+            'Y-m-d',
+            'd/m/Y',
+            'm/d/Y',
+            'Y.m.d',
+            'd.m.Y',
+            'm.d.Y',
+            'Y-m-d\TH:i:sP',
+            'Y-m-d\TH:i:s',
+            'Y-m-d\TH:i',
+            'Y-m-d\TH',
+            'Y-m-d\T',
+            'Y-m-d\TH:i:s.uP',
+            'Y-m-d\TH:i:s.u',
+            'Y-m-d\TH:i.u',
+            'Y-m-d\TH.u'
+        ];
+
+        foreach ($formats as $format) {
+            $date = DateTime::createFromFormat($format, $value);
+            if ($date !== false) {
+                return $date->format('Y-m-d H:i:s');
+            }
+        }
+
+        // Try strtotime as fallback
+        $timestamp = strtotime($value);
+        if ($timestamp !== false) {
+            return date('Y-m-d H:i:s', $timestamp);
+        }
+
+        return null;
+    }
+
+    /**
+     * Create a change object for an action
      */
     private function create_change_object($step_results, $action, $context)
     {
-        $action_type = $action['type'] ?? '';
-        $source_variable = $action['source_variable'] ?? '';
-        $target = $action['target'] ?? '';
-
-        if (empty($action_type)) {
-            return [
-                'success' => false,
-                'error' => 'Action type is required'
-            ];
-        }
-
-        // Get the value from step results
-        // If source_variable is empty, auto-detect the main response
-        $value = $this->get_variable_value($step_results, $source_variable);
-        if ($value === null) {
-            // Get available variables for debugging
-            $available_vars = [];
-            if (isset($step_results['data']) && is_array($step_results['data'])) {
-                $available_vars = array_keys($step_results['data']);
+        try {
+            $variable_path = $action['source_variable'] ?? '';
+            $value = $this->get_variable_value($step_results, $variable_path);
+            
+            if ($value === null && !empty($variable_path)) {
+                $value = $this->auto_detect_response_value($step_results['data'] ?? []);
             }
 
-            $error_msg = empty($source_variable)
-                ? 'No response data available from step'
-                : sprintf('Source variable "%s" not found in step results', $source_variable);
+            // Create base change object
+            $change = [
+                'action' => $action['type'],
+                'value' => $value,
+                'context' => $context,
+                'original_action' => $action
+            ];
+
+            // Add display-friendly fields for frontend
+            $change = $this->enhance_change_object_for_display($change, $context);
+
+            // Add specific parameters for certain actions
+            if ($action['type'] === 'update_post_meta' && isset($action['target'])) {
+                $change['meta_key'] = $action['target'];
+            }
+            
+            if ($action['type'] === 'save_to_option' && isset($action['target'])) {
+                $change['option_name'] = $action['target'];
+            }
 
             return [
+                'success' => true,
+                'change' => $change
+            ];
+        } catch (Exception $e) {
+            return [
                 'success' => false,
-                'error' => $error_msg . sprintf(
-                    '. Available variables: %s',
-                    empty($available_vars) ? 'none' : implode(', ', $available_vars)
-                ),
-                'available_variables' => $available_vars
+                'error' => 'Failed to create change object: ' . $e->getMessage()
             ];
         }
-
-        // Convert value to string if needed
-        if (is_array($value) || is_object($value)) {
-            $formatted_value = json_encode($value);
-        } else {
-            $formatted_value = (string) $value;
-        }
-
-        // Get current state for comparison
-        $current_state = $this->get_current_state($action_type, $target, $context);
-
-        // Create change object
-        $change = [
-            'action_type' => $action_type,
-            'source_variable' => $source_variable,
-            'target' => $target,
-            'new_value' => $formatted_value,
-            'raw_value' => $value,
-            'current_value' => $current_state['current_value'],
-            'target_description' => $current_state['target_description'],
-            'change_description' => $this->get_change_description($action_type, $target, $current_state['current_value'], $formatted_value)
-        ];
-
-        return [
-            'success' => true,
-            'change' => $change
-        ];
     }
 
     /**
-     * Get current state of the target
+     * Enhance change object with display-friendly fields for the frontend
      */
-    private function get_current_state($action_type, $target, $context)
+    private function enhance_change_object_for_display($change, $context)
     {
+        $action_type = $change['action'];
+        $new_value = $change['value'];
+        
+        // Get current value and target description based on action type
+        $current_value = '';
+        $target_description = '';
+        
         switch ($action_type) {
             case 'update_post_title':
-                $post_id = $context['translated_post_id'] ?? null;
-                if ($post_id && get_post($post_id)) {
-                    $current_value = get_post_field('post_title', $post_id);
-                } else {
-                    // Test mode or post doesn't exist
-                    $current_value = $context['translated_post']['title'] ?? $context['title'] ?? '';
-                }
-                return [
-                    'current_value' => $current_value,
-                    'target_description' => $post_id ? "Post #{$post_id} title" : "Post title (test mode)"
-                ];
-
+                $current_value = $context['post_title'] ?? '';
+                $target_description = 'Post Title';
+                break;
+                
             case 'update_post_content':
-                $post_id = $context['translated_post_id'] ?? null;
-                if ($post_id && get_post($post_id)) {
-                    $current_value = get_post_field('post_content', $post_id);
-                } else {
-                    // Test mode or post doesn't exist
-                    $current_value = $context['translated_post']['content'] ?? $context['content'] ?? '';
-                }
-                return [
-                    'current_value' => $current_value,
-                    'target_description' => $post_id ? "Post #{$post_id} content" : "Post content (test mode)"
-                ];
-
+                $current_value = $context['post_content'] ?? '';
+                $target_description = 'Post Content';
+                break;
+                
             case 'update_post_excerpt':
-                $post_id = $context['translated_post_id'] ?? null;
-                if ($post_id && get_post($post_id)) {
-                    $current_value = get_post_field('post_excerpt', $post_id);
-                } else {
-                    // Test mode or post doesn't exist
-                    $current_value = $context['translated_post']['excerpt'] ?? $context['excerpt'] ?? '';
-                }
-                return [
-                    'current_value' => $current_value,
-                    'target_description' => $post_id ? "Post #{$post_id} excerpt" : "Post excerpt (test mode)"
-                ];
-
+                $current_value = $context['post_excerpt'] ?? '';
+                $target_description = 'Post Excerpt';
+                break;
+                
+            case 'update_post_status':
+                $current_value = $context['post_status'] ?? '';
+                $target_description = 'Post Status';
+                // Parse the new value to ensure it's clean
+                $new_value = $this->parse_post_status($new_value) ?? $new_value;
+                break;
+                
+            case 'update_post_date':
+                $current_value = $context['post_date'] ?? '';
+                $target_description = 'Post Date';
+                // Parse the new value to ensure it's clean
+                $new_value = $this->parse_post_date($new_value) ?? $new_value;
+                break;
+                
             case 'update_post_meta':
-                $post_id = $context['translated_post_id'] ?? null;
-                if ($post_id && get_post($post_id)) {
-                    $current_value = get_post_meta($post_id, $target, true);
-                } else {
-                    // Test mode or post doesn't exist
-                    $current_value = $context['translated_post']['meta'][$target] ?? '';
-                }
-                return [
-                    'current_value' => $current_value,
-                    'target_description' => $post_id ? "Post #{$post_id} meta field '{$target}'" : "Post meta field '{$target}' (test mode)"
-                ];
-
+                $meta_key = $change['original_action']['target'] ?? 'unknown';
+                $current_value = $context['meta'][$meta_key] ?? '';
+                $target_description = "Post Meta: {$meta_key}";
+                break;
+                
             case 'save_to_option':
-                $current_value = get_option($target, '');
-                return [
-                    'current_value' => $current_value,
-                    'target_description' => "WordPress option '{$target}'"
-                ];
-
-            default:
-                return [
-                    'current_value' => '',
-                    'target_description' => "Unknown target ({$action_type})"
-                ];
-        }
-    }
-
-    /**
-     * Generate a human-readable description of the change
-     */
-    private function get_change_description($action_type, $target, $current_value, $new_value)
-    {
-        $current_preview = strlen($current_value) > 100 ? substr($current_value, 0, 100) . '...' : $current_value;
-        $new_preview = strlen($new_value) > 100 ? substr($new_value, 0, 100) . '...' : $new_value;
-
-        switch ($action_type) {
-            case 'update_post_title':
-                return "Change title from '{$current_preview}' to '{$new_preview}'";
-
-            case 'update_post_content':
-                return "Replace content (current: " . strlen($current_value) . " chars) with new content (" . strlen($new_value) . " chars)";
-
-            case 'update_post_excerpt':
-                return "Change excerpt from '{$current_preview}' to '{$new_preview}'";
-
-            case 'update_post_meta':
-                return "Set meta field '{$target}' from '{$current_preview}' to '{$new_preview}'";
-
+                $option_name = $change['original_action']['target'] ?? 'unknown';
+                $current_value = get_option($option_name, '');
+                $target_description = "WordPress Option: {$option_name}";
+                break;
+                
             case 'append_to_post_content':
-                return "Append to content: '{$new_preview}'";
-
+                $current_value = $context['post_content'] ?? '';
+                $new_value = $current_value . "\n\n" . $new_value;
+                $target_description = 'Post Content (Append)';
+                break;
+                
             case 'prepend_to_post_content':
-                return "Prepend to content: '{$new_preview}'";
-
-            case 'save_to_option':
-                return "Set option '{$target}' from '{$current_preview}' to '{$new_preview}'";
-
+                $current_value = $context['post_content'] ?? '';
+                $new_value = $new_value . "\n\n" . $current_value;
+                $target_description = 'Post Content (Prepend)';
+                break;
+                
             default:
-                return "Unknown action: {$action_type}";
+                $target_description = ucwords(str_replace('_', ' ', $action_type));
+                break;
         }
+        
+        // Add display fields that match JavaScript expectations
+        $change['action_type'] = $action_type;
+        $change['target_description'] = $target_description;
+        $change['current_value'] = $current_value;
+        $change['new_value'] = $new_value;
+        
+        return $change;
     }
 
     /**
-     * Apply change to context (for test mode)
+     * Apply a change to the context (for test mode)
      */
     private function apply_change_to_context($context, $change)
     {
-        // For test mode, we update the context variables to reflect the changes
-        switch ($change['action_type']) {
+        $updated_context = $context;
+        
+        switch ($change['action']) {
             case 'update_post_title':
-                if (isset($context['translated_post'])) {
-                    $context['translated_post']['title'] = $change['new_value'];
-                }
-                // Also update convenience alias
-                $context['title'] = $change['new_value'];
+                $updated_context['post_title'] = $change['value'];
                 break;
-
             case 'update_post_content':
-                if (isset($context['translated_post'])) {
-                    $context['translated_post']['content'] = $change['new_value'];
-                }
-                // Also update convenience alias
-                $context['content'] = $change['new_value'];
+                $updated_context['post_content'] = $change['value'];
                 break;
-
             case 'update_post_excerpt':
-                if (isset($context['translated_post'])) {
-                    $context['translated_post']['excerpt'] = $change['new_value'];
-                }
-                // Also update convenience alias
-                $context['excerpt'] = $change['new_value'];
+                $updated_context['post_excerpt'] = $change['value'];
                 break;
-
+            case 'update_post_status':
+                $updated_context['post_status'] = $change['value'];
+                break;
+            case 'update_post_date':
+                $updated_context['post_date'] = $change['value'];
+                $updated_context['post_date_gmt'] = get_gmt_from_date($change['value']);
+                break;
             case 'update_post_meta':
-                if (isset($context['translated_post'])) {
-                    if (!isset($context['translated_post']['meta'])) {
-                        $context['translated_post']['meta'] = [];
-                    }
-                    $context['translated_post']['meta'][$change['target']] = $change['new_value'];
+                if (!isset($updated_context['meta'])) {
+                    $updated_context['meta'] = [];
                 }
+                $updated_context['meta'][$change['meta_key']] = $change['value'];
+                break;
+            case 'append_to_post_content':
+                $updated_context['post_content'] = ($updated_context['post_content'] ?? '') . $change['value'];
+                break;
+            case 'prepend_to_post_content':
+                $updated_context['post_content'] = $change['value'] . ($updated_context['post_content'] ?? '');
                 break;
         }
-
-        return $context;
+        
+        return $updated_context;
     }
 
     /**
-     * Execute a change (for production mode)
+     * Execute a change in production mode
      */
     private function execute_change($change, $context)
     {
-        switch ($change['action_type']) {
-            case 'update_post_title':
-                return $this->update_post_title($change['new_value'], $context);
-
-            case 'update_post_content':
-                return $this->update_post_content($change['new_value'], $context);
-
-            case 'update_post_excerpt':
-                return $this->update_post_excerpt($change['new_value'], $context);
-
-            case 'update_post_meta':
-                return $this->update_post_meta($change['new_value'], $change['target'], $context);
-
-            case 'append_to_post_content':
-                return $this->append_to_post_content($change['new_value'], $context);
-
-            case 'prepend_to_post_content':
-                return $this->prepend_to_post_content($change['new_value'], $context);
-
-            case 'save_to_option':
-                return $this->save_to_option($change['new_value'], $change['target'], $context);
-
-            default:
-                return [
-                    'success' => false,
-                    'error' => sprintf('Unknown action type: %s', $change['action_type'])
-                ];
+        try {
+            $action = $change['action'];
+            $value = $change['value'];
+            
+            switch ($action) {
+                case 'update_post_title':
+                    return $this->update_post_title($value, $context);
+                case 'update_post_content':
+                    return $this->update_post_content($value, $context);
+                case 'update_post_excerpt':
+                    return $this->update_post_excerpt($value, $context);
+                case 'update_post_status':
+                    return $this->update_post_status($value, $context);
+                case 'update_post_date':
+                    return $this->update_post_date($value, $context);
+                case 'update_post_meta':
+                    return $this->update_post_meta($value, $change['meta_key'], $context);
+                case 'append_to_post_content':
+                    return $this->append_to_post_content($value, $context);
+                case 'prepend_to_post_content':
+                    return $this->prepend_to_post_content($value, $context);
+                case 'save_to_option':
+                    return $this->save_to_option($value, $change['option_name'], $context);
+                default:
+                    return [
+                        'success' => false,
+                        'error' => "Unknown action: {$action}"
+                    ];
+            }
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'error' => 'Failed to execute change: ' . $e->getMessage()
+            ];
         }
     }
 
     /**
-     * Refresh context from database (for production mode)
-     * Updates the context with current database values after changes have been made
+     * Refresh context from database to get current values
      */
     private function refresh_context_from_database($context)
     {
-        // Get the translated post ID from context
-        $translated_post_id = null;
-        if (isset($context['translated_post_id'])) {
-            $translated_post_id = $context['translated_post_id'];
-        } elseif (isset($context['translated_post']['ID'])) {
-            $translated_post_id = $context['translated_post']['ID'];
+        if (!isset($context['post_id'])) {
+            return $context;
         }
 
-        if (!$translated_post_id) {
-            return $context; // No post ID to refresh from
+        $post = get_post($context['post_id']);
+        if (!$post) {
+            return $context;
         }
 
-        // Get the current post from database
-        $current_post = get_post($translated_post_id);
-        if (!$current_post) {
-            return $context; // Post not found
+        $updated_context = $context;
+        $updated_context['post_title'] = $post->post_title;
+        $updated_context['post_content'] = $post->post_content;
+        $updated_context['post_excerpt'] = $post->post_excerpt;
+        $updated_context['post_status'] = $post->post_status;
+        $updated_context['post_date'] = $post->post_date;
+        $updated_context['post_date_gmt'] = $post->post_date_gmt;
+
+        return $updated_context;
+    }
+
+    /**
+     * Ensure context has current post data for accurate "before" values
+     */
+    private function ensure_context_has_post_data($context)
+    {
+        // Find the post ID from various possible fields
+        $post_id = $context['translated_post_id'] ?? 
+                   $context['original_post_id'] ?? 
+                   $context['post_id'] ?? 
+                   null;
+        
+        if (!$post_id) {
+            return $context;
         }
-
-        // Update context with current database values
-        $context['title'] = $current_post->post_title;
-        $context['content'] = $current_post->post_content;
-        $context['excerpt'] = $current_post->post_excerpt;
-
-        // Update translated_post structure if it exists
-        if (isset($context['translated_post'])) {
-            $context['translated_post']['title'] = $current_post->post_title;
-            $context['translated_post']['content'] = $current_post->post_content;
-            $context['translated_post']['excerpt'] = $current_post->post_excerpt;
-            $context['translated_post']['ID'] = $current_post->ID;
-            $context['translated_post']['post_author'] = $current_post->post_author;
-            $context['translated_post']['post_status'] = $current_post->post_status;
-            $context['translated_post']['post_type'] = $current_post->post_type;
-            $context['translated_post']['post_date'] = $current_post->post_date;
-            $context['translated_post']['post_modified'] = $current_post->post_modified;
-
-            // Refresh post meta
-            $context['translated_post']['meta'] = get_post_meta($current_post->ID);
+        
+        $post = get_post($post_id);
+        if (!$post) {
+            return $context;
         }
-
+        
+        // Populate context with current post data if not already present
+        $context['post_title'] = $context['post_title'] ?? $post->post_title;
+        $context['post_content'] = $context['post_content'] ?? $post->post_content;
+        $context['post_excerpt'] = $context['post_excerpt'] ?? $post->post_excerpt;
+        $context['post_status'] = $context['post_status'] ?? $post->post_status;
+        $context['post_date'] = $context['post_date'] ?? $post->post_date;
+        $context['post_date_gmt'] = $context['post_date_gmt'] ?? $post->post_date_gmt;
+        
+        // Ensure post_id is consistently available
+        $context['post_id'] = $post_id;
+        
         return $context;
+    }
+
+    /**
+     * Get valid post statuses for validation
+     */
+    private function get_valid_post_statuses()
+    {
+        return ['publish', 'draft', 'pending', 'private', 'trash', 'future'];
     }
 }

@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **AI-DRIVEN AUTOMATION**: New workflow output actions for intelligent post management
+  - `update_post_status` action: AI can set post status based on content analysis (publish, draft, pending, etc.)
+  - `update_post_date` action: AI can schedule posts for optimal publishing times
+  - Intelligent parsing of various AI response formats (natural language, timestamps, etc.)
+  - Comprehensive validation and error handling with helpful format examples
+- **WORKFLOW ENHANCEMENT**: Enhanced workflow output processor with robust helper methods
+  - `create_change_object()`, `apply_change_to_context()`, `execute_change()`, `refresh_context_from_database()`
+  - Better separation between test mode and production execution
+  - Improved error handling and logging throughout workflow execution
 - **DOCUMENTATION**: Comprehensive documentation structure
   - User-focused documentation in `docs/user-guide/` (Installation, Interface, FAQ)
   - Administrator guides in `docs/admin/` (Configuration, Workflow management)
@@ -17,6 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Master documentation index with audience-based navigation
 - **USER EXPERIENCE**: New user-focused Quick Start guide (5-minute setup)
 - **ORGANIZATION**: Clean documentation structure with proper cross-references
+
+### Fixed
+- **WORKFLOW TESTING**: Fixed JavaScript frontend processing of workflow test results
+  - Enhanced change objects with display-friendly fields (`action_type`, `target_description`, `current_value`, `new_value`)
+  - Fixed field mapping between backend change objects and frontend JavaScript expectations
+  - Resolved "No changes" display issue in workflow test results
+- **CONTEXT INITIALIZATION**: Fixed empty "BEFORE" values in workflow test mode
+  - Added `ensure_context_has_post_data()` method to populate context with actual post data
+  - Ensures accurate "BEFORE" values from database instead of empty initial context
+  - Improved progressive context updates between workflow steps
 
 ### Changed
 - **DOCUMENTATION**: Reorganized scattered markdown files into logical structure
@@ -36,8 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ **Settings menu** for centralized plugin configuration
 - ✅ **Enhanced core directory** with consolidated WordPress integration functionality
 - ✅ **COMPREHENSIVE INTERNATIONALIZATION**: Extensive i18n implementation across the plugin
-  - ✅ **244 localized strings** using __() function across the codebase
-  - ✅ **472 instances** of 'polytrans' text domain usage
+  - ✅ **233 localized strings** using __() function across the codebase
+  - ✅ **890 instances** of 'polytrans' text domain usage
   - ✅ **7 wp_localize_script implementations** for JavaScript components
   - ✅ **Localized user-facing strings** in PHP and JavaScript
   - ✅ **Text domain loading** in main plugin class
