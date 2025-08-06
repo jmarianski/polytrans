@@ -256,13 +256,18 @@ class PolyTrans_Workflow_Output_Processor
 
         // Priority order for auto-detection:
         // 1. If there's an 'ai_response' (plain text format), use that
-        // 2. If there's a 'content' variable, use that  
-        // 3. If there's an 'assistant_response', use that
-        // 4. If there's only one variable, use that
-        // 5. Otherwise, return the first available value
+        // 2. If there's a 'processed_content' (predefined assistant plain text), use that
+        // 3. If there's a 'content' variable, use that  
+        // 4. If there's an 'assistant_response', use that
+        // 5. If there's only one variable, use that
+        // 6. Otherwise, return the first available value
 
         if (isset($data['ai_response'])) {
             return $data['ai_response'];
+        }
+
+        if (isset($data['processed_content'])) {
+            return $data['processed_content'];
         }
 
         if (isset($data['content'])) {
@@ -746,14 +751,15 @@ class PolyTrans_Workflow_Output_Processor
         $source_variable = $action['source_variable'] ?? '';
         $target = $action['target'] ?? '';
 
-        if (empty($action_type) || empty($source_variable)) {
+        if (empty($action_type)) {
             return [
                 'success' => false,
-                'error' => 'Action type and source variable are required'
+                'error' => 'Action type is required'
             ];
         }
 
         // Get the value from step results
+        // If source_variable is empty, auto-detect the main response
         $value = $this->get_variable_value($step_results, $source_variable);
         if ($value === null) {
             // Get available variables for debugging
@@ -762,11 +768,14 @@ class PolyTrans_Workflow_Output_Processor
                 $available_vars = array_keys($step_results['data']);
             }
 
+            $error_msg = empty($source_variable)
+                ? 'No response data available from step'
+                : sprintf('Source variable "%s" not found in step results', $source_variable);
+
             return [
                 'success' => false,
-                'error' => sprintf(
-                    'Source variable "%s" not found in step results. Available variables: %s',
-                    $source_variable,
+                'error' => $error_msg . sprintf(
+                    '. Available variables: %s',
                     empty($available_vars) ? 'none' : implode(', ', $available_vars)
                 ),
                 'available_variables' => $available_vars

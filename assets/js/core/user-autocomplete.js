@@ -37,8 +37,8 @@
                         }, function (data) {
                             response(data.map(function (u) {
                                 return {
-                                    label: u.name + ' (' + u.user_email + ')',
-                                    value: u.name + ' (' + u.user_email + ')',
+                                    label: u.name + (u.user_email ? ' (' + u.user_email + ')' : ''),
+                                    value: u.name + (u.user_email ? ' (' + u.user_email + ')' : ''),
                                     id: u.id
                                 };
                             }));

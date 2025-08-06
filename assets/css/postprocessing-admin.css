@@ -1174,3 +1174,15 @@
 .language-pair-group:hover {
     border-color: #007cba !important;
 }
+
+/* Assistant dropdown loading state */
+select[id*="assistant-id"]:disabled {
+    opacity: 0.6;
+    background-color: #f6f7f7;
+    cursor: not-allowed;
+}
+
+select[id*="assistant-id"] option:first-child {
+    color: #666;
+    font-style: italic;
+}
