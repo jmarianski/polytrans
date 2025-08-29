@@ -237,6 +237,7 @@ class PolyTrans
      */
     public function translation_meta_box_callback($post)
     {
+        // TODO: it might not be rendering
         $meta_box = PolyTrans_Translation_Meta_Box::get_instance();
         $meta_box->render($post);
     }
