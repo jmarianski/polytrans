@@ -86,14 +86,14 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         $openai_model = $settings['openai_model'] ?? 'gpt-4o-mini';
 ?>
         <script>
-        window.POLYTRANS_LANGS = <?php echo json_encode(array_values($languages)); ?>;
-        window.POLYTRANS_LANG_NAMES = <?php
-            $lang_name_map = [];
-            foreach ($languages as $i => $lang) {
-                $lang_name_map[$lang] = $language_names[$i] ?? strtoupper($lang);
-            }
-            echo json_encode($lang_name_map);
-        ?>;
+            window.POLYTRANS_LANGS = <?php echo json_encode(array_values($languages)); ?>;
+            window.POLYTRANS_LANG_NAMES = <?php
+                                            $lang_name_map = [];
+                                            foreach ($languages as $i => $lang) {
+                                                $lang_name_map[$lang] = $language_names[$i] ?? strtoupper($lang);
+                                            }
+                                            echo json_encode($lang_name_map);
+                                            ?>;
         </script>
         <div class="openai-config-section">
             <h2><?php echo esc_html($this->get_tab_label()); ?></h2>
