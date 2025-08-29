@@ -67,17 +67,41 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
      */
     private function resolve_translation_path($source_lang, $target_lang, $openai_path_rules)
     {
-        // Try to find a rule that matches source and target
-        foreach ($openai_path_rules as $rule) {
+        // Find the most specific rule, breaking ties by last-in-list
+        $best_rule = null;
+        $best_score = 0;
+        $best_index = -1;
+        foreach ($openai_path_rules as $idx => $rule) {
+            $score = 0;
             if ($rule['source'] === $source_lang && $rule['target'] === $target_lang) {
-                if (!empty($rule['intermediate']) && $rule['intermediate'] !== $source_lang && $rule['intermediate'] !== $target_lang) {
-                    return [$source_lang, $rule['intermediate'], $target_lang];
-                } else {
-                    return [$source_lang, $target_lang];
-                }
+                $score = 3; // exact match
+            } elseif (
+                ($rule['source'] === $source_lang && $rule['target'] === 'all') ||
+                ($rule['source'] === 'all' && $rule['target'] === $target_lang)
+            ) {
+                $score = 2; // semi-wildcard
+            } elseif ($rule['source'] === 'all' && $rule['target'] === 'all') {
+                $score = 1; // full wildcard
+            }
+            if ($score > 0 && ($score > $best_score || ($score === $best_score && $idx > $best_index))) {
+                $best_rule = $rule;
+                $best_score = $score;
+                $best_index = $idx;
             }
         }
-        // Fallback: direct path
+        if ($best_rule) {
+            $intermediate = isset($best_rule['intermediate']) ? trim($best_rule['intermediate']) : '';
+            PolyTrans_Logs_Manager::log(
+                "resolve_translation_path: selected rule (score $best_score, index $best_index): " . json_encode($best_rule) . ", intermediate: '" . $intermediate . "'",
+                "debug"
+            );
+            if ($intermediate === '' || strtolower($intermediate) === 'none' || $intermediate === $source_lang || $intermediate === $target_lang) {
+                return [$source_lang, $target_lang];
+            } else {
+                return [$source_lang, $intermediate, $target_lang];
+            }
+        }
+        PolyTrans_Logs_Manager::log("resolve_translation_path: no rule found for $source_lang -> $target_lang, using direct path", "debug");
         return [$source_lang, $target_lang];
     }
 
@@ -101,6 +125,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
         }
 
         try {
+            PolyTrans_Logs_Manager::log("OpenAI: openai_path_rules: " . json_encode($openai_path_rules), "debug");
             $path = $this->resolve_translation_path($source_lang, $target_lang, $openai_path_rules);
             PolyTrans_Logs_Manager::log("OpenAI: translation path resolved: " . implode(' -> ', $path), "info");
 
@@ -110,6 +135,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                 $step_target = $path[$i + 1];
                 $assistant_key = $step_source . '_to_' . $step_target;
                 $assistant_id = $openai_assistants[$assistant_key] ?? null;
+                PolyTrans_Logs_Manager::log("OpenAI: step $i: $step_source -> $step_target, assistant_key: $assistant_key, assistant_id: " . ($assistant_id ?: 'none'), "debug");
                 if (!$assistant_id || empty($assistant_id)) {
                     // Fallback: any available assistant
                     $available_assistants = array_filter($openai_assistants, function ($assistant) {
@@ -120,6 +146,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                         $used_direction = array_search($assistant_id, $openai_assistants);
                         PolyTrans_Logs_Manager::log("No specific assistant for $assistant_key, using fallback: $used_direction ($assistant_id)", "info");
                     } else {
+                        PolyTrans_Logs_Manager::log("No OpenAI assistant configured for translation step ($step_source -> $step_target). Please configure an assistant for '$assistant_key' or any other direction.", "error");
                         return [
                             'success' => false,
                             'translated_content' => null,
@@ -127,17 +154,20 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                         ];
                     }
                 }
-                PolyTrans_Logs_Manager::log("OpenAI: translating step $step_source -> $step_target", "info");
+                PolyTrans_Logs_Manager::log("OpenAI: translating step $step_source -> $step_target with assistant $assistant_id", "info");
                 $result = $this->translate_with_openai($content_to_translate, $step_source, $step_target, $assistant_id, $openai_api_key);
                 if (!$result['success']) {
+                    PolyTrans_Logs_Manager::log("OpenAI: step $i failed ($step_source -> $step_target): " . $result['error'], "error");
                     return [
                         'success' => false,
                         'translated_content' => null,
                         'error' => "Translation step failed ($step_source -> $step_target): " . $result['error']
                     ];
                 }
+                PolyTrans_Logs_Manager::log("OpenAI: step $i completed ($step_source -> $step_target)", "debug");
                 $content_to_translate = $result['translated_content'];
             }
+            PolyTrans_Logs_Manager::log("OpenAI: all steps completed, returning final translation", "info");
             return [
                 'success' => true,
                 'translated_content' => $content_to_translate,
@@ -145,6 +175,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
             ];
         } catch (Exception $e) {
             error_log("[polytrans] OpenAI translation error: " . $e->getMessage());
+            PolyTrans_Logs_Manager::log("OpenAI: exception: " . $e->getMessage(), "error");
             return [
                 'success' => false,
                 'translated_content' => null,
