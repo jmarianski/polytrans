@@ -304,64 +304,119 @@
         },
 
         updateLanguagePairVisibility: function () {
-            var openaiSourceLang = $('#openai-source-language').val();
+            // 1. Get allowed source/target languages
             var allowedSources = [];
             var allowedTargets = [];
-
-            // Get allowed source languages
             $('input[name="allowed_sources[]"]:checked').each(function () {
                 allowedSources.push($(this).val());
             });
-
-            // Get allowed target languages
             $('input[name="allowed_targets[]"]:checked').each(function () {
                 allowedTargets.push($(this).val());
             });
 
-            var visiblePairs = 0;
+            // 2. Get all rules from the DOM
+            var rules = [];
+            $('#openai-path-rules-list .openai-path-rule').each(function (i) {
+                var $rule = $(this);
+                var source = $rule.find('.openai-path-source').val();
+                var target = $rule.find('.openai-path-target').val();
+                var intermediate = $rule.find('.openai-path-intermediate').val();
+                rules.push({ source: source, target: target, intermediate: intermediate, index: i });
+            });
+            console.log('[Polytrans] Path rules:', rules);
 
-            // Filter and show/hide language pairs
+            // 3. Expand all rules into all possible pairs, collecting all rules for each pair
+            var pairToRules = {};
+            rules.forEach(function (rule) {
+                var sources = (rule.source === 'all') ? allowedSources : [rule.source];
+                var targets = (rule.target === 'all') ? allowedTargets : [rule.target];
+                sources.forEach(function (src) {
+                    targets.forEach(function (tgt) {
+                        if (src === tgt) return;
+                        if (rule.intermediate === 'none') {
+                            // Direct pair
+                            var key = src + '_to_' + tgt;
+                            if (!pairToRules[key]) pairToRules[key] = [];
+                            pairToRules[key].push({
+                                type: 'direct',
+                                rule: rule,
+                                srcSet: sources,
+                                tgtSet: targets
+                            });
+                        } else {
+                            // Via intermediate: src->inter and inter->tgt
+                            if (src !== rule.intermediate) {
+                                var key1 = src + '_to_' + rule.intermediate;
+                                if (!pairToRules[key1]) pairToRules[key1] = [];
+                                pairToRules[key1].push({
+                                    type: 'via',
+                                    rule: rule,
+                                    srcSet: sources,
+                                    inter: rule.intermediate,
+                                    tgtSet: targets
+                                });
+                            }
+                            if (rule.intermediate !== tgt) {
+                                var key2 = rule.intermediate + '_to_' + tgt;
+                                if (!pairToRules[key2]) pairToRules[key2] = [];
+                                pairToRules[key2].push({
+                                    type: 'via',
+                                    rule: rule,
+                                    srcSet: sources,
+                                    inter: rule.intermediate,
+                                    tgtSet: targets
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+            console.log('[Polytrans] All pairs and their rules:', pairToRules);
+
+            // 4. Show/hide mapping table rows
+            var visiblePairs = 0;
             $('.language-pair-row').each(function () {
                 var $row = $(this);
-                var sourceLang = $row.data('source');
-                var targetLang = $row.data('target');
-                var $toOpenaiBadge = $row.find('.pair-type-to-openai');
-                var $fromOpenaiBadge = $row.find('.pair-type-from-openai');
-
-                var isSourceToOpenai = allowedSources.indexOf(sourceLang) !== -1 &&
-                    targetLang === openaiSourceLang &&
-                    sourceLang !== openaiSourceLang;
-
-                var isOpenaiToTarget = sourceLang === openaiSourceLang &&
-                    allowedTargets.indexOf(targetLang) !== -1 &&
-                    targetLang !== openaiSourceLang;
-
-                // Show row if it matches either pattern
-                if (isSourceToOpenai || isOpenaiToTarget) {
+                var src = $row.data('source');
+                var tgt = $row.data('target');
+                var pairKey = $row.data('pair');
+                var matchingRules = pairToRules[pairKey] || [];
+                if (matchingRules.length > 0) {
                     $row.show();
                     visiblePairs++;
-
-                    // Show appropriate badge based on the match
-                    if (isSourceToOpenai) {
-                        $toOpenaiBadge.show();
-                        $fromOpenaiBadge.hide();
-                    } else if (isOpenaiToTarget) {
-                        $toOpenaiBadge.hide();
-                        $fromOpenaiBadge.show();
-                    }
+                    // Build summary string for translation path column
+                    var pathSummaries = matchingRules.map(function (mr) {
+                        if (mr.type === 'direct') {
+                            var srcSet = '(' + mr.srcSet.map(function (code) { return code.toUpperCase(); }).join(',') + ')';
+                            var tgtSet = '(' + mr.tgtSet.map(function (code) { return code.toUpperCase(); }).join(',') + ')';
+                            return srcSet + '→' + tgtSet;
+                        } else if (mr.type === 'via') {
+                            var srcSet = '(' + mr.srcSet.map(function (code) { return code.toUpperCase(); }).join(',') + ')';
+                            var inter = mr.inter.toUpperCase();
+                            var tgtSet = '(' + mr.tgtSet.map(function (code) { return code.toUpperCase(); }).join(',') + ')';
+                            return srcSet + '→' + inter + '→' + tgtSet;
+                        }
+                        return '';
+                    });
+                    // Remove duplicates
+                    var uniqueSummaries = Array.from(new Set(pathSummaries));
+                    $row.find('.translation-path-details').html(uniqueSummaries.join('<br>'));
+                    $row.find('.translation-path-direct').text(matchingRules.length === 1 && matchingRules[0].type === 'direct' ? 'Direct' : 'Rule(s)');
+                    console.log('[Polytrans] Showing pair:', pairKey, 'with rules:', pathSummaries);
                 } else {
                     $row.hide();
-                    $toOpenaiBadge.hide();
-                    $fromOpenaiBadge.hide();
+                    console.log('[Polytrans] Hiding pair:', pairKey);
                 }
             });
 
-            // Show/hide "no relevant pairs" message
+            // 5. Show/hide "no relevant pairs" message
             var $noRelevantMessage = $('.no-relevant-pairs-message');
             if (visiblePairs === 0) {
                 $noRelevantMessage.show();
+                console.log('[Polytrans] No relevant pairs visible.');
             } else {
                 $noRelevantMessage.hide();
+                console.log('[Polytrans] Visible pairs:', visiblePairs);
             }
         },
 
@@ -445,12 +500,113 @@
         }
     };
 
-    // Initialize everything when document is ready
+    // --- Translation Path Rules Management ---
+    var PathRulesManager = {
+        init: function () {
+            this.bindEvents();
+            this.makeSortable();
+        },
+        bindEvents: function () {
+            $(document).on('click', '#openai-path-add-rule', this.addRule.bind(this));
+            $(document).on('click', '.openai-path-remove', this.removeRule.bind(this));
+            // Reload translation pairs when any select in the rules list changes
+            $(document).on('change', '#openai-path-rules-list select', function () {
+                if (window.OpenAIManager && typeof window.OpenAIManager.updateLanguagePairVisibility === 'function') {
+                    window.OpenAIManager.updateLanguagePairVisibility();
+                }
+            });
+        },
+        addRule: function (e) {
+            e.preventDefault();
+            var $list = $('#openai-path-rules-list');
+            var index = $list.children('.openai-path-rule').length;
+            var $template = this.getRuleTemplate(index);
+            $list.append($template);
+            this.updateIndices();
+            if (window.OpenAIManager && typeof window.OpenAIManager.updateLanguagePairVisibility === 'function') {
+                window.OpenAIManager.updateLanguagePairVisibility();
+            }
+        },
+        removeRule: function (e) {
+            e.preventDefault();
+            var $rule = $(e.target).closest('.openai-path-rule');
+            $rule.remove();
+            this.updateIndices();
+            if (window.OpenAIManager && typeof window.OpenAIManager.updateLanguagePairVisibility === 'function') {
+                window.OpenAIManager.updateLanguagePairVisibility();
+            }
+        },
+        makeSortable: function () {
+            if (typeof $ === 'undefined' || typeof $.fn.sortable === 'undefined') {
+                // jQuery UI not loaded
+                return;
+            }
+            $('#openai-path-rules-list').sortable({
+                handle: '.drag-handle',
+                update: this.updateIndices.bind(this)
+            });
+        },
+        updateIndices: function () {
+            $('#openai-path-rules-list .openai-path-rule').each(function (i, el) {
+                var $el = $(el);
+                $el.attr('data-index', i);
+                $el.find('select, input').each(function () {
+                    var name = $(this).attr('name');
+                    if (name) {
+                        var newName = name.replace(/openai_path_rules\[[0-9]+\]/, 'openai_path_rules[' + i + ']');
+                        $(this).attr('name', newName);
+                    }
+                });
+            });
+        },
+        getRuleTemplate: function (index) {
+            // Always fetch the latest languages at the time of adding a rule
+            var langs = (typeof window.POLYTRANS_LANGS !== 'undefined' && Array.isArray(window.POLYTRANS_LANGS)) ? window.POLYTRANS_LANGS : [];
+            var langNames = (typeof window.POLYTRANS_LANG_NAMES !== 'undefined' && typeof window.POLYTRANS_LANG_NAMES === 'object') ? window.POLYTRANS_LANG_NAMES : {};
+            var html = '';
+            html += '<div class="openai-path-rule" data-index="' + index + '">';
+            html += '<span class="drag-handle" title="Drag to reorder">☰</span>';
+            html += '<select name="openai_path_rules[' + index + '][source]" class="openai-path-source">';
+            html += '<option value="all">All</option>';
+            if (langs.length > 0) {
+                langs.forEach(function (lang) {
+                    html += '<option value="' + lang + '">' + (langNames[lang] || lang.toUpperCase()) + '</option>';
+                });
+            }
+            html += '</select> → ';
+            html += '<select name="openai_path_rules[' + index + '][target]" class="openai-path-target">';
+            html += '<option value="all">All</option>';
+            if (langs.length > 0) {
+                langs.forEach(function (lang) {
+                    html += '<option value="' + lang + '">' + (langNames[lang] || lang.toUpperCase()) + '</option>';
+                });
+            }
+            html += '</select> via ';
+            html += '<select name="openai_path_rules[' + index + '][intermediate]" class="openai-path-intermediate">';
+            html += '<option value="none">None (Direct)</option>';
+            if (langs.length > 0) {
+                langs.forEach(function (lang) {
+                    html += '<option value="' + lang + '">' + (langNames[lang] || lang.toUpperCase()) + '</option>';
+                });
+            }
+            html += '</select>';
+            html += '<button type="button" class="button openai-path-remove" title="Remove">✕</button>';
+            html += '</div>';
+            return html;
+        }
+    };
+
+    // Expose for debugging
+    window.PathRulesManager = PathRulesManager;
+
+    // Initialize managers on document ready
     $(function () {
         TranslationProviderManager.init();
 
         // Always show OpenAI toggle since OpenAI settings are used in workflows
         $('#toggle-openai-section').show();
+
+        PathRulesManager.init();
     });
 
 })(jQuery);
