@@ -248,7 +248,105 @@ tr.pair-type-from-openai {
     font-size: 12px;
 }
 
-/* Responsive adjustments */
+/* --- Translation Path Rules Section --- */
+.openai-path-rules-section {
+    background: #f8fafc;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 18px 20px 16px 20px;
+    margin: 30px 0 24px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+.openai-path-rules-section h3 {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 1.2em;
+}
+.openai-path-rule {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    transition: box-shadow 0.2s;
+    position: relative;
+}
+.openai-path-rule:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border-color: #b3b3b3;
+}
+.openai-path-rule .drag-handle {
+    cursor: grab;
+    font-size: 1.2em;
+    color: #888;
+    margin-right: 8px;
+    user-select: none;
+}
+.openai-path-rule select {
+    min-width: 90px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    background: #f9f9f9;
+    transition: border-color 0.2s;
+}
+.openai-path-rule select:focus {
+    border-color: #007cba;
+    outline: none;
+}
+.openai-path-rule .openai-path-remove {
+    background: #dc3232;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 4px 10px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: background 0.2s;
+}
+.openai-path-rule .openai-path-remove:hover {
+    background: #b71c1c;
+}
+#openai-path-add-rule {
+    margin-top: 8px;
+    background: #007cba;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 6px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+#openai-path-add-rule:hover {
+    background: #005fa3;
+}
+.openai-path-rules-section small {
+    display: block;
+    margin-top: 10px;
+    color: #666;
+    font-size: 13px;
+}
+@media (max-width: 600px) {
+    .openai-path-rule {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        padding: 10px 6px;
+    }
+    .openai-path-rule select {
+        min-width: 0;
+        width: 100%;
+    }
+    #openai-path-add-rule {
+        width: 100%;
+    }
+}
 @media (max-width: 768px) {
     #openai-config-section {
         padding: 15px;
