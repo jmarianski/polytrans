@@ -139,7 +139,7 @@
 
         renderWorkflowEditor();
         bindWorkflowEditorEvents();
-        
+
         // Load assistants for any predefined assistant steps after rendering
         setTimeout(() => {
             if (workflowData.steps) {
@@ -384,7 +384,7 @@
             html += renderVariableReferencePanel();
             html += renderPredefinedAssistantFields(step, index);
             html += renderOutputActionsSection(step, index);
-            
+
             // Trigger assistant loading for predefined assistant steps
             setTimeout(() => {
                 populateAssistantDropdown(index, step.assistant_id);
@@ -404,7 +404,7 @@
         const model = step.model || '';
         const maxTokens = step.max_tokens || '';
         const temperature = step.temperature !== undefined ? step.temperature : 0.7;
-        
+
         // Handle output_variables - it could be an array or a string
         let outputVariables = '';
         if (step.output_variables) {
@@ -466,7 +466,7 @@
         const assistantId = step.assistant_id || '';
         const userMessage = step.user_message || '';
         const expectedFormat = step.expected_format || 'text';
-        
+
         // Handle output_variables - it could be an array or a string
         let outputVariables = '';
         if (step.output_variables) {

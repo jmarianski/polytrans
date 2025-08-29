@@ -539,8 +539,9 @@ class PolyTrans_Workflow_Output_Processor
         if (!$status) {
             return [
                 'success' => false,
-                'error' => sprintf('Invalid post status: "%s". Valid statuses are: %s', 
-                    $value, 
+                'error' => sprintf(
+                    'Invalid post status: "%s". Valid statuses are: %s',
+                    $value,
                     implode(', ', $this->get_valid_post_statuses())
                 )
             ];
@@ -720,7 +721,7 @@ class PolyTrans_Workflow_Output_Processor
         try {
             $variable_path = $action['source_variable'] ?? '';
             $value = $this->get_variable_value($step_results, $variable_path);
-            
+
             if ($value === null && !empty($variable_path)) {
                 $value = $this->auto_detect_response_value($step_results['data'] ?? []);
             }
@@ -740,7 +741,7 @@ class PolyTrans_Workflow_Output_Processor
             if ($action['type'] === 'update_post_meta' && isset($action['target'])) {
                 $change['meta_key'] = $action['target'];
             }
-            
+
             if ($action['type'] === 'save_to_option' && isset($action['target'])) {
                 $change['option_name'] = $action['target'];
             }
@@ -764,76 +765,76 @@ class PolyTrans_Workflow_Output_Processor
     {
         $action_type = $change['action'];
         $new_value = $change['value'];
-        
+
         // Get current value and target description based on action type
         $current_value = '';
         $target_description = '';
-        
+
         switch ($action_type) {
             case 'update_post_title':
                 $current_value = $context['post_title'] ?? '';
                 $target_description = 'Post Title';
                 break;
-                
+
             case 'update_post_content':
                 $current_value = $context['post_content'] ?? '';
                 $target_description = 'Post Content';
                 break;
-                
+
             case 'update_post_excerpt':
                 $current_value = $context['post_excerpt'] ?? '';
                 $target_description = 'Post Excerpt';
                 break;
-                
+
             case 'update_post_status':
                 $current_value = $context['post_status'] ?? '';
                 $target_description = 'Post Status';
                 // Parse the new value to ensure it's clean
                 $new_value = $this->parse_post_status($new_value) ?? $new_value;
                 break;
-                
+
             case 'update_post_date':
                 $current_value = $context['post_date'] ?? '';
                 $target_description = 'Post Date';
                 // Parse the new value to ensure it's clean
                 $new_value = $this->parse_post_date($new_value) ?? $new_value;
                 break;
-                
+
             case 'update_post_meta':
                 $meta_key = $change['original_action']['target'] ?? 'unknown';
                 $current_value = $context['meta'][$meta_key] ?? '';
                 $target_description = "Post Meta: {$meta_key}";
                 break;
-                
+
             case 'save_to_option':
                 $option_name = $change['original_action']['target'] ?? 'unknown';
                 $current_value = get_option($option_name, '');
                 $target_description = "WordPress Option: {$option_name}";
                 break;
-                
+
             case 'append_to_post_content':
                 $current_value = $context['post_content'] ?? '';
                 $new_value = $current_value . "\n\n" . $new_value;
                 $target_description = 'Post Content (Append)';
                 break;
-                
+
             case 'prepend_to_post_content':
                 $current_value = $context['post_content'] ?? '';
                 $new_value = $new_value . "\n\n" . $current_value;
                 $target_description = 'Post Content (Prepend)';
                 break;
-                
+
             default:
                 $target_description = ucwords(str_replace('_', ' ', $action_type));
                 break;
         }
-        
+
         // Add display fields that match JavaScript expectations
         $change['action_type'] = $action_type;
         $change['target_description'] = $target_description;
         $change['current_value'] = $current_value;
         $change['new_value'] = $new_value;
-        
+
         return $change;
     }
 
@@ -843,7 +844,7 @@ class PolyTrans_Workflow_Output_Processor
     private function apply_change_to_context($context, $change)
     {
         $updated_context = $context;
-        
+
         switch ($change['action']) {
             case 'update_post_title':
                 $updated_context['post_title'] = $change['value'];
@@ -874,7 +875,7 @@ class PolyTrans_Workflow_Output_Processor
                 $updated_context['post_content'] = $change['value'] . ($updated_context['post_content'] ?? '');
                 break;
         }
-        
+
         return $updated_context;
     }
 
@@ -886,7 +887,7 @@ class PolyTrans_Workflow_Output_Processor
         try {
             $action = $change['action'];
             $value = $change['value'];
-            
+
             switch ($action) {
                 case 'update_post_title':
                     return $this->update_post_title($value, $context);
@@ -951,20 +952,20 @@ class PolyTrans_Workflow_Output_Processor
     private function ensure_context_has_post_data($context)
     {
         // Find the post ID from various possible fields
-        $post_id = $context['translated_post_id'] ?? 
-                   $context['original_post_id'] ?? 
-                   $context['post_id'] ?? 
-                   null;
-        
+        $post_id = $context['translated_post_id'] ??
+            $context['original_post_id'] ??
+            $context['post_id'] ??
+            null;
+
         if (!$post_id) {
             return $context;
         }
-        
+
         $post = get_post($post_id);
         if (!$post) {
             return $context;
         }
-        
+
         // Populate context with current post data if not already present
         $context['post_title'] = $context['post_title'] ?? $post->post_title;
         $context['post_content'] = $context['post_content'] ?? $post->post_content;
@@ -972,10 +973,10 @@ class PolyTrans_Workflow_Output_Processor
         $context['post_status'] = $context['post_status'] ?? $post->post_status;
         $context['post_date'] = $context['post_date'] ?? $post->post_date;
         $context['post_date_gmt'] = $context['post_date_gmt'] ?? $post->post_date_gmt;
-        
+
         // Ensure post_id is consistently available
         $context['post_id'] = $post_id;
-        
+
         return $context;
     }
 

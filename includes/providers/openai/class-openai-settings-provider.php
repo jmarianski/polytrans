@@ -76,8 +76,25 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         $openai_api_key = $settings['openai_api_key'] ?? '';
         $openai_source_language = $settings['openai_source_language'] ?? ($languages[0] ?? 'en');
         $openai_assistants = $settings['openai_assistants'] ?? [];
+        $openai_path_rules = $settings['openai_path_rules'] ?? [
+            [
+                'source' => 'all',
+                'target' => 'all',
+                'intermediate' => 'en',
+            ]
+        ];
         $openai_model = $settings['openai_model'] ?? 'gpt-4o-mini';
 ?>
+        <script>
+        window.POLYTRANS_LANGS = <?php echo json_encode(array_values($languages)); ?>;
+        window.POLYTRANS_LANG_NAMES = <?php
+            $lang_name_map = [];
+            foreach ($languages as $i => $lang) {
+                $lang_name_map[$lang] = $language_names[$i] ?? strtoupper($lang);
+            }
+            echo json_encode($lang_name_map);
+        ?>;
+        </script>
         <div class="openai-config-section">
             <h2><?php echo esc_html($this->get_tab_label()); ?></h2>
             <p><?php echo esc_html($this->get_tab_description()); ?></p>
@@ -100,17 +117,41 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
                 <small><?php esc_html_e('Enter your OpenAI API key. It will be validated before saving.', 'polytrans'); ?></small>
             </div>
 
-            <!-- Source Language Section -->
-            <div class="openai-source-language-section" style="margin-top:2em;">
-                <h3><?php esc_html_e('OpenAI Source Language', 'polytrans'); ?></h3>
-                <select name="openai_source_language" id="openai-source-language" style="max-width:200px;">
-                    <?php foreach ($languages as $i => $lang): ?>
-                        <option value="<?php echo esc_attr($lang); ?>" <?php selected($openai_source_language, $lang); ?>>
-                            <?php echo esc_html($language_names[$i] ?? strtoupper($lang)); ?>
-                        </option>
+
+            <!-- Translation Path Rules Section -->
+            <div class="openai-path-rules-section" style="margin-top:2em;">
+                <h3><?php esc_html_e('Translation Path Rules', 'polytrans'); ?></h3>
+                <p><?php esc_html_e('Define the order and specificity of translation paths. Each rule specifies a source language, target language, and intermediate (middle) language. "all" means any language. "none" means direct translation.', 'polytrans'); ?></p>
+                <div id="openai-path-rules-list">
+                    <?php foreach ($openai_path_rules as $i => $rule): ?>
+                        <div class="openai-path-rule" data-index="<?php echo esc_attr($i); ?>">
+                            <span class="drag-handle" title="Drag to reorder">☰</span>
+                            <select name="openai_path_rules[<?php echo esc_attr($i); ?>][source]" class="openai-path-source">
+                                <option value="all" <?php selected($rule['source'], 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
+                                <?php foreach ($languages as $lang): ?>
+                                    <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['source'], $lang); ?>><?php echo esc_html($language_names[array_search($lang, $languages)] ?? strtoupper($lang)); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            →
+                            <select name="openai_path_rules[<?php echo esc_attr($i); ?>][target]" class="openai-path-target">
+                                <option value="all" <?php selected($rule['target'], 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
+                                <?php foreach ($languages as $lang): ?>
+                                    <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['target'], $lang); ?>><?php echo esc_html($language_names[array_search($lang, $languages)] ?? strtoupper($lang)); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <?php esc_html_e('via', 'polytrans'); ?>
+                            <select name="openai_path_rules[<?php echo esc_attr($i); ?>][intermediate]" class="openai-path-intermediate">
+                                <option value="none" <?php selected($rule['intermediate'], 'none'); ?>><?php esc_html_e('None (Direct)', 'polytrans'); ?></option>
+                                <?php foreach ($languages as $lang): ?>
+                                    <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['intermediate'], $lang); ?>><?php echo esc_html($language_names[array_search($lang, $languages)] ?? strtoupper($lang)); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="button" class="button openai-path-remove" title="Remove">✕</button>
+                        </div>
                     <?php endforeach; ?>
-                </select>
-                <br><small><?php esc_html_e('OpenAI will translate all content to this language first, then to the target language if needed. This enables multi-step translation through your preferred intermediate language.', 'polytrans'); ?></small>
+                </div>
+                <button type="button" class="button" id="openai-path-add-rule">+ <?php esc_html_e('Add Rule', 'polytrans'); ?></button>
+                <small><?php esc_html_e('Order matters: more specific rules should be placed lower. Drag to reorder. The last matching rule for a source-target pair is used.', 'polytrans'); ?></small>
             </div>
 
             <!-- Model Selection Section -->
@@ -183,6 +224,25 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
                 // Only save non-empty assistant IDs
                 if (!empty($assistant_id)) {
                     $validated['openai_assistants'][$pair] = $assistant_id;
+                }
+            }
+        }
+
+        // Validate translation path rules
+        if (isset($posted_data['openai_path_rules']) && is_array($posted_data['openai_path_rules'])) {
+            $validated['openai_path_rules'] = [];
+            foreach ($posted_data['openai_path_rules'] as $rule) {
+                if (!is_array($rule)) continue;
+                $source = isset($rule['source']) ? sanitize_text_field($rule['source']) : 'all';
+                $target = isset($rule['target']) ? sanitize_text_field($rule['target']) : 'all';
+                $intermediate = isset($rule['intermediate']) ? sanitize_text_field($rule['intermediate']) : 'none';
+                // Only save rules with at least source and target
+                if ($source !== '' && $target !== '') {
+                    $validated['openai_path_rules'][] = [
+                        'source' => $source,
+                        'target' => $target,
+                        'intermediate' => $intermediate,
+                    ];
                 }
             }
         }
@@ -356,10 +416,9 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         <table class="widefat fixed striped" id="openai-assistants-table">
             <thead>
                 <tr>
-                    <th style="width:25%;"><?php esc_html_e('Translation Pair', 'polytrans'); ?></th>
-                    <th style="width:20%;"><?php esc_html_e('Type', 'polytrans'); ?></th>
-                    <th style="width:20%;"><?php esc_html_e('Translation Path', 'polytrans'); ?></th>
-                    <th style="width:35%;"><?php esc_html_e('Assistant', 'polytrans'); ?></th>
+                    <th style="width:30%;"><?php esc_html_e('Translation Pair', 'polytrans'); ?></th>
+                    <th style="width:30%;"><?php esc_html_e('Translation Path', 'polytrans'); ?></th>
+                    <th style="width:40%;"><?php esc_html_e('Assistant', 'polytrans'); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -376,10 +435,6 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
                         class="language-pair-row" style="display:none;">
                         <td>
                             <strong><?php echo esc_html($source_name); ?> → <?php echo esc_html($target_name); ?></strong>
-                        </td>
-                        <td>
-                            <span class="pair-type-badge pair-type-to-openai" style="display:none;"><?php esc_html_e('Source → OpenAI', 'polytrans'); ?></span>
-                            <span class="pair-type-badge pair-type-from-openai" style="display:none;"><?php esc_html_e('OpenAI → Target', 'polytrans'); ?></span>
                         </td>
                         <td>
                             <span class="translation-path-direct"><?php esc_html_e('Direct', 'polytrans'); ?></span>
@@ -411,7 +466,7 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
                 <?php endforeach; ?>
 
                 <tr class="no-relevant-pairs-message" style="display:none;">
-                    <td colspan="4" style="text-align:center; color:#888; font-style:italic; padding:20px;">
+                    <td colspan="3" style="text-align:center; color:#888; font-style:italic; padding:20px;">
                         <?php esc_html_e('No relevant language pairs available. Please check your source/target language selections and OpenAI source language configuration.', 'polytrans'); ?>
                     </td>
                 </tr>
