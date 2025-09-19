@@ -1298,7 +1298,7 @@ However, the integration of AI in healthcare also raises important questions abo
         const workflow = window.polytransWorkflowTestData;
 
         let testContext = {
-            language: workflow.language,
+            target_language: workflow.language,
             trigger: 'test',
             articles_count: parseInt($('#articles-count').val()) || 20
         };
