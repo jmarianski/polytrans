@@ -24,6 +24,24 @@
     color: #d63638;
 }
 
+.polytrans-retry-translation {
+    border: none;
+    background: none;
+    padding: 2px;
+    cursor: pointer;
+    vertical-align: middle;
+    margin-left: 5px;
+}
+
+.polytrans-retry-translation:hover .dashicons {
+    color: #2271b1;
+}
+
+.polytrans-retry-translation:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .polytrans-edit-btn {
     text-decoration: none;
     margin-left: 5px;

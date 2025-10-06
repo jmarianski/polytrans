@@ -65,8 +65,11 @@ class PolyTrans_Translation_Scheduler
                     'loading' => esc_html__('Loading...', 'polytrans'),
                     'please_wait' => esc_html__('Please wait...', 'polytrans'),
                     'confirm_clear' => esc_html__('Are you sure you want to clear this translation?', 'polytrans'),
+                    'confirm_retry' => esc_html__('This will restart the translation process. Continue?', 'polytrans'),
                     'clearing' => esc_html__('Clearing...', 'polytrans'),
                     'cleared' => esc_html__('Translation cleared.', 'polytrans'),
+                    'retrying' => esc_html__('Retrying translation...', 'polytrans'),
+                    'retry_started' => esc_html__('Translation restarted successfully.', 'polytrans'),
                     'select_languages' => esc_html__('Please select at least one target language.', 'polytrans'),
                     'save_post_first' => esc_html__('Please save the post before scheduling translations.', 'polytrans'),
                     'connection_error' => esc_html__('Connection error. Please check your settings.', 'polytrans'),
@@ -155,6 +158,9 @@ class PolyTrans_Translation_Scheduler
                             <span class="polytrans-check" style="<?php echo $is_finished ? '' : 'display:none;'; ?>">
                                 <span class="dashicons dashicons-yes-alt" style="color: green;"></span>
                             </span>
+                            <span class="polytrans-failed" style="display:none;">
+                                <span class="dashicons dashicons-dismiss" style="color: #d63638;"></span>
+                            </span>
                             <span class="polytrans-merged-label">
                                 <strong><?php echo esc_html($lang_name); ?></strong>
                                 <small></small>
@@ -162,6 +168,9 @@ class PolyTrans_Translation_Scheduler
                             <a href="<?php echo $edit_url; ?>" class="polytrans-edit-btn" target="_blank" style="<?php echo $is_finished ? '' : 'display:none;'; ?>" title="<?php esc_attr_e('Edit translation', 'polytrans'); ?>">
                                 <span class="dashicons dashicons-visibility"></span>
                             </a>
+                            <button type="button" class="polytrans-retry-translation" data-lang="<?php echo esc_attr($lang); ?>" data-post-id="<?php echo esc_attr($post->ID); ?>" title="<?php esc_attr_e('Retry translation', 'polytrans'); ?>">
+                                <span class="dashicons dashicons-update"></span>
+                            </button>
                             <button type="button" class="polytrans-clear-translation" data-lang="<?php echo esc_attr($lang); ?>" data-post-id="<?php echo esc_attr($post->ID); ?>" title="<?php esc_attr_e('Clear this translation', 'polytrans'); ?>">
                                 <span class="dashicons dashicons-no"></span>
                             </button>

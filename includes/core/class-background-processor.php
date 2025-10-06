@@ -366,6 +366,7 @@ class PolyTrans_Background_Processor
         try {
             // Get post content and metadata
             self::log("Preparing content for translation", "info", ['post_id' => $post_id]);
+            throw new Exception("Simulated exception for testing"); // REMOVE THIS LINE AFTER TESTING
 
             $meta = get_post_meta($post_id);
             $allowed_meta_keys = defined('POLYTRANS_ALLOWED_SEO_META_KEYS') ? POLYTRANS_ALLOWED_SEO_META_KEYS : [];
@@ -377,11 +378,36 @@ class PolyTrans_Background_Processor
                 }
             }
 
+            // Get featured image metadata for translation
+            $featured_image_data = null;
+            if (has_post_thumbnail($post_id)) {
+                $thumbnail_id = get_post_thumbnail_id($post_id);
+                $attachment = get_post($thumbnail_id);
+
+                if ($attachment) {
+                    $featured_image_data = [
+                        'id' => $thumbnail_id,
+                        'alt' => get_post_meta($thumbnail_id, '_wp_attachment_image_alt', true),
+                        'title' => $attachment->post_title,
+                        'caption' => $attachment->post_excerpt,
+                        'description' => $attachment->post_content,
+                        'filename' => basename(get_attached_file($thumbnail_id))
+                    ];
+
+                    self::log("Featured image metadata prepared for translation", "info", [
+                        'post_id' => $post_id,
+                        'thumbnail_id' => $thumbnail_id,
+                        'alt_text' => $featured_image_data['alt']
+                    ]);
+                }
+            }
+
             $content_to_translate = [
                 'title' => $post->post_title,
                 'content' => $post->post_content,
                 'excerpt' => $post->post_excerpt,
-                'meta' => json_decode(json_encode($meta), true)
+                'meta' => json_decode(json_encode($meta), true),
+                'featured_image' => $featured_image_data
             ];
 
             // Handle the translation based on provider

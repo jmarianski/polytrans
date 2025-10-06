@@ -87,6 +87,7 @@ class PolyTrans
         require_once $includes_dir . 'receiver/managers/class-translation-request-validator.php';
         require_once $includes_dir . 'receiver/managers/class-translation-post-creator.php';
         require_once $includes_dir . 'receiver/managers/class-translation-metadata-manager.php';
+        require_once $includes_dir . 'receiver/managers/class-translation-media-manager.php';
         require_once $includes_dir . 'receiver/managers/class-translation-taxonomy-manager.php';
         require_once $includes_dir . 'receiver/managers/class-translation-language-manager.php';
         require_once $includes_dir . 'receiver/managers/class-translation-notification-manager.php';

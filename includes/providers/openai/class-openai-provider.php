@@ -211,7 +211,8 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
             'title' => $content['title'] ?? '',
             'content' => $content['content'] ?? '',
             'excerpt' => $content['excerpt'] ?? '',
-            'meta' => $content['meta'] ?? []
+            'meta' => $content['meta'] ?? [],
+            'featured_image' => $content['featured_image'] ?? null
         ];
 
         $prompt = "Please translate the following JSON content from $source_lang to $target_lang. Return only a JSON object with the same structure but translated content:\n\n" . json_encode($content_to_translate, JSON_PRETTY_PRINT);

@@ -42,6 +42,7 @@ polytrans/
 │           ├── class-translation-request-validator.php
 │           ├── class-translation-post-creator.php
 │           ├── class-translation-metadata-manager.php
+│           ├── class-translation-media-manager.php
 │           ├── class-translation-taxonomy-manager.php
 │           ├── class-translation-language-manager.php
 │           ├── class-translation-notification-manager.php
@@ -111,11 +112,14 @@ Advanced translation receiver architecture for processing completed translations
   - Request validation
   - Post creation
   - Metadata management
+  - **Media translation** (featured images with Polylang integration)
   - Taxonomy handling
   - Language assignment
   - Notifications
   - Status tracking
   - Security validation
+
+See [Featured Image Translation](FEATURED_IMAGE_TRANSLATION.md) for detailed implementation.
 
 ### Assets (`/assets/`)
 Frontend resources organized by functionality:
