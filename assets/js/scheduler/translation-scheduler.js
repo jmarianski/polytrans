@@ -331,4 +331,100 @@ jQuery(function ($) {
             window.open(url, '_blank');
         }
     });
+
+    // Add More Languages functionality
+    var $addMoreBtn = $('#polytrans-add-more-btn');
+    var $addMoreSection = $('#polytrans-add-more-section');
+    var $addMoreLangs = $('#polytrans-add-more-langs');
+    var $addMoreNeedsReview = $('#polytrans-add-more-needs-review');
+    var $addMoreSubmit = $('#polytrans-add-more-submit');
+    var $addMoreCancel = $('#polytrans-add-more-cancel');
+
+    // Helper: Update add more languages dropdown to exclude already scheduled
+    function updateAddMoreLanguages(status) {
+        var scheduledLangs = Object.keys(status || {});
+        $addMoreLangs.find('option').each(function() {
+            var lang = $(this).val();
+            if (scheduledLangs.indexOf(lang) !== -1) {
+                $(this).prop('disabled', true).hide();
+            } else {
+                $(this).prop('disabled', false).show();
+            }
+        });
+        
+        // Show "Add More" button only if:
+        // - There are translations
+        // - There are available languages
+        // - The add more section is NOT currently visible
+        var hasTranslations = scheduledLangs.length > 0;
+        var hasAvailableLangs = $addMoreLangs.find('option:not(:disabled)').length > 0;
+        var sectionVisible = $addMoreSection.is(':visible');
+        
+        if (hasTranslations && hasAvailableLangs && !sectionVisible) {
+            $addMoreBtn.show();
+        } else if (!hasTranslations || !hasAvailableLangs) {
+            // Hide both button and section if conditions aren't met
+            $addMoreBtn.hide();
+            $addMoreSection.hide();
+        }
+    }
+
+    // Show add more section
+    $addMoreBtn.on('click', function() {
+        $addMoreSection.show();
+        $addMoreBtn.hide();
+        $addMoreLangs.val([]);
+    });
+
+    // Cancel add more
+    $addMoreCancel.on('click', function() {
+        $addMoreSection.hide();
+        $addMoreBtn.show();
+        $addMoreLangs.val([]);
+    });
+
+    // Submit add more languages
+    $addMoreSubmit.on('click', function() {
+        var selectedLangs = $addMoreLangs.val() || [];
+        
+        if (selectedLangs.length === 0) {
+            alert(PolyTransScheduler.i18n.select_languages_add_more);
+            return;
+        }
+
+        var needsReview = $addMoreNeedsReview.is(':checked') ? 1 : 0;
+        var $btn = $(this);
+        
+        $btn.prop('disabled', true).text(PolyTransScheduler.i18n.translating);
+        
+        $.post(PolyTransScheduler.ajax_url, {
+            action: 'polytrans_schedule_translation',
+            post_id: postId,
+            scope: 'regional',
+            targets: selectedLangs,
+            needs_review: needsReview,
+            _ajax_nonce: PolyTransScheduler.nonce
+        }, function(resp) {
+            if (resp && resp.success) {
+                $addMoreSection.hide();
+                $addMoreBtn.show();
+                $addMoreLangs.val([]);
+                fetchStatusAndRender();
+                startPolling();
+            } else {
+                alert(resp.data && resp.data.message ? resp.data.message : PolyTransScheduler.i18n.error_occurred);
+            }
+            $btn.prop('disabled', false).text(PolyTransScheduler.i18n.translation_started);
+        }).fail(function(xhr) {
+            alert(PolyTransScheduler.i18n.connection_error);
+            $btn.prop('disabled', false).text(PolyTransScheduler.i18n.translation_started);
+        });
+    });
+
+    // Override renderStatusUI to also update add more languages
+    var originalRenderStatusUI = renderStatusUI;
+    renderStatusUI = function(status) {
+        originalRenderStatusUI(status);
+        updateAddMoreLanguages(status);
+    };
 });

@@ -71,6 +71,8 @@ class PolyTrans_Translation_Scheduler
                     'retrying' => esc_html__('Retrying translation...', 'polytrans'),
                     'retry_started' => esc_html__('Translation restarted successfully.', 'polytrans'),
                     'select_languages' => esc_html__('Please select at least one target language.', 'polytrans'),
+                    'select_languages_add_more' => esc_html__('Please select at least one language to add.', 'polytrans'),
+                    'add_more_started' => esc_html__('Additional translations started!', 'polytrans'),
                     'save_post_first' => esc_html__('Please save the post before scheduling translations.', 'polytrans'),
                     'connection_error' => esc_html__('Connection error. Please check your settings.', 'polytrans'),
                     'processing' => esc_html__('Processing...', 'polytrans'),
@@ -177,6 +179,32 @@ class PolyTrans_Translation_Scheduler
                         </li>
                     <?php endforeach; ?>
                 </ul>
+                
+                <!-- Add More Languages Section -->
+                <div id="polytrans-add-more-section" style="display:none;margin-top:1em;padding:1em;background:#f9f9f9;border-radius:4px;">
+                    <label for="polytrans-add-more-langs"><strong><?php esc_html_e('Add More Languages', 'polytrans'); ?></strong></label>
+                    <select id="polytrans-add-more-langs" multiple style="width:100%;margin-top:0.5em;">
+                        <?php foreach ($this->langs as $i => $lang):
+                            if ($lang === $current_lang || !in_array($lang, $allowed_targets)) continue;
+                            $lang_name = $this->lang_names[$i] ?? strtoupper($lang);
+                        ?>
+                            <option value="<?php echo esc_attr($lang); ?>"><?php echo esc_html($lang_name); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="display:block;margin-top:0.5em;"><?php esc_html_e('Hold Ctrl (Windows/Linux) or Cmd (Mac) to select multiple languages.', 'polytrans'); ?></small>
+                    <div style="margin-top:0.5em;">
+                        <label><input type="checkbox" id="polytrans-add-more-needs-review"> <?php esc_html_e('Needs review', 'polytrans'); ?></label>
+                    </div>
+                    <div style="margin-top:0.5em;display:flex;gap:0.5em;">
+                        <button type="button" class="button button-primary" id="polytrans-add-more-submit" style="flex:1;"><?php esc_html_e('Start Translation', 'polytrans'); ?></button>
+                        <button type="button" class="button" id="polytrans-add-more-cancel"><?php esc_html_e('Cancel', 'polytrans'); ?></button>
+                    </div>
+                </div>
+                
+                <button type="button" class="button button-secondary" id="polytrans-add-more-btn" style="width:100%;margin-top:0.5em;display:none;">
+                    <span class="dashicons dashicons-plus-alt" style="vertical-align:middle;"></span>
+                    <?php esc_html_e('Add More Languages', 'polytrans'); ?>
+                </button>
             </div>
         </div>
         <?php
