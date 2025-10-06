@@ -366,7 +366,6 @@ class PolyTrans_Background_Processor
         try {
             // Get post content and metadata
             self::log("Preparing content for translation", "info", ['post_id' => $post_id]);
-            throw new Exception("Simulated exception for testing"); // REMOVE THIS LINE AFTER TESTING
 
             $meta = get_post_meta($post_id);
             $allowed_meta_keys = defined('POLYTRANS_ALLOWED_SEO_META_KEYS') ? POLYTRANS_ALLOWED_SEO_META_KEYS : [];
