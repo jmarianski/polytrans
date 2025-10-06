@@ -52,6 +52,7 @@ class PolyTrans_Translation_Handler
     {
         add_action('wp_ajax_polytrans_get_translation_status', [$this, 'ajax_get_translation_status']);
         add_action('wp_ajax_polytrans_clear_translation_status', [$this, 'ajax_clear_translation_status']);
+        add_action('wp_ajax_polytrans_retry_translation', [$this, 'ajax_retry_translation']);
     }
 
     /**
@@ -539,6 +540,83 @@ class PolyTrans_Translation_Handler
         }
 
         wp_send_json_error(['message' => 'Nothing to clear']);
+    }
+
+    /**
+     * AJAX handler for retrying translation
+     * This forces a re-translation even if one already exists
+     */
+    public function ajax_retry_translation()
+    {
+        check_ajax_referer('polytrans_schedule_translation');
+
+        $post_id = intval($_POST['post_id'] ?? 0);
+        $lang = sanitize_text_field($_POST['lang'] ?? '');
+
+        if (!$post_id || !$lang) {
+            wp_send_json_error(['message' => 'Invalid parameters']);
+            return;
+        }
+
+        // Get source language
+        $source_lang = function_exists('pll_get_post_language') ? pll_get_post_language($post_id) : 'pl';
+
+        if ($source_lang === $lang) {
+            wp_send_json_error(['message' => 'Cannot translate to the same language']);
+            return;
+        }
+
+        // Get settings
+        $settings = get_option('polytrans_settings', []);
+
+        // Clear any existing translation status first
+        $langs_key = '_polytrans_translation_langs';
+        $scheduled_langs = get_post_meta($post_id, $langs_key, true);
+        if (!is_array($scheduled_langs)) {
+            $scheduled_langs = [];
+        }
+
+        // Remove existing status for this language
+        delete_post_meta($post_id, '_polytrans_translation_status_' . $lang);
+        delete_post_meta($post_id, '_polytrans_translation_log_' . $lang);
+        delete_post_meta($post_id, '_polytrans_translation_error_' . $lang);
+        delete_post_meta($post_id, '_polytrans_translation_completed_' . $lang);
+
+        // Add to scheduled langs if not already there
+        if (!in_array($lang, $scheduled_langs, true)) {
+            $scheduled_langs[] = $lang;
+        }
+
+        // Initialize new translation with 'started' status
+        $status_key = '_polytrans_translation_status_' . $lang;
+        $log_key = '_polytrans_translation_log_' . $lang;
+        
+        update_post_meta($post_id, $status_key, 'started');
+        update_post_meta($post_id, $log_key, [
+            [
+                'timestamp' => time(),
+                'msg' => sprintf(__('Translation retry initiated by user.', 'polytrans'))
+            ]
+        ]);
+        
+        // Update scheduled languages
+        update_post_meta($post_id, $langs_key, $scheduled_langs);
+
+        PolyTrans_Logs_Manager::log("Retry translation initiated for $lang on post $post_id", "info", [
+            'post_id' => $post_id,
+            'source_lang' => $source_lang,
+            'target_lang' => $lang,
+            'user_id' => get_current_user_id()
+        ]);
+
+        // Send the translation request (force re-translation)
+        $this->send_translation_request($post_id, $source_lang, $lang, $settings);
+
+        wp_send_json_success([
+            'message' => sprintf(__('Translation retry started for %s', 'polytrans'), strtoupper($lang)),
+            'scheduled_langs' => $scheduled_langs,
+            'lang' => $lang
+        ]);
     }
 
     /**

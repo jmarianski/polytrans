@@ -25,19 +25,24 @@ jQuery(function ($) {
             var $check = $li.find('.polytrans-check');
             var $failed = $li.find('.polytrans-failed');
             var $editBtn = $li.find('.polytrans-edit-btn');
+            var $retryBtn = $li.find('.polytrans-retry-translation');
             var $clearBtn = $li.find('.polytrans-clear-translation');
             if (info && (info.status === 'started' || info.status === 'translating' || info.status === 'processing')) {
                 $li.show();
                 $loader.show();
                 $check.hide();
+                $failed.hide();
                 $editBtn.hide();
+                $retryBtn.show();
                 $clearBtn.show();
                 hasAny = true;
             } else if (info && (info.status === 'finished' || info.status === 'completed') && info.post_id) {
                 $li.show();
                 $loader.hide();
                 $check.show();
+                $failed.hide();
                 $editBtn.show().attr('href', PolyTransScheduler.edit_url.replace('__ID__', info.post_id));
+                $retryBtn.show();
                 $clearBtn.show();
                 hasAny = true;
             } else if (info && info.status === 'failed') {
@@ -46,12 +51,14 @@ jQuery(function ($) {
                 $check.hide();
                 $failed.show();
                 $editBtn.hide();
+                $retryBtn.show();
                 $clearBtn.show();
                 hasAny = true;
             } else {
                 console.log('[PolyTrans] Hiding status for:', lang, 'info status:', info ? info.status : 'no info');
                 $li.hide();
                 $editBtn.hide();
+                $retryBtn.hide();
                 $clearBtn.hide();
             }
         });
@@ -268,7 +275,7 @@ jQuery(function ($) {
         var $btn = $(this);
         var lang = $btn.data('lang');
         if (!lang) return;
-        if (!confirm('Are you sure you want to clear this translation?')) return;
+        if (!confirm(PolyTransScheduler.i18n.confirm_clear)) return;
         $.post(PolyTransScheduler.ajax_url, {
             action: 'polytrans_clear_translation_status',
             post_id: postId,
@@ -282,6 +289,37 @@ jQuery(function ($) {
                 console.error(resp);
                 alert('Failed to clear translation: ' + (resp.data && resp.data.message ? resp.data.message : 'Unknown error'));
             }
+        });
+    });
+
+    // Handle retry button click
+    $mergedList.on('click', '.polytrans-retry-translation', function () {
+        var $btn = $(this);
+        var lang = $btn.data('lang');
+        if (!lang) return;
+        if (!confirm(PolyTransScheduler.i18n.confirm_retry)) return;
+        
+        $btn.prop('disabled', true);
+        
+        $.post(PolyTransScheduler.ajax_url, {
+            action: 'polytrans_retry_translation',
+            post_id: postId,
+            lang: lang,
+            _ajax_nonce: PolyTransScheduler.nonce
+        }, function (resp) {
+            if (resp && resp.success) {
+                console.log('[PolyTrans] Retry translation started for ' + lang);
+                // Re-fetch status to show new translation state
+                fetchStatusAndRender();
+                startPolling();
+            } else {
+                console.error(resp);
+                alert('Failed to retry translation: ' + (resp.data && resp.data.message ? resp.data.message : 'Unknown error'));
+                $btn.prop('disabled', false);
+            }
+        }).fail(function (xhr) {
+            alert('Error retrying translation: ' + (xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : 'Unknown error'));
+            $btn.prop('disabled', false);
         });
     });
 

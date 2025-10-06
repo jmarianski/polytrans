@@ -147,6 +147,7 @@ class PolyTrans_Translation_Metadata_Manager
             '_polytrans_translation_status',
             '_edit_lock',
             '_edit_last',
+            '_thumbnail_id', // Skip featured image - handled by media manager
         ];
 
         return in_array($key, $skip_keys, true);

@@ -17,6 +17,7 @@ class PolyTrans_Translation_Coordinator
     private $language_manager;
     private $notification_manager;
     private $status_manager;
+    private $media_manager;
 
     public function __construct()
     {
@@ -27,6 +28,7 @@ class PolyTrans_Translation_Coordinator
         $this->language_manager = new PolyTrans_Translation_Language_Manager();
         $this->notification_manager = new PolyTrans_Translation_Notification_Manager();
         $this->status_manager = new PolyTrans_Translation_Status_Manager();
+        $this->media_manager = new PolyTrans_Translation_Media_Manager();
     }
 
     /**
@@ -123,6 +125,19 @@ class PolyTrans_Translation_Coordinator
 
         // Setup language and status
         $this->language_manager->setup_language_and_status($new_post_id, $original_post_id, $target_language);
+
+        // Setup featured image with translated metadata
+        $featured_image_data = $translated['featured_image'] ?? null;
+        if ($featured_image_data) {
+            $this->media_manager->setup_featured_image(
+                $new_post_id,
+                $original_post_id,
+                $target_language,
+                $featured_image_data
+            );
+        } else {
+            PolyTrans_Logs_Manager::log("No featured image data provided for post $new_post_id", "info", $translated);
+        }
     }
 
     /**
