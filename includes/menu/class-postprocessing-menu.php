@@ -633,79 +633,15 @@ class PolyTrans_Postprocessing_Menu
             return;
         }
 
-        // Get API key from settings
-        $settings = get_option('polytrans_settings', []);
-        $api_key = $settings['openai_api_key'] ?? '';
-
-        if (empty($api_key)) {
+        // Create OpenAI client from settings
+        $client = PolyTrans_OpenAI_Client::from_settings();
+        if (!$client) {
             wp_send_json_error('OpenAI API key not configured');
             return;
         }
 
-        // Load all assistants from OpenAI API with pagination
-        $all_assistants = [];
-        $after = null;
-        $limit = 100;
-
-        do {
-            // Build URL with query parameters
-            $url = 'https://api.openai.com/v1/assistants';
-            $query_params = [
-                'limit' => $limit,
-                'order' => 'desc'
-            ];
-
-            if ($after) {
-                $query_params['after'] = $after;
-            }
-
-            $url = add_query_arg($query_params, $url);
-
-            // Load assistants from OpenAI API
-            $response = wp_remote_get($url, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $api_key,
-                    'User-Agent' => 'PolyTrans/1.0',
-                    'OpenAI-Beta' => 'assistants=v2'
-                ],
-                'timeout' => 15
-            ]);
-
-            if (is_wp_error($response)) {
-                wp_send_json_error('Failed to load assistants: ' . $response->get_error_message());
-                return;
-            }
-
-            $response_code = wp_remote_retrieve_response_code($response);
-            if ($response_code !== 200) {
-                $body = wp_remote_retrieve_body($response);
-                $error_data = json_decode($body, true);
-                $error_message = isset($error_data['error']['message']) ? $error_data['error']['message'] : 'Failed to load assistants';
-                wp_send_json_error($error_message);
-                return;
-            }
-
-            $body = wp_remote_retrieve_body($response);
-            $data = json_decode($body, true);
-
-            if (!isset($data['data']) || !is_array($data['data'])) {
-                break;
-            }
-
-            // Add assistants from this page to the collection
-            $all_assistants = array_merge($all_assistants, $data['data']);
-
-            // Check if there are more pages
-            $has_more = $data['has_more'] ?? false;
-
-            // Get the last assistant ID for pagination
-            if ($has_more && !empty($data['data'])) {
-                $last_assistant = end($data['data']);
-                $after = $last_assistant['id'];
-            } else {
-                $after = null;
-            }
-        } while ($after !== null);
+        // Load all assistants using the client
+        $all_assistants = $client->get_all_assistants();
 
         if (empty($all_assistants)) {
             wp_send_json_error('No assistants found');

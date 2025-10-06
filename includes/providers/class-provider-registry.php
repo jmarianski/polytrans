@@ -44,6 +44,7 @@ class PolyTrans_Provider_Registry
 
         // Load built-in providers
         require_once POLYTRANS_PLUGIN_DIR . 'includes/providers/google/class-google-provider.php';
+        require_once POLYTRANS_PLUGIN_DIR . 'includes/providers/openai/class-openai-client.php';
         require_once POLYTRANS_PLUGIN_DIR . 'includes/providers/openai/class-openai-provider.php';
         require_once POLYTRANS_PLUGIN_DIR . 'includes/providers/openai/class-openai-settings-provider.php';
 
