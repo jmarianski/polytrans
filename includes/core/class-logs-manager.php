@@ -682,6 +682,7 @@ class PolyTrans_Logs_Manager
 
             <form method="get" id="logs-filter-form">
                 <input type="hidden" name="page" value="polytrans-logs">
+                <input type="hidden" name="paged" value="<?php echo esc_attr($current_page); ?>">
 
                 <div class="tablenav top">
                     <div class="alignleft actions">
@@ -917,8 +918,8 @@ class PolyTrans_Logs_Manager
                 let isPaused = false;
                 let currentInterval = parseInt(localStorage.getItem('polytrans_logs_refresh_interval')) || 10; // Default to 10 seconds or saved preference
 
-                // Context toggle functionality
-                $('.toggle-context').on('click', function() {
+                // Context toggle functionality (delegated to work with AJAX-loaded content)
+                $(document).on('click', '.toggle-context', function() {
                     var contextId = $(this).data('context-id');
                     $('#' + contextId).toggle();
 
@@ -927,6 +928,30 @@ class PolyTrans_Logs_Manager
                         '<?php esc_html_e('Show Context', 'polytrans'); ?>';
 
                     $(this).text(buttonText);
+                });
+
+                // Handle pagination link clicks
+                $(document).on('click', '.pagination-links a', function(e) {
+                    e.preventDefault();
+                    var url = $(this).attr('href');
+                    var urlParams = new URLSearchParams(url.split('?')[1]);
+                    var page = urlParams.get('paged') || 1;
+                    
+                    // Update the form's paged input or add it if it doesn't exist
+                    var $pagedInput = $('#logs-filter-form input[name="paged"]');
+                    if ($pagedInput.length) {
+                        $pagedInput.val(page);
+                    } else {
+                        $('#logs-filter-form').append('<input type="hidden" name="paged" value="' + page + '">');
+                    }
+                    
+                    // Update the URL without reloading
+                    if (window.history && window.history.pushState) {
+                        window.history.pushState(null, '', url);
+                    }
+                    
+                    // Refresh the logs table
+                    refreshLogsTable();
                 });
 
                 // Auto-refresh functionality
@@ -954,7 +979,7 @@ class PolyTrans_Logs_Manager
                 }
 
                 function refreshLogsTable() {
-                    // Get current form data to maintain filters
+                    // Get current form data to maintain filters and pagination
                     const formData = $('#logs-filter-form').serialize();
 
                     // Show loading indicator
@@ -971,17 +996,7 @@ class PolyTrans_Logs_Manager
                         success: function(response) {
                             if (response.success) {
                                 $('#logs-table-container').html(response.data.html);
-                                // Reattach context toggle handlers
-                                $('.toggle-context').on('click', function() {
-                                    var contextId = $(this).data('context-id');
-                                    $('#' + contextId).toggle();
-
-                                    var buttonText = $(this).text() === '<?php esc_html_e('Show Context', 'polytrans'); ?>' ?
-                                        '<?php esc_html_e('Hide Context', 'polytrans'); ?>' :
-                                        '<?php esc_html_e('Show Context', 'polytrans'); ?>';
-
-                                    $(this).text(buttonText);
-                                });
+                                // Reattach pagination handlers - handled by delegated event above
                             }
                             // Restore status text
                             updateStatus();
@@ -1035,6 +1050,22 @@ class PolyTrans_Logs_Manager
 
                 // Handle manual refresh button
                 $('#manual-refresh').on('click', function() {
+                    refreshLogsTable();
+                });
+
+                // Handle browser back/forward buttons
+                window.addEventListener('popstate', function(event) {
+                    // Parse the current URL to get the page number
+                    var urlParams = new URLSearchParams(window.location.search);
+                    var page = urlParams.get('paged') || 1;
+                    
+                    // Update the form's paged input
+                    var $pagedInput = $('#logs-filter-form input[name="paged"]');
+                    if ($pagedInput.length) {
+                        $pagedInput.val(page);
+                    }
+                    
+                    // Refresh the logs table
                     refreshLogsTable();
                 });
 
@@ -1353,7 +1384,7 @@ class PolyTrans_Logs_Manager
 
         // Generate table HTML
         ob_start();
-        self::render_logs_table($logs_data, $current_page);
+        self::render_logs_table($logs_data, $current_page, $search, $level, $source, $post_id);
         $html = ob_get_clean();
 
         wp_send_json_success(['html' => $html]);
@@ -1362,10 +1393,29 @@ class PolyTrans_Logs_Manager
     /**
      * Render just the logs table (for AJAX refresh)
      */
-    private static function render_logs_table($logs_data, $current_page)
+    private static function render_logs_table($logs_data, $current_page, $search = '', $level = '', $source = '', $post_id = 0)
     {
+        // Build the base URL for pagination with all current filters
+        $base_url = admin_url('admin.php');
+        $args = ['page' => 'polytrans-logs'];
+        
+        if (!empty($search)) {
+            $args['s'] = $search;
+        }
+        if (!empty($level)) {
+            $args['level'] = $level;
+        }
+        if (!empty($source)) {
+            $args['source'] = $source;
+        }
+        if (!empty($post_id)) {
+            $args['post_id'] = $post_id;
+        }
+        
+        $base_url = add_query_arg($args, $base_url);
+        
         $page_links = paginate_links([
-            'base' => add_query_arg('paged', '%#%'),
+            'base' => add_query_arg('paged', '%#%', $base_url),
             'format' => '',
             'prev_text' => '&laquo;',
             'next_text' => '&raquo;',
