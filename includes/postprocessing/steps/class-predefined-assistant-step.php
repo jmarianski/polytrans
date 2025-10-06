@@ -209,78 +209,20 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
      */
     private function get_available_assistants()
     {
-        $settings = get_option('polytrans_settings', []);
-        $api_key = $settings['openai_api_key'] ?? '';
-        
-        if (empty($api_key)) {
-            return [];
-        }
-
         // Use cached assistants if available and recent (5 minutes)
         $cached_assistants = get_transient('polytrans_openai_assistants');
         if ($cached_assistants !== false) {
             return $cached_assistants;
         }
 
-        // Load all assistants from OpenAI API with pagination
-        $all_assistants_data = [];
-        $after = null;
-        $limit = 100;
+        // Create OpenAI client from settings
+        $client = PolyTrans_OpenAI_Client::from_settings();
+        if (!$client) {
+            return [];
+        }
 
-        do {
-            // Build URL with query parameters
-            $url = 'https://api.openai.com/v1/assistants';
-            $query_params = [
-                'limit' => $limit,
-                'order' => 'desc'
-            ];
-
-            if ($after) {
-                $query_params['after'] = $after;
-            }
-
-            $url = add_query_arg($query_params, $url);
-
-            // Fetch assistants from OpenAI API
-            $response = wp_remote_get($url, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $api_key,
-                    'User-Agent' => 'PolyTrans/1.0',
-                    'OpenAI-Beta' => 'assistants=v2'
-                ],
-                'timeout' => 15
-            ]);
-
-            if (is_wp_error($response)) {
-                return [];
-            }
-
-            $response_code = wp_remote_retrieve_response_code($response);
-            if ($response_code !== 200) {
-                return [];
-            }
-
-            $body = wp_remote_retrieve_body($response);
-            $data = json_decode($body, true);
-
-            if (!isset($data['data']) || !is_array($data['data'])) {
-                break;
-            }
-
-            // Add assistants from this page to the collection
-            $all_assistants_data = array_merge($all_assistants_data, $data['data']);
-
-            // Check if there are more pages
-            $has_more = $data['has_more'] ?? false;
-
-            // Get the last assistant ID for pagination
-            if ($has_more && !empty($data['data'])) {
-                $last_assistant = end($data['data']);
-                $after = $last_assistant['id'];
-            } else {
-                $after = null;
-            }
-        } while ($after !== null);
+        // Load all assistants using the client
+        $all_assistants_data = $client->get_all_assistants();
 
         if (empty($all_assistants_data)) {
             return [];
@@ -345,24 +287,56 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
     private function call_assistant_api($request, $provider_settings)
     {
         try {
-            // Initialize thread
-            $thread_response = $this->create_thread($request['thread'], $provider_settings);
+            // Create OpenAI client
+            $client = new PolyTrans_OpenAI_Client(
+                $provider_settings['api_key'],
+                $provider_settings['base_url']
+            );
+
+            // Create thread with initial message
+            $thread_response = $client->create_thread($request['thread']['messages']);
             if (!$thread_response['success']) {
-                return $thread_response;
+                return [
+                    'success' => false,
+                    'error' => 'Failed to create thread: ' . $thread_response['error']
+                ];
             }
 
             $thread_id = $thread_response['thread_id'];
 
             // Run assistant
-            $run_response = $this->run_assistant($thread_id, $request['assistant_id'], $provider_settings);
+            $run_response = $client->run_assistant($thread_id, $request['assistant_id']);
             if (!$run_response['success']) {
-                return $run_response;
+                return [
+                    'success' => false,
+                    'error' => 'Failed to run assistant: ' . $run_response['error']
+                ];
+            }
+
+            $run_id = $run_response['run_id'];
+
+            // Wait for completion
+            $completion_response = $client->wait_for_run_completion($thread_id, $run_id);
+            if (!$completion_response['success']) {
+                return [
+                    'success' => false,
+                    'error' => $completion_response['error']
+                ];
+            }
+
+            // Get the latest assistant message
+            $message_response = $client->get_latest_assistant_message($thread_id);
+            if (!$message_response['success']) {
+                return [
+                    'success' => false,
+                    'error' => $message_response['error']
+                ];
             }
 
             return [
                 'success' => true,
-                'data' => $run_response['data'],
-                'tokens_used' => $run_response['tokens_used'] ?? 0
+                'data' => $message_response['content'],
+                'tokens_used' => 0 // Could be extracted from completion_response if needed
             ];
         } catch (Exception $e) {
             return [
@@ -370,188 +344,6 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
                 'error' => 'Assistant API call failed: ' . $e->getMessage()
             ];
         }
-    }
-
-    /**
-     * Create thread
-     */
-    private function create_thread($thread_data, $provider_settings)
-    {
-        $url = rtrim($provider_settings['base_url'], '/') . '/threads';
-
-        $response = wp_remote_post($url, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $provider_settings['api_key'],
-                'Content-Type' => 'application/json',
-                'OpenAI-Beta' => 'assistants=v2'
-            ],
-            'body' => json_encode($thread_data),
-            'timeout' => 120
-        ]);
-
-        if (is_wp_error($response)) {
-            return [
-                'success' => false,
-                'error' => 'Failed to create thread: ' . $response->get_error_message()
-            ];
-        }
-
-        $status_code = wp_remote_retrieve_response_code($response);
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
-
-        if ($status_code !== 200) {
-            return [
-                'success' => false,
-                'error' => 'Thread creation failed: ' . ($data['error']['message'] ?? 'Unknown error')
-            ];
-        }
-
-        return [
-            'success' => true,
-            'thread_id' => $data['id']
-        ];
-    }
-
-    /**
-     * Run assistant
-     */
-    private function run_assistant($thread_id, $assistant_id, $provider_settings)
-    {
-        $url = rtrim($provider_settings['base_url'], '/') . "/threads/{$thread_id}/runs";
-
-        $run_data = [
-            'assistant_id' => $assistant_id
-        ];
-
-        $response = wp_remote_post($url, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $provider_settings['api_key'],
-                'Content-Type' => 'application/json',
-                'OpenAI-Beta' => 'assistants=v2'
-            ],
-            'body' => json_encode($run_data),
-            'timeout' => 120
-        ]);
-
-        if (is_wp_error($response)) {
-            return [
-                'success' => false,
-                'error' => 'Failed to run assistant: ' . $response->get_error_message()
-            ];
-        }
-
-        $status_code = wp_remote_retrieve_response_code($response);
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
-
-        if ($status_code !== 200) {
-            return [
-                'success' => false,
-                'error' => 'Assistant run failed: ' . ($data['error']['message'] ?? 'Unknown error')
-            ];
-        }
-
-        $run_id = $data['id'];
-
-        // Wait for completion
-        return $this->wait_for_completion($thread_id, $run_id, $provider_settings);
-    }
-
-    /**
-     * Wait for assistant completion
-     */
-    private function wait_for_completion($thread_id, $run_id, $provider_settings)
-    {
-        $max_attempts = 30; // 30 seconds max
-        $attempt = 0;
-
-        while ($attempt < $max_attempts) {
-            $url = rtrim($provider_settings['base_url'], '/') . "/threads/{$thread_id}/runs/{$run_id}";
-
-            $response = wp_remote_get($url, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $provider_settings['api_key'],
-                    'OpenAI-Beta' => 'assistants=v2'
-                ],
-                'timeout' => 30
-            ]);
-
-            if (is_wp_error($response)) {
-                return [
-                    'success' => false,
-                    'error' => 'Failed to check run status: ' . $response->get_error_message()
-                ];
-            }
-
-            $body = wp_remote_retrieve_body($response);
-            $data = json_decode($body, true);
-
-            if ($data['status'] === 'completed') {
-                return $this->get_messages($thread_id, $provider_settings);
-            } elseif (in_array($data['status'], ['failed', 'cancelled', 'expired'])) {
-                return [
-                    'success' => false,
-                    'error' => 'Assistant run failed with status: ' . $data['status']
-                ];
-            }
-
-            sleep(1);
-            $attempt++;
-        }
-
-        return [
-            'success' => false,
-            'error' => 'Assistant run timed out'
-        ];
-    }
-
-    /**
-     * Get messages from thread
-     */
-    private function get_messages($thread_id, $provider_settings)
-    {
-        $url = rtrim($provider_settings['base_url'], '/') . "/threads/{$thread_id}/messages";
-
-        $response = wp_remote_get($url, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $provider_settings['api_key'],
-                'OpenAI-Beta' => 'assistants=v2'
-            ],
-            'timeout' => 30
-        ]);
-
-        if (is_wp_error($response)) {
-            return [
-                'success' => false,
-                'error' => 'Failed to get messages: ' . $response->get_error_message()
-            ];
-        }
-
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
-
-        // Get the latest assistant message
-        foreach ($data['data'] as $message) {
-            if ($message['role'] === 'assistant') {
-                $content = '';
-                foreach ($message['content'] as $content_block) {
-                    if ($content_block['type'] === 'text') {
-                        $content .= $content_block['text']['value'];
-                    }
-                }
-
-                return [
-                    'success' => true,
-                    'data' => $content
-                ];
-            }
-        }
-
-        return [
-            'success' => false,
-            'error' => 'No assistant response found'
-        ];
     }
 
     /**
