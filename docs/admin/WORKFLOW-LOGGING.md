@@ -1,199 +1,171 @@
-# PolyTrans Post-Processing Workflow Logging
+# Workflow Execution Logs
 
-## Overview
-Comprehensive logging has been added to the PolyTrans post-processing workflow system to track workflow execution, step results, and troubleshoot issues.
+## Accessing Logs
 
-## Log Messages Structure
-All log messages use the prefix `PolyTrans Workflow` for easy filtering and follow this pattern:
+**PolyTrans → Post-Processing → Logs tab**
+
+## Log Information
+
+Each execution log shows:
+- **Workflow Name** - Which workflow ran
+- **Post ID** - Affected post
+- **Status** - Success/failed
+- **Duration** - Execution time
+- **Timestamp** - When it ran
+- **Steps** - Individual step results
+- **Errors** - Error messages if failed
+
+## Log Details
+
+Click a log entry to see:
+
+### Overall Status
+- Success/failed/partial
+- Total execution time
+- Post before/after
+
+### Step Results
+For each step:
+- Step type and configuration
+- Input received
+- Output generated
+- Execution time
+- Success/failure status
+- Error messages
+
+### Output Actions
+- Actions performed
+- Fields updated
+- Before/after values
+
+## Filtering Logs
+
+**Filters available:**
+- Workflow: Specific workflow
+- Status: Success/failed/all
+- Date range: Last 7/30/90 days or custom
+- Post ID: Specific post
+
+## Log Retention
+
+- Logs kept for 90 days by default
+- Configure in Settings → Translation Settings
+- Old logs auto-deleted
+
+## Understanding Errors
+
+### Common Error Types
+
+**OpenAI Errors:**
 ```
-PolyTrans Workflow: [Component]: [Message]
-PolyTrans Workflow ERROR: [Component]: [Error message]  
-PolyTrans Workflow EXCEPTION: [Component]: [Exception details]
+Assistant not found: asst_abc123
 ```
+→ Assistant doesn't exist or was deleted
 
-## Workflow Manager Logging
-
-### Translation Trigger Events
-- **Translation completion detected**: When a translation finishes
-- **Workflow discovery**: How many workflows found for target language
-- **Workflow conditions**: Which workflows pass/fail conditions and why
-- **Execution scheduling**: When workflows are scheduled to run
-
-Example log messages:
+**Validation Errors:**
 ```
-PolyTrans Workflow Manager: Translation completed - Original: 123, Translated: 456, Language: pl
-PolyTrans Workflow Manager: Found 2 workflow(s) for language 'pl'
-PolyTrans Workflow Manager: Workflow 'SEO Internal Linking' passed all conditions
-PolyTrans Workflow Manager: Skipping workflow 'Content Review' (conditions not met)
-PolyTrans Workflow Manager: Scheduling immediate execution of workflow 'SEO Internal Linking'
+Missing required variable: {content}
 ```
+→ Template uses variable not available in context
 
-### Workflow Execution
-- **Execution start/end**: When workflows begin and complete
-- **Variable context building**: How many data providers and variables
-- **Success/failure status**: Overall workflow results
-
-Example log messages:
+**Timeout Errors:**
 ```
-PolyTrans Workflow Manager: Starting execution of workflow 'SEO Internal Linking' (ID: workflow_123)
-PolyTrans Workflow Manager: Building variable context with 4 data providers
-PolyTrans Workflow Manager: Variable context built with 23 variables
-PolyTrans Workflow Manager: Workflow 'SEO Internal Linking' execution completed successfully
+Execution timeout after 300s
 ```
+→ Step took too long, increase timeout or simplify
 
-## Workflow Executor Logging
-
-### Workflow Level
-- **Execution start**: Workflow name, ID, test mode status
-- **Context analysis**: Number of variables available
-- **Validation results**: Whether workflow structure is valid
-- **Overall completion**: Success/failure with execution time and step count
-
-Example log messages:
+**JSON Parse Errors:**
 ```
-PolyTrans Workflow: Starting execution of 'SEO Internal Linking' (ID: workflow_123)
-PolyTrans Workflow: Context includes 23 variables: title, content, original_post.title, ...
-PolyTrans Workflow: Validation passed. Found 2 steps to execute
-PolyTrans Workflow: 'SEO Internal Linking' completed successfully in 3.542s. Executed 2 steps.
+Invalid JSON in AI response
 ```
+→ AI didn't return valid JSON, adjust prompt or use text format
 
-### Step Level
-- **Step execution**: Step name, ID, type, and execution order
-- **Step timing**: Individual step execution time
-- **Step results**: Success/failure with output variables
-- **Step skipping**: When steps are disabled or conditions not met
+### Resolution Steps
 
-Example log messages:
-```
-PolyTrans Workflow: Executing step #0: 'Content Analysis' (ID: analyze_content, Type: ai_assistant)
-PolyTrans Workflow: Step 'Content Analysis' completed successfully in 2.156s
-PolyTrans Workflow: Step output variables: analysis_result, quality_score, suggestions
-PolyTrans Workflow: Skipping disabled step 'Optional Enhancement' (ID: enhance_content)
-```
+1. Check error message for specific issue
+2. Review workflow configuration
+3. Test workflow with sample content
+4. Verify API keys and assistants
+5. Check post has required fields
 
-### Output Processing
-- **Output actions**: Number of actions being processed
-- **Action results**: Success/failure of individual output actions
-- **Context updates**: When execution context is updated
+## Monitoring
 
-Example log messages:
-```
-PolyTrans Workflow: Processing 3 output actions for step 'Content Analysis'
-PolyTrans Workflow: Successfully processed 3 output actions for step 'Content Analysis'
-PolyTrans Workflow: Merged step output into execution context for next steps
-```
+### Healthy Workflow Indicators
+- ✅ High success rate (>95%)
+- ✅ Consistent execution times
+- ✅ No timeout errors
+- ✅ All steps completing
 
-### Error Handling
-- **Step failures**: Detailed error messages for failed steps
-- **Continue on error**: When execution continues despite failures
-- **Exceptions**: Full exception details with stack traces
+### Warning Signs
+- ⚠️ Frequent failures
+- ⚠️ Increasing execution times
+- ⚠️ Timeout errors
+- ⚠️ Skipped steps
 
-Example log messages:
-```
-PolyTrans Workflow ERROR: Step 'Content Analysis' failed: API timeout after 30 seconds
-PolyTrans Workflow: Continuing despite step failure (continue_on_error = true)
-PolyTrans Workflow EXCEPTION: 'SEO Internal Linking' failed with exception after 1.234s: Connection refused
-```
+## Debugging
 
-## Condition Checking Logging
+**To debug a failing workflow:**
 
-The system logs detailed information about why workflows are or aren't executed:
+1. Find failed execution in logs
+2. Review step-by-step results
+3. Check error messages
+4. Test workflow with same post
+5. Simplify if needed
+6. Check documentation
 
-```
-PolyTrans Workflow Manager: Workflow 'Manual Review Only' is set to manual execution only
-PolyTrans Workflow Manager: Workflow 'Disabled Workflow' is disabled  
-PolyTrans Workflow Manager: Workflow 'Translation Only' not configured for translation completion trigger
-PolyTrans Workflow Manager: Workflow 'Post Type Restricted' conditions not met
-```
-
-## How to Enable Logging
-
-### WordPress Configuration
-Add these lines to your `wp-config.php`:
+**Enable debug mode:**
 ```php
-define('WP_DEBUG', true);
-define('WP_DEBUG_LOG', true);
-define('WP_DEBUG_DISPLAY', false); // Don't show errors on frontend
+// wp-config.php
+define('POLYTRANS_DEBUG', true);
 ```
 
-### Log File Locations
-- **WordPress debug log**: `wp-content/debug.log`
-- **Server error log**: Usually `/var/log/apache2/error.log` or `/var/log/nginx/error.log`
-- **PHP error log**: Check `ini_get('error_log')` in PHP
+This adds detailed logging to **PolyTrans → Translation Logs**.
 
-## Filtering Log Messages
+## Export Logs
 
-To see only PolyTrans workflow logs:
-```bash
-# From WordPress debug.log
-grep "PolyTrans Workflow" wp-content/debug.log
+**Export for analysis:**
+- Click "Export" button
+- Select date range
+- Download as CSV
 
-# Live monitoring
-tail -f wp-content/debug.log | grep "PolyTrans Workflow"
+Includes all log data for external analysis.
 
-# Only errors
-grep "PolyTrans Workflow ERROR\|PolyTrans Workflow EXCEPTION" wp-content/debug.log
+## Best Practices
+
+- Review logs weekly
+- Set up alerts for high failure rates
+- Archive old logs before deletion
+- Document workflow changes in logs
+- Test after configuration changes
+
+## Log Data Structure
+
+```json
+{
+  "workflow_id": 1,
+  "post_id": 123,
+  "status": "success",
+  "duration": 4.2,
+  "timestamp": "2025-10-07 12:00:00",
+  "steps": [
+    {
+      "type": "ai_assistant",
+      "status": "success",
+      "duration": 3.8,
+      "input": "...",
+      "output": "...",
+      "error": null
+    }
+  ],
+  "output_actions": [
+    {
+      "type": "update_post_content",
+      "status": "success",
+      "before": "...",
+      "after": "..."
+    }
+  ]
+}
 ```
 
-## Common Log Patterns
-
-### Successful Workflow Execution
-```
-PolyTrans Workflow Manager: Translation completed - Original: 123, Translated: 456, Language: pl
-PolyTrans Workflow Manager: Found 1 workflow(s) for language 'pl'  
-PolyTrans Workflow Manager: Workflow 'SEO Internal Linking' passed all conditions
-PolyTrans Workflow Manager: Scheduling immediate execution of workflow 'SEO Internal Linking'
-PolyTrans Workflow: Starting execution of 'SEO Internal Linking' (ID: workflow_abc123)
-PolyTrans Workflow: Validation passed. Found 2 steps to execute
-PolyTrans Workflow: Executing step #0: 'Content Analysis' (ID: step1, Type: ai_assistant)
-PolyTrans Workflow: Step 'Content Analysis' completed successfully in 2.156s
-PolyTrans Workflow: Step output variables: enhanced_content, links_added
-PolyTrans Workflow: Processing 1 output actions for step 'Content Analysis'
-PolyTrans Workflow: Successfully processed 1 output actions for step 'Content Analysis'
-PolyTrans Workflow: 'SEO Internal Linking' completed successfully in 2.234s. Executed 1 steps.
-```
-
-### No Workflows Available
-```
-PolyTrans Workflow Manager: Translation completed - Original: 123, Translated: 456, Language: de
-PolyTrans Workflow Manager: No workflows found for language 'de'
-```
-
-### Workflow Skipped Due to Conditions
-```
-PolyTrans Workflow Manager: Translation completed - Original: 123, Translated: 456, Language: pl
-PolyTrans Workflow Manager: Found 2 workflow(s) for language 'pl'
-PolyTrans Workflow Manager: Workflow 'Manual Only Workflow' is set to manual execution only
-PolyTrans Workflow Manager: Workflow 'Auto Content Enhancement' passed all conditions
-PolyTrans Workflow Manager: Scheduled 1 workflow(s) for execution
-```
-
-## Troubleshooting
-
-### No Log Messages Appearing
-1. Check `WP_DEBUG` and `WP_DEBUG_LOG` are enabled
-2. Verify log file exists and is writable
-3. Ensure workflows are enabled and configured for translation trigger
-4. Check if manual_only flag is preventing automatic execution
-
-### Workflow Not Executing
-Look for these messages to diagnose:
-- "No workflows found for language 'X'" - No workflows configured for that language
-- "Workflow 'X' is disabled" - Workflow needs to be enabled
-- "Workflow 'X' is set to manual execution only" - Check manual_only setting
-- "Workflow 'X' not configured for translation completion trigger" - Check trigger settings
-
-### Step Failures
-- Look for "Step 'X' failed:" messages
-- Check if API keys are configured
-- Verify step configuration is valid
-- Check if required variables are available in context
-
-## Performance Monitoring
-
-The logs include timing information for performance analysis:
-- Overall workflow execution time
-- Individual step execution time
-- Variable context building time
-
-This helps identify slow steps or overall performance issues.
+See [WORKFLOW-TRIGGERING.md](WORKFLOW-TRIGGERING.md) for workflow management.
