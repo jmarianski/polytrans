@@ -126,8 +126,12 @@
             // Show post selection step
             $('#step-post').slideDown();
 
+            // If there's a pre-selected post ID, load it now that we have a workflow
+            if (this.selectedOriginalPostId && !this.selectedTranslatedPostId) {
+                this.loadPostData(this.selectedOriginalPostId);
+            }
             // Clear post selection if language doesn't match
-            if (this.selectedTranslatedPostId) {
+            else if (this.selectedTranslatedPostId) {
                 // Check if current selection is still valid
                 this.validateCurrentSelection();
             }

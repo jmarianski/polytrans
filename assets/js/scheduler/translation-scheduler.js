@@ -179,13 +179,15 @@ jQuery(function ($) {
         }
     }
 
-    // Check immediately and set up monitoring
-    // First, store initial values for all form fields
-    $('#post input:not([name*="polytrans"]), #post textarea:not([name*="polytrans"]), #post select:not([name*="polytrans"])').each(function () {
-        $(this).data('original-value', $(this).val());
-    });
+    // Defer initial check to allow page to fully load
+    setTimeout(function() {
+        // First, store initial values for all form fields
+        $('#post input:not([name*="polytrans"]), #post textarea:not([name*="polytrans"]), #post select:not([name*="polytrans"])').each(function () {
+            $(this).data('original-value', $(this).val());
+        });
 
-    checkFormDirty();
+        checkFormDirty();
+    }, 2000); // 2 second delay
 
     // Monitor form changes
     $(document).on('input change', '#post input:not([name*="_polytrans_"]), #post textarea:not([name*="_polytrans_"]), #post select:not([name*="_polytrans_"])', function () {
