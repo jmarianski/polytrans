@@ -152,7 +152,7 @@ class PolyTrans_Post_Autocomplete
     {
         check_ajax_referer('polytrans_workflows_nonce', 'nonce');
 
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can('edit_posts')) {
             wp_die('Unauthorized', 403);
         }
 

@@ -44,7 +44,7 @@ class PolyTrans_Tag_Translation
             'polytrans',
             __('Tag Translations', 'polytrans'),
             __('Tag Translations', 'polytrans'),
-            'manage_options',
+            'edit_posts',
             'polytrans-tag-translation',
             [$this, 'admin_page'],
             20
@@ -138,7 +138,8 @@ class PolyTrans_Tag_Translation
                 <p><strong><?php esc_html_e('Note:', 'polytrans'); ?></strong> <?php printf(esc_html__('To add or remove tags from the translation list, please go to %s.', 'polytrans'), '<a href="' . admin_url('admin.php?page=polytrans') . '">' . esc_html__('Translation Settings → Tag Settings', 'polytrans') . '</a>'); ?></p>
             </div>
 
-            <!-- Export/Import controls -->
+            <!-- Export/Import controls (admin only) -->
+            <?php if (current_user_can('manage_options')): ?>
             <div>
                 <button id="export-tag-csv" class="button button-primary"><?php esc_html_e('Export CSV', 'polytrans'); ?></button>
                 <button id="show-import-csv" class="button"><?php esc_html_e('Import CSV', 'polytrans'); ?></button>
@@ -148,6 +149,7 @@ class PolyTrans_Tag_Translation
                     <button id="import-csv-cancel" class="button"><?php esc_html_e('Cancel', 'polytrans'); ?></button>
                 </span>
             </div>
+            <?php endif; ?>
 
             <table class="widefat fixed striped" id="tag-translation-table">
                 <thead>
