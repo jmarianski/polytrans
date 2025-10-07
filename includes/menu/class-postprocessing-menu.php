@@ -56,6 +56,15 @@ class PolyTrans_Postprocessing_Menu
             'polytrans-workflows',
             [$this, 'render_workflow_page']
         );
+
+        add_submenu_page(
+            'polytrans',
+            __('Execute Workflow', 'polytrans'),
+            __('Execute Workflow', 'polytrans'),
+            'manage_options',
+            'polytrans-execute-workflow',
+            [$this, 'render_execute_workflow_page']
+        );
     }
 
     /**
@@ -63,70 +72,122 @@ class PolyTrans_Postprocessing_Menu
      */
     public function enqueue_assets($hook_suffix)
     {
-        if (strpos($hook_suffix, 'polytrans-workflows') === false) {
-            return;
+        // Enqueue for workflow management page
+        if (strpos($hook_suffix, 'polytrans-workflows') !== false) {
+            wp_enqueue_script(
+                'polytrans-workflows',
+                POLYTRANS_PLUGIN_URL . 'assets/js/postprocessing-admin.js',
+                ['jquery', 'wp-util'],
+                POLYTRANS_VERSION,
+                true
+            );
+
+            wp_enqueue_style(
+                'polytrans-workflows',
+                POLYTRANS_PLUGIN_URL . 'assets/css/postprocessing-admin.css',
+                [],
+                POLYTRANS_VERSION
+            );
+
+            // Enqueue user autocomplete assets
+            wp_enqueue_script(
+                'polytrans-user-autocomplete',
+                POLYTRANS_PLUGIN_URL . 'assets/js/core/user-autocomplete.js',
+                ['jquery-ui-autocomplete'],
+                POLYTRANS_VERSION,
+                true
+            );
+            wp_enqueue_style('jquery-ui-autocomplete');
+
+            // Localize script
+            wp_localize_script('polytrans-workflows', 'polytransWorkflows', [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('polytrans_workflows_nonce'),
+                'models' => $this->get_openai_models(),
+                'strings' => [
+                    'confirmDelete' => __('Are you sure you want to delete this workflow?', 'polytrans'),
+                    'confirmDuplicate' => __('Create a copy of this workflow?', 'polytrans'),
+                    'saveSuccess' => __('Workflow saved successfully!', 'polytrans'),
+                    'saveError' => __('Error saving workflow.', 'polytrans'),
+                    'deleteSuccess' => __('Workflow deleted successfully!', 'polytrans'),
+                    'deleteError' => __('Error deleting workflow.', 'polytrans'),
+                    'testSuccess' => __('Test completed successfully!', 'polytrans'),
+                    'testError' => __('Test failed.', 'polytrans'),
+                    'loading' => __('Loading...', 'polytrans'),
+                    'addStep' => __('Add Step', 'polytrans'),
+                    'removeStep' => __('Remove Step', 'polytrans'),
+                    'moveUp' => __('Move Up', 'polytrans'),
+                    'moveDown' => __('Move Down', 'polytrans'),
+                    'clearSelection' => __('Clear', 'polytrans')
+                ]
+            ]);
+
+            // Localize user autocomplete script
+            wp_localize_script('polytrans-user-autocomplete', 'PolyTransUserAutocomplete', [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('polytrans_nonce'),
+                'i18n' => [
+                    'no_results' => esc_html__('No users found.', 'polytrans'),
+                    'searching' => esc_html__('Searching users...', 'polytrans'),
+                    'clear_selection' => esc_html__('Clear selection', 'polytrans'),
+                    'type_to_search' => esc_html__('Type to search users...', 'polytrans'),
+                    'min_chars' => esc_html__('Type at least 2 characters to search.', 'polytrans'),
+                ]
+            ]);
         }
 
-        wp_enqueue_script(
-            'polytrans-workflows',
-            POLYTRANS_PLUGIN_URL . 'assets/js/postprocessing-admin.js',
-            ['jquery', 'wp-util'],
-            POLYTRANS_VERSION,
-            true
-        );
+        // Enqueue for execute workflow page
+        if (strpos($hook_suffix, 'polytrans-execute-workflow') !== false) {
+            wp_enqueue_script(
+                'polytrans-execute-workflow',
+                POLYTRANS_PLUGIN_URL . 'assets/js/postprocessing/execute-workflow.js',
+                ['jquery', 'wp-util'],
+                POLYTRANS_VERSION,
+                true
+            );
 
-        wp_enqueue_style(
-            'polytrans-workflows',
-            POLYTRANS_PLUGIN_URL . 'assets/css/postprocessing-admin.css',
-            [],
-            POLYTRANS_VERSION
-        );
+            wp_enqueue_style(
+                'polytrans-execute-workflow',
+                POLYTRANS_PLUGIN_URL . 'assets/css/postprocessing-admin.css',
+                [],
+                POLYTRANS_VERSION
+            );
 
-        // Enqueue user autocomplete assets
-        wp_enqueue_script(
-            'polytrans-user-autocomplete',
-            POLYTRANS_PLUGIN_URL . 'assets/js/core/user-autocomplete.js',
-            ['jquery-ui-autocomplete'],
-            POLYTRANS_VERSION,
-            true
-        );
-        wp_enqueue_style('jquery-ui-autocomplete');
+            // Get available languages
+            $langs = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'slug']) : ['pl', 'en', 'it'];
+            $lang_names = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'name']) : ['Polish', 'English', 'Italian'];
 
-        // Localize script
-        wp_localize_script('polytrans-workflows', 'polytransWorkflows', [
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('polytrans_workflows_nonce'),
-            'models' => $this->get_openai_models(),
-            'strings' => [
-                'confirmDelete' => __('Are you sure you want to delete this workflow?', 'polytrans'),
-                'confirmDuplicate' => __('Create a copy of this workflow?', 'polytrans'),
-                'saveSuccess' => __('Workflow saved successfully!', 'polytrans'),
-                'saveError' => __('Error saving workflow.', 'polytrans'),
-                'deleteSuccess' => __('Workflow deleted successfully!', 'polytrans'),
-                'deleteError' => __('Error deleting workflow.', 'polytrans'),
-                'testSuccess' => __('Test completed successfully!', 'polytrans'),
-                'testError' => __('Test failed.', 'polytrans'),
-                'loading' => __('Loading...', 'polytrans'),
-                'addStep' => __('Add Step', 'polytrans'),
-                'removeStep' => __('Remove Step', 'polytrans'),
-                'moveUp' => __('Move Up', 'polytrans'),
-                'moveDown' => __('Move Down', 'polytrans'),
-                'clearSelection' => __('Clear', 'polytrans')
-            ]
-        ]);
-
-        // Localize user autocomplete script
-        wp_localize_script('polytrans-user-autocomplete', 'PolyTransUserAutocomplete', [
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('polytrans_nonce'),
-            'i18n' => [
-                'no_results' => esc_html__('No users found.', 'polytrans'),
-                'searching' => esc_html__('Searching users...', 'polytrans'),
-                'clear_selection' => esc_html__('Clear selection', 'polytrans'),
-                'type_to_search' => esc_html__('Type to search users...', 'polytrans'),
-                'min_chars' => esc_html__('Type at least 2 characters to search.', 'polytrans'),
-            ]
-        ]);
+            wp_localize_script('polytrans-execute-workflow', 'polytransExecuteWorkflow', [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('polytrans_workflows_nonce'),
+                'languages' => array_combine($langs, $lang_names),
+                'strings' => [
+                    'loading' => __('Loading...', 'polytrans'),
+                    'searching' => __('Searching...', 'polytrans'),
+                    'selectWorkflow' => __('Select workflow...', 'polytrans'),
+                    'selectPost' => __('Select a post...', 'polytrans'),
+                    'noWorkflows' => __('No workflows available', 'polytrans'),
+                    'noPosts' => __('No posts found', 'polytrans'),
+                    'executing' => __('Executing...', 'polytrans'),
+                    'verifying' => __('Verifying...', 'polytrans'),
+                    'verify' => __('Verify', 'polytrans'),
+                    'execute' => __('Execute Workflow', 'polytrans'),
+                    'executeAnother' => __('Execute Another Workflow', 'polytrans'),
+                    'viewPost' => __('View Post', 'polytrans'),
+                    'editPost' => __('Edit Post', 'polytrans'),
+                    'success' => __('Success!', 'polytrans'),
+                    'failed' => __('Failed', 'polytrans'),
+                    'error' => __('Error', 'polytrans'),
+                    'alreadyRunning' => __('This workflow is already running on this post.', 'polytrans'),
+                    'workflowNotFound' => __('Selected workflow does not exist.', 'polytrans'),
+                    'postNotFound' => __('Selected post does not exist.', 'polytrans'),
+                    'noTranslation' => __('This post does not have a translation in the selected language.', 'polytrans'),
+                    'languageMismatch' => __('Post translation language does not match workflow language.', 'polytrans'),
+                    'permissionDenied' => __('You do not have permission to execute workflows on this post.', 'polytrans'),
+                    'timeout' => __('Execution timed out. Please check logs for details.', 'polytrans'),
+                ]
+            ]);
+        }
     }
 
     /**
@@ -225,12 +286,12 @@ class PolyTrans_Postprocessing_Menu
                 <table class="widefat fixed striped">
                     <thead>
                         <tr>
-                            <th style="width: 30%;"><?php esc_html_e('Name', 'polytrans'); ?></th>
+                            <th style="width: 25%;"><?php esc_html_e('Name', 'polytrans'); ?></th>
                             <th style="width: 10%;"><?php esc_html_e('Language', 'polytrans'); ?></th>
-                            <th style="width: 10%;"><?php esc_html_e('Steps', 'polytrans'); ?></th>
+                            <th style="width: 8%;"><?php esc_html_e('Steps', 'polytrans'); ?></th>
                             <th style="width: 10%;"><?php esc_html_e('Status', 'polytrans'); ?></th>
-                            <th style="width: 25%;"><?php esc_html_e('Description', 'polytrans'); ?></th>
-                            <th style="width: 15%;"><?php esc_html_e('Actions', 'polytrans'); ?></th>
+                            <th style="width: 22%;"><?php esc_html_e('Description', 'polytrans'); ?></th>
+                            <th style="width: 25%;"><?php esc_html_e('Actions', 'polytrans'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -264,6 +325,9 @@ class PolyTrans_Postprocessing_Menu
                                     </a>
                                     <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-workflows&action=test&workflow_id=' . urlencode($workflow['id']))); ?>" class="button button-small">
                                         <?php esc_html_e('Test', 'polytrans'); ?>
+                                    </a>
+                                    <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-execute-workflow&workflow_id=' . urlencode($workflow['id']))); ?>" class="button button-small button-primary">
+                                        <?php esc_html_e('Execute', 'polytrans'); ?>
                                     </a>
                                     <button type="button" class="button button-small workflow-duplicate" data-workflow-id="<?php echo esc_attr($workflow['id']); ?>">
                                         <?php esc_html_e('Duplicate', 'polytrans'); ?>
@@ -414,6 +478,243 @@ class PolyTrans_Postprocessing_Menu
 
         <script type="text/javascript">
             window.polytransWorkflowTestData = <?php echo json_encode($workflow); ?>;
+        </script>
+    <?php
+    }
+
+    /**
+     * Render execute workflow page
+     */
+    public function render_execute_workflow_page()
+    {
+        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $storage_manager = $workflow_manager->get_storage_manager();
+
+        // Get URL parameters
+        $workflow_id = isset($_GET['workflow_id']) ? sanitize_text_field($_GET['workflow_id']) : '';
+        $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
+        $locked = isset($_GET['lock']) && $_GET['lock'] === '1';
+
+        // Get all workflows
+        $all_workflows = $storage_manager->get_all_workflows();
+
+        // Pre-selected workflow data
+        $selected_workflow = null;
+        if ($workflow_id) {
+            $selected_workflow = $storage_manager->get_workflow($workflow_id);
+        }
+
+        // Pre-selected post data
+        $selected_post = null;
+        if ($post_id) {
+            $selected_post = get_post($post_id);
+        }
+
+        // Get available languages
+        $langs = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'slug']) : ['pl', 'en', 'it'];
+        $lang_names = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'name']) : ['Polish', 'English', 'Italian'];
+
+    ?>
+        <div class="wrap execute-workflow-page">
+            <h1><?php esc_html_e('Execute Workflow Manually', 'polytrans'); ?></h1>
+            <p class="description">
+                <?php esc_html_e('Run post-processing workflows on existing translated posts on-demand.', 'polytrans'); ?>
+            </p>
+
+            <div id="execute-wizard" class="execute-wizard">
+
+                <!-- Step 1: Select Workflow -->
+                <div class="execute-step" id="step-workflow">
+                    <div class="postbox">
+                        <h2 class="hndle"><?php esc_html_e('Step 1: Select Workflow', 'polytrans'); ?></h2>
+                        <div class="inside">
+                            <table class="form-table">
+                                <tr>
+                                    <th scope="row">
+                                        <label for="workflow-select"><?php esc_html_e('Workflow', 'polytrans'); ?></label>
+                                    </th>
+                                    <td>
+                                        <select id="workflow-select" class="regular-text" <?php echo $locked ? 'disabled' : ''; ?>>
+                                            <option value=""><?php esc_html_e('Select workflow...', 'polytrans'); ?></option>
+                                            <?php foreach ($all_workflows as $workflow): ?>
+                                                <option
+                                                    value="<?php echo esc_attr($workflow['id']); ?>"
+                                                    data-language="<?php echo esc_attr($workflow['language']); ?>"
+                                                    data-steps="<?php echo esc_attr(count($workflow['steps'] ?? [])); ?>"
+                                                    <?php selected($workflow_id, $workflow['id']); ?>>
+                                                    <?php echo esc_html($workflow['name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <?php if ($locked && $selected_workflow): ?>
+                                            <input type="hidden" id="workflow-id-locked" value="<?php echo esc_attr($workflow_id); ?>">
+                                        <?php endif; ?>
+                                        <p class="description">
+                                            <?php esc_html_e('Select the workflow you want to execute.', 'polytrans'); ?>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div id="workflow-details" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-left: 4px solid #2271b1;">
+                                <h4 style="margin-top: 0;"><?php esc_html_e('Workflow Details', 'polytrans'); ?></h4>
+                                <p>
+                                    <strong><?php esc_html_e('Target Language:', 'polytrans'); ?></strong>
+                                    <span id="workflow-language"></span>
+                                </p>
+                                <p>
+                                    <strong><?php esc_html_e('Number of Steps:', 'polytrans'); ?></strong>
+                                    <span id="workflow-steps-count"></span>
+                                </p>
+                                <div id="workflow-steps-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Select Post -->
+                <div class="execute-step" id="step-post" style="display: none;">
+                    <div class="postbox">
+                        <h2 class="hndle"><?php esc_html_e('Step 2: Select Post', 'polytrans'); ?></h2>
+                        <div class="inside">
+
+                            <!-- Post Search -->
+                            <div style="margin-bottom: 25px;">
+                                <label for="post-search" style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">
+                                    <?php esc_html_e('Search for post:', 'polytrans'); ?>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="post-search"
+                                    class="regular-text"
+                                    style="width: 100%; max-width: 500px; padding: 8px 12px; font-size: 14px;"
+                                    placeholder="<?php esc_attr_e('Type post title to search...', 'polytrans'); ?>"
+                                    <?php echo $locked ? 'disabled' : ''; ?> />
+                                <div id="post-search-results" style="display: none; margin-top: 10px;"></div>
+                            </div>
+
+                            <!-- Or Divider -->
+                            <div style="text-align: center; margin: 30px 0; position: relative;">
+                                <span style="background: #fff; padding: 0 15px; position: relative; z-index: 1; color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">
+                                    <?php esc_html_e('OR', 'polytrans'); ?>
+                                </span>
+                                <hr style="position: absolute; top: 50%; left: 0; right: 0; margin: 0; z-index: 0; border: none; border-top: 1px solid #ddd;">
+                            </div>
+
+                            <!-- Direct ID Entry -->
+                            <div style="margin-bottom: 25px;">
+                                <label for="post-id-input" style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">
+                                    <?php esc_html_e('Enter post ID:', 'polytrans'); ?>
+                                </label>
+                                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                    <input
+                                        type="number"
+                                        id="post-id-input"
+                                        class="regular-text"
+                                        style="width: 120px; padding: 8px 12px; font-size: 14px;"
+                                        placeholder="<?php esc_attr_e('Post ID', 'polytrans'); ?>"
+                                        <?php echo $locked ? 'disabled' : ''; ?> />
+                                    <button
+                                        type="button"
+                                        id="verify-post-id"
+                                        class="button button-secondary"
+                                        style="padding: 6px 20px; height: auto;"
+                                        <?php echo $locked ? 'disabled' : ''; ?>>
+                                        <?php esc_html_e('Load Post', 'polytrans'); ?>
+                                    </button>
+                                </div>
+                                <?php if ($locked && $selected_post): ?>
+                                    <input type="hidden" id="post-id-locked" value="<?php echo esc_attr($post_id); ?>">
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Selected Post Display -->
+                            <div id="selected-post-display" style="display: none; margin-top: 25px; padding: 20px; background: #f0f9ff; border-left: 4px solid #0073aa; border-radius: 4px;">
+                                <h4 style="margin: 0 0 15px 0; color: #0073aa; font-size: 14px; font-weight: 600;">
+                                    ✓ <?php esc_html_e('Selected Post', 'polytrans'); ?>
+                                </h4>
+                                <div id="selected-posts-info"></div>
+                            </div>
+
+                            <!-- Error Display -->
+                            <div id="post-selection-error" class="notice notice-error" style="display: none; margin-top: 20px;">
+                                <p style="margin: 10px 0;"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Review & Execute -->
+                <div class="execute-step" id="step-execute" style="display: none;">
+                    <div class="postbox">
+                        <h2 class="hndle"><?php esc_html_e('Step 3: Review & Execute', 'polytrans'); ?></h2>
+                        <div class="inside">
+                            <div id="execution-review">
+                                <!-- Review information will be populated by JavaScript -->
+                            </div>
+
+                            <div class="execution-warning" style="margin: 20px 0; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107;">
+                                <p style="margin: 0;">
+                                    <strong>⚠️ <?php esc_html_e('Warning:', 'polytrans'); ?></strong>
+                                    <?php esc_html_e('This will modify the translated post content. Make sure you have selected the correct workflow and post.', 'polytrans'); ?>
+                                </p>
+                            </div>
+
+                            <div style="text-align: center; margin-top: 20px;">
+                                <button type="button" id="execute-workflow-btn" class="button button-primary button-large">
+                                    <?php esc_html_e('Execute Workflow', 'polytrans'); ?>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Execution Status -->
+                <div class="execute-step" id="step-status" style="display: none;">
+                    <div class="postbox">
+                        <h2 class="hndle">📊 <?php esc_html_e('Execution Status', 'polytrans'); ?></h2>
+                        <div class="inside">
+                            <div id="execution-status-content">
+                                <!-- Status will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Display -->
+                <div class="execute-step" id="step-results" style="display: none;">
+                    <div class="postbox">
+                        <h2 class="hndle" id="results-title"></h2>
+                        <div class="inside">
+                            <div id="execution-results-content">
+                                <!-- Results will be populated by JavaScript -->
+                            </div>
+
+                            <div style="text-align: center; margin-top: 20px;">
+                                <button type="button" id="execute-another-btn" class="button button-primary">
+                                    <?php esc_html_e('Execute Another Workflow', 'polytrans'); ?>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            window.polytransExecuteWorkflowData = {
+                workflows: <?php echo json_encode($all_workflows); ?>,
+                selectedWorkflow: <?php echo $selected_workflow ? json_encode($selected_workflow) : 'null'; ?>,
+                selectedPost: <?php echo $selected_post ? json_encode([
+                                    'ID' => $selected_post->ID,
+                                    'post_title' => $selected_post->post_title,
+                                    'post_type' => $selected_post->post_type
+                                ]) : 'null'; ?>,
+                locked: <?php echo $locked ? 'true' : 'false'; ?>,
+                workflowId: '<?php echo esc_js($workflow_id); ?>',
+                postId: <?php echo $post_id; ?>
+            };
         </script>
 <?php
     }
@@ -581,6 +882,7 @@ class PolyTrans_Postprocessing_Menu
      */
     public function ajax_search_posts()
     {
+        // Delegate to the autocomplete class which now supports language filtering
         $post_autocomplete = PolyTrans_Post_Autocomplete::get_instance();
         $post_autocomplete->ajax_search_posts();
     }
@@ -601,20 +903,56 @@ class PolyTrans_Postprocessing_Menu
         }
 
         $post_id = intval($_POST['post_id'] ?? 0);
+        $target_language = sanitize_text_field($_POST['target_language'] ?? '');
 
         if (empty($post_id)) {
             wp_send_json_error('Post ID required');
             return;
         }
 
-        $post_autocomplete = PolyTrans_Post_Autocomplete::get_instance();
-        $post_data = $post_autocomplete->get_post_data($post_id);
-
-        if ($post_data) {
-            wp_send_json_success($post_data);
-        } else {
+        // Get the post
+        $post = get_post($post_id);
+        if (!$post) {
             wp_send_json_error('Post not found');
+            return;
         }
+
+        // Check permissions
+        if (!current_user_can('edit_post', $post_id)) {
+            wp_send_json_error('You do not have permission to edit this post');
+            return;
+        }
+
+        // Get post language
+        $post_language = function_exists('pll_get_post_language') ?
+            pll_get_post_language($post_id) : 'en';
+
+        // If target_language is provided, validate it matches the post language
+        if (!empty($target_language) && $post_language !== $target_language) {
+            wp_send_json_error([
+                'message' => sprintf(
+                    __('Selected post is in %s but workflow requires %s', 'polytrans'),
+                    $post_language,
+                    $target_language
+                )
+            ]);
+            return;
+        }
+
+        // Return post data - using it as both original and translated
+        // For manual workflows, we work directly with the selected post
+        $post_data = [
+            'ID' => $post->ID,
+            'post_title' => $post->post_title,
+            'post_type' => $post->post_type,
+            'language' => $post_language,
+            'edit_url' => get_edit_post_link($post->ID, 'raw')
+        ];
+
+        wp_send_json_success([
+            'original_post' => $post_data,
+            'translated_post' => $post_data
+        ]);
     }
 
     /**

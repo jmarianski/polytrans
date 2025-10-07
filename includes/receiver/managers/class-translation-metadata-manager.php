@@ -78,7 +78,7 @@ class PolyTrans_Translation_Metadata_Manager
     private function set_author($new_post_id, $original_post_id)
     {
         $original_post = get_post($original_post_id);
-        
+
         if (!$original_post) {
             PolyTrans_Logs_Manager::log("Could not find original post with ID $original_post_id for author attribution", "warning", [
                 'source' => 'translation_metadata_manager',
@@ -87,10 +87,10 @@ class PolyTrans_Translation_Metadata_Manager
             ]);
             return;
         }
-        
+
         if (!isset($original_post->post_author) || empty($original_post->post_author)) {
             PolyTrans_Logs_Manager::log("Original post $original_post_id has no author or empty author", "warning", [
-                'source' => 'translation_metadata_manager', 
+                'source' => 'translation_metadata_manager',
                 'original_post_id' => $original_post_id,
                 'translated_post_id' => $new_post_id
             ]);
@@ -108,12 +108,12 @@ class PolyTrans_Translation_Metadata_Manager
             ]);
             return;
         }
-        
+
         $update_result = wp_update_post([
             'ID' => $new_post_id,
             'post_author' => $original_post->post_author,
         ]);
-        
+
         if (is_wp_error($update_result)) {
             PolyTrans_Logs_Manager::log("Failed to update post $new_post_id author", "error", [
                 'source' => 'translation_metadata_manager',

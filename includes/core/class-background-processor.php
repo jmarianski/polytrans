@@ -32,6 +32,11 @@ class PolyTrans_Background_Processor
                 self::log("Background workflow test spawn failed: Invalid arguments", "error", $args);
                 return false;
             }
+        } elseif ($action === 'workflow-execute') {
+            if (empty($args['execution_id']) || empty($args['workflow_id']) || empty($args['translated_post_id'])) {
+                self::log("Background workflow execution spawn failed: Invalid arguments", "error", $args);
+                return false;
+            }
         }
 
         // Method 1: Try PHP execution functions if available
@@ -227,6 +232,10 @@ class PolyTrans_Background_Processor
 
             case 'workflow-test':
                 self::process_workflow_test($args);
+                break;
+
+            case 'workflow-execute':
+                self::process_workflow_execution($args);
                 break;
 
             default:
@@ -623,6 +632,106 @@ class PolyTrans_Background_Processor
                 'completed_at' => time(),
                 'data' => ['success' => false, 'error' => $e->getMessage()]
             ], 5 * MINUTE_IN_SECONDS);
+        }
+    }
+
+    /**
+     * Process workflow execution in background
+     * 
+     * @param array $args Arguments for the process
+     * @return void
+     */
+    private static function process_workflow_execution($args)
+    {
+        $execution_id = $args['execution_id'] ?? '';
+        $workflow_id = $args['workflow_id'] ?? '';
+        $original_post_id = $args['original_post_id'] ?? 0;
+        $translated_post_id = $args['translated_post_id'] ?? 0;
+        $target_language = $args['target_language'] ?? '';
+        $started_at = $args['started_at'] ?? time();
+
+        if (!$execution_id || !$workflow_id || !$translated_post_id) {
+            self::log("Workflow execution failed: Invalid arguments", "error", $args);
+
+            // Store error result
+            if ($execution_id) {
+                set_transient('polytrans_workflow_exec_' . $execution_id, [
+                    'status' => 'completed',
+                    'completed_at' => time(),
+                    'result' => ['success' => false, 'error' => 'Invalid execution arguments']
+                ], 10 * MINUTE_IN_SECONDS);
+            }
+            return;
+        }
+
+        self::log("Starting workflow execution", "info", [
+            'execution_id' => $execution_id,
+            'workflow_id' => $workflow_id,
+            'post_id' => $translated_post_id
+        ]);
+
+        try {
+            // Get workflow manager instance
+            if (!class_exists('PolyTrans_Workflow_Manager')) {
+                require_once POLYTRANS_PLUGIN_DIR . 'includes/postprocessing/class-workflow-manager.php';
+            }
+
+            $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+
+            // Get workflow
+            $workflow = $workflow_manager->get_storage_manager()->get_workflow($workflow_id);
+
+            if (!$workflow) {
+                throw new Exception('Workflow not found: ' . $workflow_id);
+            }
+
+            // Build context
+            $context = [
+                'original_post_id' => $original_post_id,
+                'translated_post_id' => $translated_post_id,
+                'target_language' => $target_language,
+                'trigger' => 'manual'
+            ];
+
+            // Execute workflow (NOT in test mode)
+            $result = $workflow_manager->execute_workflow($workflow, $context, false);
+
+            // Store result
+            set_transient('polytrans_workflow_exec_' . $execution_id, [
+                'status' => 'completed',
+                'started_at' => $started_at,
+                'completed_at' => time(),
+                'result' => $result
+            ], 10 * MINUTE_IN_SECONDS);
+
+            // Clear execution lock
+            delete_transient('polytrans_workflow_lock_' . $workflow_id . '_' . $translated_post_id);
+
+            self::log("Workflow execution completed successfully", "info", [
+                'execution_id' => $execution_id,
+                'workflow_id' => $workflow_id,
+                'post_id' => $translated_post_id,
+                'success' => $result['success'] ?? false,
+                'steps_executed' => $result['steps_executed'] ?? 0
+            ]);
+        } catch (Throwable $e) {
+            self::log("Workflow execution failed: " . $e->getMessage(), "error", [
+                'execution_id' => $execution_id,
+                'workflow_id' => $workflow_id,
+                'post_id' => $translated_post_id,
+                'error' => $e->getMessage()
+            ]);
+
+            // Store error result
+            set_transient('polytrans_workflow_exec_' . $execution_id, [
+                'status' => 'completed',
+                'started_at' => $started_at,
+                'completed_at' => time(),
+                'result' => ['success' => false, 'error' => $e->getMessage()]
+            ], 10 * MINUTE_IN_SECONDS);
+
+            // Clear execution lock
+            delete_transient('polytrans_workflow_lock_' . $workflow_id . '_' . $translated_post_id);
         }
     }
 

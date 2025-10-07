@@ -308,7 +308,7 @@ class PolyTrans_Translation_Handler
         $context_articles = [];
         if (class_exists('PolyTrans_Articles_Data_Provider')) {
             $articles_provider = new PolyTrans_Articles_Data_Provider();
-            
+
             // Prepare context for the articles provider
             $context = [
                 'articles_count' => 20,
@@ -316,10 +316,10 @@ class PolyTrans_Translation_Handler
                 'article_post_types' => ['post'],
                 'target_language' => $target_lang
             ];
-            
+
             $variables = $articles_provider->get_variables($context);
             $recent_articles = $variables['recent_articles'] ?? [];
-            
+
             if (!empty($recent_articles)) {
                 foreach ($recent_articles as $article) {
                     $context_articles[] = [
@@ -333,12 +333,12 @@ class PolyTrans_Translation_Handler
                         'tags' => $article['tags']
                     ];
                 }
-                
+
                 PolyTrans_Logs_Manager::log(
-                    "Added " . count($context_articles) . " recent articles in $target_lang as translation context for post $post_id", 
+                    "Added " . count($context_articles) . " recent articles in $target_lang as translation context for post $post_id",
                     "info"
                 );
-                
+
                 // Add payload structure info to log
                 $log[] = [
                     'timestamp' => time(),
@@ -351,10 +351,10 @@ class PolyTrans_Translation_Handler
                 update_post_meta($post_id, $log_key, $log);
             } else {
                 PolyTrans_Logs_Manager::log(
-                    "No recent articles found in $target_lang for translation context for post $post_id", 
+                    "No recent articles found in $target_lang for translation context for post $post_id",
                     "info"
                 );
-                
+
                 $log[] = [
                     'timestamp' => time(),
                     'msg' => sprintf(
@@ -590,7 +590,7 @@ class PolyTrans_Translation_Handler
         // Initialize new translation with 'started' status
         $status_key = '_polytrans_translation_status_' . $lang;
         $log_key = '_polytrans_translation_log_' . $lang;
-        
+
         update_post_meta($post_id, $status_key, 'started');
         update_post_meta($post_id, $log_key, [
             [
@@ -598,7 +598,7 @@ class PolyTrans_Translation_Handler
                 'msg' => sprintf(__('Translation retry initiated by user.', 'polytrans'))
             ]
         ]);
-        
+
         // Update scheduled languages
         update_post_meta($post_id, $langs_key, $scheduled_langs);
 

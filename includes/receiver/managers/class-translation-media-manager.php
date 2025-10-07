@@ -33,7 +33,7 @@ class PolyTrans_Translation_Media_Manager
         }
 
         $original_attachment_id = $translated_image_data['id'];
-        
+
         // Check if original attachment exists
         if (!get_post($original_attachment_id)) {
             PolyTrans_Logs_Manager::log("Original attachment not found", "warning", [
@@ -100,7 +100,7 @@ class PolyTrans_Translation_Media_Manager
 
         // Check if a translation already exists
         $existing_translation = pll_get_post($original_attachment_id, $target_language);
-        
+
         if ($existing_translation) {
             PolyTrans_Logs_Manager::log("Found existing attachment translation", "info", [
                 'source' => 'translation_media_manager',
@@ -108,7 +108,7 @@ class PolyTrans_Translation_Media_Manager
                 'existing_translation_id' => $existing_translation,
                 'target_language' => $target_language
             ]);
-            
+
             // Update the existing translation with new metadata
             $this->update_attachment_metadata($existing_translation, $translated_data);
             return $existing_translation;
@@ -129,14 +129,14 @@ class PolyTrans_Translation_Media_Manager
     private function create_translated_attachment($original_attachment_id, $target_language, $translated_data)
     {
         $original_attachment = get_post($original_attachment_id);
-        
+
         if (!$original_attachment) {
             return null;
         }
 
         // Get the original file path
         $original_file = get_attached_file($original_attachment_id);
-        
+
         if (!$original_file || !file_exists($original_file)) {
             PolyTrans_Logs_Manager::log("Original attachment file not found", "error", [
                 'source' => 'translation_media_manager',
@@ -148,7 +148,7 @@ class PolyTrans_Translation_Media_Manager
 
         // Get the upload directory
         $upload_dir = wp_upload_dir();
-        
+
         // Create a new filename with language suffix
         $file_info = pathinfo($original_file);
         $new_filename = $file_info['filename'] . '-' . $target_language . '.' . $file_info['extension'];
@@ -206,7 +206,7 @@ class PolyTrans_Translation_Media_Manager
         if (function_exists('pll_save_post_translations')) {
             $translations = function_exists('pll_get_post_translations') ?
                 pll_get_post_translations($original_attachment_id) : [];
-            
+
             $translations[$target_language] = $new_attachment_id;
             pll_save_post_translations($translations);
         }

@@ -104,8 +104,13 @@ class PolyTrans_Workflow_Manager
         // Hook into translation completion
         add_action('polytrans_translation_completed', [$this, 'trigger_workflows'], 10, 3);
 
-        // Hook for manual workflow execution
+        // Hook for manual workflow execution (old - synchronous)
         add_action('wp_ajax_polytrans_execute_workflow', [$this, 'ajax_execute_workflow']);
+
+        // Hook for manual workflow execution (new - async)
+        add_action('wp_ajax_polytrans_execute_workflow_manual', [$this, 'ajax_execute_workflow_manual']);
+        add_action('wp_ajax_polytrans_check_execution_status', [$this, 'ajax_check_execution_status']);
+        add_action('wp_ajax_polytrans_get_workflows_for_post', [$this, 'ajax_get_workflows_for_post']);
 
         // Hook for workflow testing
         add_action('wp_ajax_polytrans_test_workflow', [$this, 'ajax_test_workflow']);
@@ -314,21 +319,28 @@ class PolyTrans_Workflow_Manager
      */
     private function evaluate_workflow_conditions($conditions, $context)
     {
-        $original_post = get_post($context['original_post_id']);
-        if (!$original_post) {
+        // For manual workflows, use translated_post_id if original_post_id is not provided
+        $post_id = $context['original_post_id'] ?? $context['translated_post_id'] ?? null;
+        
+        if (!$post_id) {
+            return false;
+        }
+        
+        $post = get_post($post_id);
+        if (!$post) {
             return false;
         }
 
         // Check post type condition
         if (isset($conditions['post_type']) && !empty($conditions['post_type'])) {
-            if (!in_array($original_post->post_type, $conditions['post_type'])) {
+            if (!in_array($post->post_type, $conditions['post_type'])) {
                 return false;
             }
         }
 
         // Check category condition
         if (isset($conditions['category']) && !empty($conditions['category'])) {
-            $post_categories = wp_get_post_categories($original_post->ID, ['fields' => 'slugs']);
+            $post_categories = wp_get_post_categories($post->ID, ['fields' => 'slugs']);
             if (empty(array_intersect($conditions['category'], $post_categories))) {
                 return false;
             }
@@ -522,12 +534,12 @@ class PolyTrans_Workflow_Manager
         if (isset($_POST['check_status'])) {
             $test_id = sanitize_text_field($_POST['test_id']);
             $result = get_transient('polytrans_workflow_test_' . $test_id);
-            
+
             if ($result === false) {
                 wp_send_json_error(['message' => 'Test not found or expired']);
                 return;
             }
-            
+
             if ($result['status'] === 'running') {
                 wp_send_json_success(['status' => 'running']);
             } else {
@@ -554,7 +566,7 @@ class PolyTrans_Workflow_Manager
 
         // Generate unique test ID
         $test_id = uniqid('test_', true);
-        
+
         // Store initial status
         set_transient('polytrans_workflow_test_' . $test_id, [
             'status' => 'running',
@@ -571,7 +583,7 @@ class PolyTrans_Workflow_Manager
         // Spawn background process
         if (class_exists('PolyTrans_Background_Processor')) {
             $spawned = PolyTrans_Background_Processor::spawn($bg_args, 'workflow-test');
-            
+
             if ($spawned) {
                 wp_send_json_success([
                     'test_id' => $test_id,
@@ -590,7 +602,7 @@ class PolyTrans_Workflow_Manager
                     ];
 
                     $result = $this->execute_workflow($workflow, $test_context, true);
-                    
+
                     wp_send_json_success($result);
                 } catch (Exception $e) {
                     wp_send_json_error(['error' => $e->getMessage()]);
@@ -629,5 +641,270 @@ class PolyTrans_Workflow_Manager
     public function get_variable_manager()
     {
         return $this->variable_manager;
+    }
+
+    /**
+     * AJAX handler for manual workflow execution (async with background process)
+     */
+    public function ajax_execute_workflow_manual()
+    {
+        // Verify nonce and permissions
+        if (!check_ajax_referer('polytrans_workflows_nonce', 'nonce', false)) {
+            wp_die('Security check failed');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        $workflow_id = sanitize_text_field($_POST['workflow_id'] ?? '');
+        $original_post_id = intval($_POST['original_post_id'] ?? 0);
+        $translated_post_id = intval($_POST['translated_post_id'] ?? 0);
+        $target_language = sanitize_text_field($_POST['target_language'] ?? '');
+
+        // Validate required parameters
+        // Note: original_post_id is optional for manual workflows
+        if (empty($workflow_id) || empty($translated_post_id)) {
+            wp_send_json_error(['error' => 'Missing required parameters']);
+            return;
+        }
+        
+        // If original_post_id not provided, use translated_post_id
+        if (empty($original_post_id)) {
+            $original_post_id = $translated_post_id;
+        }
+
+        // Get workflow
+        $workflow = $this->storage_manager->get_workflow($workflow_id);
+        if (!$workflow) {
+            wp_send_json_error(['error' => 'Workflow not found']);
+            return;
+        }
+
+        // Check for existing execution lock
+        $lock_key = 'polytrans_workflow_lock_' . $workflow_id . '_' . $translated_post_id;
+        $existing_lock = get_transient($lock_key);
+
+        if ($existing_lock) {
+            $elapsed = time() - ($existing_lock['started_at'] ?? 0);
+
+            // If lock is recent (< 5 minutes), reject
+            if ($elapsed < 300) {
+                wp_send_json_error([
+                    'error' => 'already_running',
+                    'message' => 'This workflow is already running on this post',
+                    'execution_id' => $existing_lock['execution_id'] ?? '',
+                    'started_at' => $existing_lock['started_at'] ?? 0,
+                    'elapsed' => $elapsed
+                ]);
+                return;
+            }
+
+            // Lock is stale, clear it
+            delete_transient($lock_key);
+        }
+
+        // Generate unique execution ID
+        $execution_id = uniqid('exec_', true);
+        $started_at = time();
+
+        // Create execution lock
+        set_transient($lock_key, [
+            'execution_id' => $execution_id,
+            'started_at' => $started_at,
+            'workflow_id' => $workflow_id,
+            'post_id' => $translated_post_id
+        ], 5 * MINUTE_IN_SECONDS);
+
+        // Store initial status
+        set_transient('polytrans_workflow_exec_' . $execution_id, [
+            'status' => 'running',
+            'workflow_id' => $workflow_id,
+            'post_id' => $translated_post_id,
+            'started_at' => $started_at
+        ], 10 * MINUTE_IN_SECONDS);
+
+        // Prepare args for background process
+        $bg_args = [
+            'execution_id' => $execution_id,
+            'workflow_id' => $workflow_id,
+            'original_post_id' => $original_post_id,
+            'translated_post_id' => $translated_post_id,
+            'target_language' => $target_language,
+            'started_at' => $started_at
+        ];
+
+        // Spawn background process
+        if (class_exists('PolyTrans_Background_Processor')) {
+            $spawned = PolyTrans_Background_Processor::spawn($bg_args, 'workflow-execute');
+
+            if ($spawned) {
+                wp_send_json_success([
+                    'execution_id' => $execution_id,
+                    'status' => 'started',
+                    'message' => 'Workflow execution started in background'
+                ]);
+            } else {
+                // Fallback: run synchronously if background spawn failed
+                PolyTrans_Logs_Manager::log('Background process spawn failed, falling back to synchronous execution', 'warning', [
+                    'execution_id' => $execution_id,
+                    'workflow_id' => $workflow_id
+                ]);
+
+                try {
+                    $context = [
+                        'original_post_id' => $original_post_id,
+                        'translated_post_id' => $translated_post_id,
+                        'target_language' => $target_language,
+                        'trigger' => 'manual'
+                    ];
+
+                    $result = $this->execute_workflow($workflow, $context, false);
+
+                    // Store result immediately
+                    set_transient('polytrans_workflow_exec_' . $execution_id, [
+                        'status' => 'completed',
+                        'started_at' => $started_at,
+                        'completed_at' => time(),
+                        'result' => $result
+                    ], 10 * MINUTE_IN_SECONDS);
+
+                    // Clear lock
+                    delete_transient($lock_key);
+
+                    wp_send_json_success([
+                        'execution_id' => $execution_id,
+                        'status' => 'completed',
+                        'result' => $result
+                    ]);
+                } catch (Exception $e) {
+                    delete_transient($lock_key);
+                    wp_send_json_error(['error' => $e->getMessage()]);
+                }
+            }
+        } else {
+            delete_transient($lock_key);
+            wp_send_json_error(['error' => 'Background processor not available']);
+        }
+    }
+
+    /**
+     * AJAX handler for checking execution status
+     */
+    public function ajax_check_execution_status()
+    {
+        // Verify nonce and permissions
+        if (!check_ajax_referer('polytrans_workflows_nonce', 'nonce', false)) {
+            wp_die('Security check failed');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        $execution_id = sanitize_text_field($_POST['execution_id'] ?? '');
+
+        if (empty($execution_id)) {
+            wp_send_json_error(['message' => 'Missing execution ID']);
+            return;
+        }
+
+        $result = get_transient('polytrans_workflow_exec_' . $execution_id);
+
+        if ($result === false) {
+            wp_send_json_error(['message' => 'Execution not found or expired']);
+            return;
+        }
+
+        if ($result['status'] === 'running') {
+            $elapsed = time() - ($result['started_at'] ?? 0);
+            wp_send_json_success([
+                'status' => 'running',
+                'started_at' => $result['started_at'],
+                'elapsed' => $elapsed
+            ]);
+        } else {
+            // Execution completed, delete the transient and return result
+            delete_transient('polytrans_workflow_exec_' . $execution_id);
+
+            $elapsed = ($result['completed_at'] ?? time()) - ($result['started_at'] ?? 0);
+            wp_send_json_success([
+                'status' => 'completed',
+                'started_at' => $result['started_at'],
+                'completed_at' => $result['completed_at'] ?? time(),
+                'elapsed' => $elapsed,
+                'result' => $result['result'] ?? []
+            ]);
+        }
+    }
+
+    /**
+     * AJAX handler for getting executable workflows for a post
+     */
+    public function ajax_get_workflows_for_post()
+    {
+        // Verify nonce and permissions
+        if (!check_ajax_referer('polytrans_workflows_nonce', 'nonce', false)) {
+            wp_die('Security check failed');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        $post_id = intval($_POST['post_id'] ?? 0);
+
+        if (!$post_id) {
+            wp_send_json_error(['message' => 'Missing post ID']);
+            return;
+        }
+
+        // Get post language
+        $post_lang = pll_get_post_language($post_id);
+
+        if (!$post_lang) {
+            wp_send_json_success(['workflows' => []]);
+            return;
+        }
+
+        // Get all workflows
+        $all_workflows = $this->storage_manager->get_all_workflows();
+        $executable_workflows = [];
+
+        foreach ($all_workflows as $workflow) {
+            // Only include workflows for this language
+            if (($workflow['target_language'] ?? '') !== $post_lang) {
+                continue;
+            }
+
+            // Check if currently executing
+            $lock_key = 'polytrans_workflow_lock_' . $workflow['id'] . '_' . $post_id;
+            $lock = get_transient($lock_key);
+
+            $executing = false;
+            $execution_id = null;
+            $elapsed = 0;
+
+            if ($lock) {
+                $elapsed = time() - ($lock['started_at'] ?? 0);
+                // Only consider executing if lock is recent
+                if ($elapsed < 300) {
+                    $executing = true;
+                    $execution_id = $lock['execution_id'] ?? null;
+                }
+            }
+
+            $executable_workflows[] = [
+                'id' => $workflow['id'],
+                'name' => $workflow['name'],
+                'language' => $workflow['target_language'],
+                'steps' => count($workflow['steps'] ?? []),
+                'executing' => $executing,
+                'execution_id' => $execution_id,
+                'elapsed' => $elapsed
+            ];
+        }
+
+        wp_send_json_success(['workflows' => $executable_workflows]);
     }
 }

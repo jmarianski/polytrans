@@ -1186,3 +1186,285 @@ select[id*="assistant-id"] option:first-child {
     color: #666;
     font-style: italic;
 }
+
+/* ============================================
+   Execute Workflow Wizard Styles
+   ============================================ */
+
+.execute-workflow-page {
+    max-width: 1200px;
+}
+
+.execute-wizard {
+    margin-top: 20px;
+}
+
+.execute-step {
+    margin-bottom: 25px;
+}
+
+.execute-step .postbox {
+    border: 1px solid #c3c4c7;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.execute-step .postbox h2.hndle {
+    font-size: 16px;
+    font-weight: 600;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.execute-step .inside {
+    padding: 20px;
+}
+
+/* Workflow Details Display */
+#workflow-details {
+    border-radius: 4px;
+}
+
+#workflow-details h4 {
+    color: #2271b1;
+    margin-top: 0;
+}
+
+#workflow-details p {
+    margin: 8px 0;
+}
+
+#workflow-details ul {
+    list-style-type: disc;
+}
+
+/* Post Selection */
+#post-search {
+    width: 100%;
+    max-width: 600px;
+}
+
+#post-search.loading {
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxjaXJjbGUgY3g9IjEwIiBjeT0iMTAiIHI9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzU1NTU1NSIgc3Ryb2tlLXdpZHRoPSIyIj4KICAgICAgICA8YW5pbWF0ZSBhdHRyaWJ1dGVOYW1lPSJzdHJva2UtZGFzaGFycmF5IiBkdXI9IjFzIiByZXBlYXRDb3VudD0iaW5kZWZpbml0ZSIgdmFsdWVzPSI1MCAwOzMgNDciLz4KICAgICAgICA8YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVOYW1lPSJ0cmFuc2Zvcm0iIHR5cGU9InJvdGF0ZSIgZHVyPSIxcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiIHZhbHVlcz0iMCAxMCAxMDszNjAgMTAgMTAiLz4KICAgIDwvY2lyY2xlPgo8L3N2Zz4=');
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 20px 20px;
+}
+
+#post-search-results {
+    max-width: 600px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.post-search-result:last-child {
+    border-bottom: none !important;
+}
+
+.post-search-result:hover {
+    background: #f5f5f5 !important;
+}
+
+#post-id-input {
+    font-family: monospace;
+}
+
+#selected-post-display {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#selected-post-display {
+    border-radius: 4px;
+}
+
+#selected-posts-info {
+    line-height: 1.8;
+}
+
+/* Execution Review */
+#execution-review .form-table th {
+    width: 180px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+#execution-review .form-table td {
+    color: #2c3338;
+}
+
+/* Execution Warning */
+.execution-warning {
+    border-radius: 4px;
+}
+
+.execution-warning p {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Execute Button */
+#execute-workflow-btn {
+    min-width: 200px;
+    height: 50px;
+    font-size: 16px;
+}
+
+#execute-workflow-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Execution Status */
+.execution-status-running {
+    text-align: center;
+    padding: 30px;
+}
+
+.execution-status-running .spinner {
+    margin: 0 auto 20px;
+}
+
+/* Results Display */
+.execution-result-success {
+    border-left: 4px solid #46b450;
+    background: #f0f9f0;
+    padding: 20px;
+    border-radius: 4px;
+    margin: 20px 0;
+}
+
+.execution-result-failed {
+    border-left: 4px solid #dc3232;
+    background: #fcf0f0;
+    padding: 20px;
+    border-radius: 4px;
+    margin: 20px 0;
+}
+
+.execution-result-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.execution-result-icon.success {
+    color: #46b450;
+}
+
+.execution-result-icon.failed {
+    color: #dc3232;
+}
+
+/* Step Results Table */
+.step-results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.step-results-table th {
+    background: #f9f9f9;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.step-results-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.step-results-table tr:last-child td {
+    border-bottom: none;
+}
+
+.step-results-table .step-status {
+    font-weight: 600;
+}
+
+.step-results-table .step-status.success {
+    color: #46b450;
+}
+
+.step-results-table .step-status.failed {
+    color: #dc3232;
+}
+
+/* Buttons */
+#execute-another-btn {
+    min-width: 250px;
+    height: 45px;
+    font-size: 15px;
+}
+
+/* Locked Fields */
+select:disabled,
+input:disabled {
+    background-color: #f6f7f7;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 782px) {
+    .execute-workflow-page {
+        margin: 0;
+    }
+
+    #execution-review .form-table th,
+    #execution-review .form-table td {
+        display: block;
+        width: 100%;
+        padding: 10px;
+    }
+
+    #execution-review .form-table th {
+        padding-bottom: 5px;
+    }
+
+    #execute-workflow-btn,
+    #execute-another-btn {
+        width: 100%;
+    }
+}
+
+/* Animation for step transitions */
+.execute-step {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Notice Styles */
+.execute-workflow-page .notice {
+    margin: 15px 0;
+}
+
+.execute-workflow-page .notice p {
+    margin: 0.5em 0;
+}
+
+/* Loading Spinner */
+.spinner.is-active {
+    display: inline-block;
+}
