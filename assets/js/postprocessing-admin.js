@@ -1401,6 +1401,7 @@ However, the integration of AI in healthcare also raises important questions abo
         // Show loading state
         $('#run-test-btn').prop('disabled', true).text('Running Test...');
 
+        // Start the test
         $.ajax({
             url: polytransWorkflows.ajaxUrl,
             type: 'POST',
@@ -1411,15 +1412,77 @@ However, the integration of AI in healthcare also raises important questions abo
                 test_context: testContext
             },
             success: function (response) {
-                displayTestResults(response);
+                if (response.success && response.data.test_id) {
+                    // Test started, begin polling for results
+                    pollForTestResults(response.data.test_id);
+                } else {
+                    // Immediate error
+                    displayTestResults(response);
+                    $('#run-test-btn').prop('disabled', false).text('Run Test');
+                }
             },
             error: function () {
                 showNotice('error', polytransWorkflows.strings.testError);
-            },
-            complete: function () {
                 $('#run-test-btn').prop('disabled', false).text('Run Test');
             }
         });
+    }
+
+    /**
+     * Poll for test results
+     */
+    function pollForTestResults(testId) {
+        let pollCount = 0;
+        const maxPolls = 60; // 5 minutes max (60 * 5 seconds)
+
+        const pollInterval = setInterval(function () {
+            pollCount++;
+
+            // Update button text with progress
+            $('#run-test-btn').text(`Running Test... (${pollCount * 5}s)`);
+
+            if (pollCount >= maxPolls) {
+                clearInterval(pollInterval);
+                showNotice('error', 'Test timed out after 2 minutes. Please check the logs for details.');
+                $('#run-test-btn').prop('disabled', false).text('Run Test');
+                return;
+            }
+
+            $.ajax({
+                url: polytransWorkflows.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'polytrans_test_workflow',
+                    nonce: polytransWorkflows.nonce,
+                    check_status: true,
+                    test_id: testId
+                },
+                success: function (response) {
+                    if (response.success) {
+                        if (response.data.status === 'completed') {
+                            // Test completed, stop polling and display results
+                            clearInterval(pollInterval);
+                            displayTestResults({
+                                success: true,
+                                data: response.data.result
+                            });
+                            $('#run-test-btn').prop('disabled', false).text('Run Test');
+                        }
+                        // If status is 'running', continue polling
+                    } else {
+                        // Error occurred
+                        clearInterval(pollInterval);
+                        showNotice('error', response.data.message || 'Test failed');
+                        $('#run-test-btn').prop('disabled', false).text('Run Test');
+                    }
+                },
+                error: function () {
+                    clearInterval(pollInterval);
+                    showNotice('error', 'Error checking test status');
+                    $('#run-test-btn').prop('disabled', false).text('Run Test');
+                }
+            });
+        }, 5000); // Poll every second
     }
 
     /**
