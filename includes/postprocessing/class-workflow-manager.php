@@ -526,7 +526,7 @@ class PolyTrans_Workflow_Manager
             wp_die('Security check failed');
         }
 
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can('edit_posts')) {
             wp_die('Insufficient permissions');
         }
 
@@ -653,7 +653,7 @@ class PolyTrans_Workflow_Manager
             wp_die('Security check failed');
         }
 
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can('edit_posts')) {
             wp_die('Insufficient permissions');
         }
 
@@ -798,7 +798,7 @@ class PolyTrans_Workflow_Manager
             wp_die('Security check failed');
         }
 
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can('edit_posts')) {
             wp_die('Insufficient permissions');
         }
 

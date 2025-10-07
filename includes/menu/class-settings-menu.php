@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Tag Translation Class
- * Handles tag translation management
+ * Settings Menu Class
+ * Handles PolyTrans main menu and settings page
  */
 
 if (!defined('ABSPATH')) {
@@ -28,20 +28,42 @@ class PolyTrans_Settings_Menu
 
     public function add_admin_menu()
     {
+        // Main menu - accessible to editors
         add_menu_page(
             __('PolyTrans', 'polytrans'),
             __('PolyTrans', 'polytrans'),
-            'manage_options',
+            'edit_posts',
             'polytrans',
-            [$this, 'render_settings'],
+            [$this, 'render_overview'],
             'dashicons-translation',
             80
+        );
+        
+        // Rename first submenu item from "PolyTrans" to "Overview"
+        add_submenu_page(
+            'polytrans',
+            __('Overview', 'polytrans'),
+            __('Overview', 'polytrans'),
+            'edit_posts',
+            'polytrans',
+            [$this, 'render_overview']
+        );
+        
+        // Settings submenu - admin only
+        add_submenu_page(
+            'polytrans',
+            __('Settings', 'polytrans'),
+            __('Settings', 'polytrans'),
+            'manage_options',
+            'polytrans-settings',
+            [$this, 'render_settings']
         );
     }
 
     public function add_scripts($hook)
     {
-        if ($hook === 'toplevel_page_polytrans') {
+        // Load scripts for both overview and settings pages
+        if ($hook === 'toplevel_page_polytrans' || $hook === 'polytrans_page_polytrans-settings') {
             $plugin_url = POLYTRANS_PLUGIN_URL;
             wp_enqueue_script('polytrans-settings', $plugin_url . 'assets/js/settings/translation-settings-admin.js', ['jquery'], POLYTRANS_VERSION, true);
             wp_enqueue_script('polytrans-user-autocomplete', $plugin_url . 'assets/js/core/user-autocomplete.js', ['jquery-ui-autocomplete'], POLYTRANS_VERSION, true);
@@ -81,6 +103,41 @@ class PolyTrans_Settings_Menu
                 ]
             ]);
         }
+    }
+
+    /**
+     * Render overview page
+     */
+    public function render_overview()
+    {
+        ?>
+        <div class="wrap">
+            <h1><?php esc_html_e('PolyTrans Overview', 'polytrans'); ?></h1>
+            
+            <div class="card">
+                <h2><?php esc_html_e('Welcome to PolyTrans', 'polytrans'); ?></h2>
+                <p><?php esc_html_e('PolyTrans is a powerful translation automation plugin that helps you manage multilingual content.', 'polytrans'); ?></p>
+                
+                <h3><?php esc_html_e('Quick Links', 'polytrans'); ?></h3>
+                <ul>
+                    <li><a href="<?php echo admin_url('admin.php?page=polytrans-execute-workflow'); ?>"><?php esc_html_e('Execute Workflow', 'polytrans'); ?></a> - <?php esc_html_e('Run translation workflows on your posts', 'polytrans'); ?></li>
+                    <li><a href="<?php echo admin_url('admin.php?page=polytrans-workflows'); ?>"><?php esc_html_e('Manage Workflows', 'polytrans'); ?></a> - <?php esc_html_e('Create and edit post-processing workflows', 'polytrans'); ?></li>
+                    <li><a href="<?php echo admin_url('admin.php?page=polytrans-tag-translation'); ?>"><?php esc_html_e('Tag Translations', 'polytrans'); ?></a> - <?php esc_html_e('Manage tag translations', 'polytrans'); ?></li>
+                    <?php if (current_user_can('manage_options')): ?>
+                    <li><a href="<?php echo admin_url('admin.php?page=polytrans-settings'); ?>"><?php esc_html_e('Settings', 'polytrans'); ?></a> - <?php esc_html_e('Configure PolyTrans (Admin only)', 'polytrans'); ?></li>
+                    <li><a href="<?php echo admin_url('admin.php?page=polytrans-logs'); ?>"><?php esc_html_e('Logs', 'polytrans'); ?></a> - <?php esc_html_e('View system logs (Admin only)', 'polytrans'); ?></li>
+                    <?php endif; ?>
+                </ul>
+                
+                <h3><?php esc_html_e('How to Use', 'polytrans'); ?></h3>
+                <ol>
+                    <li><?php esc_html_e('Edit any post in WordPress', 'polytrans'); ?></li>
+                    <li><?php esc_html_e('Look for the "PolyTrans Workflows" meta box in the sidebar', 'polytrans'); ?></li>
+                    <li><?php esc_html_e('Click "Execute" on any workflow to process your post', 'polytrans'); ?></li>
+                </ol>
+            </div>
+        </div>
+        <?php
     }
 
     /**

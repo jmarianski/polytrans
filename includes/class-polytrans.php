@@ -183,10 +183,10 @@ class PolyTrans
         PolyTrans_Logs_Menu::get_instance()->add_logs_submenu();
         PolyTrans_Postprocessing_Menu::get_instance()->add_admin_menu();
 
-        // Rename the first submenu item
+        // Rename the first submenu item to Overview
         global $submenu;
         if (isset($submenu['polytrans'])) {
-            $submenu['polytrans'][0][0] = __('Settings', 'polytrans');
+            $submenu['polytrans'][0][0] = __('Overview', 'polytrans');
         }
     }
 

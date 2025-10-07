@@ -52,7 +52,7 @@ class PolyTrans_Postprocessing_Menu
             'polytrans',
             __('Post-Processing Workflows', 'polytrans'),
             __('Post-Processing', 'polytrans'),
-            'manage_options',
+            'edit_posts',
             'polytrans-workflows',
             [$this, 'render_workflow_page']
         );
@@ -61,7 +61,7 @@ class PolyTrans_Postprocessing_Menu
             'polytrans',
             __('Execute Workflow', 'polytrans'),
             __('Execute Workflow', 'polytrans'),
-            'manage_options',
+            'edit_posts',
             'polytrans-execute-workflow',
             [$this, 'render_execute_workflow_page']
         );
@@ -766,7 +766,7 @@ class PolyTrans_Postprocessing_Menu
             return;
         }
 
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can('edit_posts')) {
             wp_send_json_error('Insufficient permissions');
             return;
         }
