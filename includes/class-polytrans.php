@@ -116,6 +116,7 @@ class PolyTrans
         require_once $includes_dir . 'postprocessing/steps/class-ai-assistant-step.php';
         require_once $includes_dir . 'postprocessing/steps/class-predefined-assistant-step.php';
         require_once $includes_dir . 'postprocessing/class-workflow-manager.php';
+        require_once $includes_dir . 'postprocessing/class-workflow-metabox.php';
 
         // Debug tools (only load in admin)
         if (is_admin()) {
@@ -146,6 +147,9 @@ class PolyTrans
 
         // Initialize post-processing workflow manager
         PolyTrans_Workflow_Manager::get_instance();
+        
+        // Initialize workflow meta box
+        PolyTrans_Workflow_Metabox::get_instance();
 
         // Initialize the advanced receiver extension
         $receiver_extension = new PolyTrans_Translation_Receiver_Extension();

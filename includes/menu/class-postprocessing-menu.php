@@ -326,7 +326,12 @@ class PolyTrans_Postprocessing_Menu
                                     <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-workflows&action=test&workflow_id=' . urlencode($workflow['id']))); ?>" class="button button-small">
                                         <?php esc_html_e('Test', 'polytrans'); ?>
                                     </a>
-                                    <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-execute-workflow&workflow_id=' . urlencode($workflow['id']))); ?>" class="button button-small button-primary">
+                                    <?php
+                                    $is_enabled = isset($workflow['enabled']) && $workflow['enabled'];
+                                    ?>
+                                    <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-execute-workflow&workflow_id=' . urlencode($workflow['id']))); ?>" 
+                                       class="button button-small button-primary" 
+                                       <?php echo !$is_enabled ? 'disabled aria-disabled="true" style="pointer-events: none; opacity: 0.5;"' : ''; ?>>
                                         <?php esc_html_e('Execute', 'polytrans'); ?>
                                     </a>
                                     <button type="button" class="button button-small workflow-duplicate" data-workflow-id="<?php echo esc_attr($workflow['id']); ?>">
@@ -493,10 +498,21 @@ class PolyTrans_Postprocessing_Menu
         // Get URL parameters
         $workflow_id = isset($_GET['workflow_id']) ? sanitize_text_field($_GET['workflow_id']) : '';
         $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
+        $language_filter = isset($_GET['language']) ? sanitize_text_field($_GET['language']) : '';
         $locked = isset($_GET['lock']) && $_GET['lock'] === '1';
 
-        // Get all workflows
-        $all_workflows = $storage_manager->get_all_workflows();
+        // Get all workflows (only enabled ones)
+        $all_workflows_raw = $storage_manager->get_all_workflows();
+        $all_workflows = array_values(array_filter($all_workflows_raw, function($workflow) use ($language_filter) {
+            $is_enabled = isset($workflow['enabled']) && $workflow['enabled'];
+            
+            // If language filter is set, also filter by language
+            if ($language_filter && !empty($workflow['language'])) {
+                return $is_enabled && $workflow['language'] === $language_filter;
+            }
+            
+            return $is_enabled;
+        }));
 
         // Pre-selected workflow data
         $selected_workflow = null;
@@ -528,6 +544,26 @@ class PolyTrans_Postprocessing_Menu
                     <div class="postbox">
                         <h2 class="hndle"><?php esc_html_e('Step 1: Select Workflow', 'polytrans'); ?></h2>
                         <div class="inside">
+                            <?php if ($language_filter): ?>
+                                <div class="notice notice-info inline" style="margin: 0 0 15px 0; padding: 10px;">
+                                    <p style="margin: 0;">
+                                        <span class="dashicons dashicons-info" style="vertical-align: middle;"></span>
+                                        <?php 
+                                        $lang_name = '';
+                                        $lang_index = array_search($language_filter, $langs);
+                                        if ($lang_index !== false) {
+                                            $lang_name = $lang_names[$lang_index];
+                                        } else {
+                                            $lang_name = strtoupper($language_filter);
+                                        }
+                                        printf(
+                                            esc_html__('Showing workflows for %s posts only. This matches your selected post\'s language.', 'polytrans'),
+                                            '<strong>' . esc_html($lang_name) . '</strong>'
+                                        ); 
+                                        ?>
+                                    </p>
+                                </div>
+                            <?php endif; ?>
                             <table class="form-table">
                                 <tr>
                                     <th scope="row">
@@ -550,7 +586,7 @@ class PolyTrans_Postprocessing_Menu
                                             <input type="hidden" id="workflow-id-locked" value="<?php echo esc_attr($workflow_id); ?>">
                                         <?php endif; ?>
                                         <p class="description">
-                                            <?php esc_html_e('Select the workflow you want to execute.', 'polytrans'); ?>
+                                            <?php esc_html_e('Select the workflow you want to execute. Workflows are filtered to match your post\'s language.', 'polytrans'); ?>
                                         </p>
                                     </td>
                                 </tr>
@@ -713,7 +749,8 @@ class PolyTrans_Postprocessing_Menu
                                 ]) : 'null'; ?>,
                 locked: <?php echo $locked ? 'true' : 'false'; ?>,
                 workflowId: '<?php echo esc_js($workflow_id); ?>',
-                postId: <?php echo $post_id; ?>
+                postId: <?php echo $post_id; ?>,
+                languageFilter: '<?php echo esc_js($language_filter); ?>'
             };
         </script>
 <?php
@@ -897,7 +934,7 @@ class PolyTrans_Postprocessing_Menu
             return;
         }
 
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can('edit_posts')) {
             wp_send_json_error('Insufficient permissions');
             return;
         }
