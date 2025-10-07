@@ -21,10 +21,17 @@ class PolyTrans_Background_Processor
      */
     public static function spawn($args, $action = 'process-translation')
     {
-        // Validate args
-        if (empty($args['post_id']) || empty($args['source_lang']) || empty($args['target_lang'])) {
-            self::log("Background process spawn failed: Invalid arguments", "error", $args);
-            return false;
+        // Validate args based on action type
+        if ($action === 'process-translation') {
+            if (empty($args['post_id']) || empty($args['source_lang']) || empty($args['target_lang'])) {
+                self::log("Background process spawn failed: Invalid arguments", "error", $args);
+                return false;
+            }
+        } elseif ($action === 'workflow-test') {
+            if (empty($args['test_id']) || empty($args['workflow_data'])) {
+                self::log("Background workflow test spawn failed: Invalid arguments", "error", $args);
+                return false;
+            }
         }
 
         // Method 1: Try PHP execution functions if available
@@ -127,12 +134,19 @@ class PolyTrans_Background_Processor
             @exec($cmd, $output, $return_var);
             $success = ($return_var === 0);
             if ($success) {
-                self::log("Spawned background process with exec", "info", [
+                $log_context = [
                     'cmd' => $cmd,
                     'token' => $token,
-                    'action' => $action,
-                    'post_id' => $args['post_id']
-                ]);
+                    'action' => $action
+                ];
+                // Add post_id only if it exists (not for workflow tests)
+                if (isset($args['post_id'])) {
+                    $log_context['post_id'] = $args['post_id'];
+                }
+                if (isset($args['test_id'])) {
+                    $log_context['test_id'] = $args['test_id'];
+                }
+                self::log("Spawned background process with exec", "info", $log_context);
             }
         }
 
@@ -140,12 +154,18 @@ class PolyTrans_Background_Processor
         if (!$success && function_exists('shell_exec')) {
             @shell_exec($cmd);
             $success = true; // Can't verify success with shell_exec
-            self::log("Spawned background process with shell_exec", "info", [
+            $log_context = [
                 'cmd' => $cmd,
                 'token' => $token,
-                'action' => $action,
-                'post_id' => $args['post_id']
-            ]);
+                'action' => $action
+            ];
+            if (isset($args['post_id'])) {
+                $log_context['post_id'] = $args['post_id'];
+            }
+            if (isset($args['test_id'])) {
+                $log_context['test_id'] = $args['test_id'];
+            }
+            self::log("Spawned background process with shell_exec", "info", $log_context);
         }
 
         // Try system if shell_exec failed
@@ -153,12 +173,18 @@ class PolyTrans_Background_Processor
             @system($cmd, $return_var);
             $success = ($return_var === 0);
             if ($success) {
-                self::log("Spawned background process with system", "info", [
+                $log_context = [
                     'cmd' => $cmd,
                     'token' => $token,
-                    'action' => $action,
-                    'post_id' => $args['post_id']
-                ]);
+                    'action' => $action
+                ];
+                if (isset($args['post_id'])) {
+                    $log_context['post_id'] = $args['post_id'];
+                }
+                if (isset($args['test_id'])) {
+                    $log_context['test_id'] = $args['test_id'];
+                }
+                self::log("Spawned background process with system", "info", $log_context);
             }
         }
 
@@ -181,27 +207,28 @@ class PolyTrans_Background_Processor
         ignore_user_abort(true);
         set_time_limit(0);
 
-        $post_id = $args['post_id'] ?? 0;
-        $source_lang = $args['source_lang'] ?? '';
-        $target_lang = $args['target_lang'] ?? '';
-
-        if (!$post_id || !$source_lang || !$target_lang) {
-            self::log("Background task failed: Invalid arguments", "error", $args);
-            return;
-        }
-
         // Log the start of processing
-        self::log("Started background task processing: $action", "info", [
-            'post_id' => $post_id,
-            'source_lang' => $source_lang,
-            'target_lang' => $target_lang
-        ]);
+        self::log("Started background task processing: $action", "info", $args);
 
         // Process based on action
         switch ($action) {
             case 'process-translation':
+                $post_id = $args['post_id'] ?? 0;
+                $source_lang = $args['source_lang'] ?? '';
+                $target_lang = $args['target_lang'] ?? '';
+
+                if (!$post_id || !$source_lang || !$target_lang) {
+                    self::log("Background translation task failed: Invalid arguments", "error", $args);
+                    return;
+                }
+
                 self::process_translation($args);
                 break;
+
+            case 'workflow-test':
+                self::process_workflow_test($args);
+                break;
+
             default:
                 do_action("polytrans_bg_process_$action", $args);
                 break;
@@ -521,6 +548,82 @@ class PolyTrans_Background_Processor
 
         // Update the final log entries
         update_post_meta($post_id, $log_key, $log);
+    }
+
+    /**
+     * Process workflow test in background
+     * 
+     * @param array $args Arguments for the process
+     * @return void
+     */
+    private static function process_workflow_test($args)
+    {
+        $test_id = $args['test_id'] ?? '';
+        $workflow_data = $args['workflow_data'] ?? [];
+        $test_context = $args['test_context'] ?? [];
+
+        if (!$test_id || empty($workflow_data)) {
+            self::log("Workflow test failed: Invalid arguments", "error", $args);
+
+            // Store error result
+            set_transient('polytrans_workflow_test_' . $test_id, [
+                'status' => 'completed',
+                'completed_at' => time(),
+                'data' => ['success' => false, 'error' => 'Invalid test arguments']
+            ], 5 * MINUTE_IN_SECONDS);
+            return;
+        }
+
+        self::log("Starting workflow test execution", "info", [
+            'test_id' => $test_id,
+            'workflow_name' => $workflow_data['name'] ?? 'Unknown'
+        ]);
+
+        try {
+            // Get workflow manager instance
+            if (!class_exists('PolyTrans_Workflow_Manager')) {
+                require_once POLYTRANS_PLUGIN_DIR . 'includes/postprocessing/class-workflow-manager.php';
+            }
+
+            $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+
+            // Create test workflow
+            $workflow = [
+                'id' => $test_id,
+                'name' => 'Test Workflow',
+                'target_language' => $test_context['target_language'] ?? 'en',
+                'enabled' => true,
+                'steps' => $workflow_data['steps'] ?? []
+            ];
+
+            // Execute test in test mode
+            $result = $workflow_manager->execute_workflow($workflow, $test_context, true);
+
+            // Store result
+            set_transient('polytrans_workflow_test_' . $test_id, [
+                'status' => 'completed',
+                'completed_at' => time(),
+                'data' => $result
+            ], 5 * MINUTE_IN_SECONDS);
+
+            self::log("Workflow test completed successfully", "info", [
+                'test_id' => $test_id,
+                'success' => $result['success'] ?? false,
+                'steps_executed' => $result['steps_executed'] ?? 0
+            ]);
+        } catch (Throwable $e) {
+            self::log("Workflow test failed: " . $e->getMessage(), "error", [
+                'test_id' => $test_id,
+                'error' => $e->getMessage()
+            ]);
+
+            // Store error result
+            set_transient('polytrans_workflow_test_' . $test_id, [
+                'status' => 'completed',
+                'completed_at' => time(),
+                'data' => ['success' => false, 'error' => $e->getMessage()]
+            ], 5 * MINUTE_IN_SECONDS);
+        }
     }
 
     /**

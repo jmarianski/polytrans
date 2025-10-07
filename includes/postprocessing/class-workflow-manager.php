@@ -518,6 +518,26 @@ class PolyTrans_Workflow_Manager
             wp_die('Insufficient permissions');
         }
 
+        // Check if this is a status check request
+        if (isset($_POST['check_status'])) {
+            $test_id = sanitize_text_field($_POST['test_id']);
+            $result = get_transient('polytrans_workflow_test_' . $test_id);
+            
+            if ($result === false) {
+                wp_send_json_error(['message' => 'Test not found or expired']);
+                return;
+            }
+            
+            if ($result['status'] === 'running') {
+                wp_send_json_success(['status' => 'running']);
+            } else {
+                // Test completed, delete the transient and return result
+                delete_transient('polytrans_workflow_test_' . $test_id);
+                wp_send_json_success(['status' => 'completed', 'result' => $result['data']]);
+            }
+            return;
+        }
+
         // Get test data from request
         $workflow_data = $_POST['workflow'] ?? [];
         $test_context = $_POST['test_context'] ?? [];
@@ -532,22 +552,52 @@ class PolyTrans_Workflow_Manager
             return;
         }
 
-        try {
-            // Create test workflow
-            $workflow = [
-                'id' => 'test_' . uniqid(),
-                'name' => 'Test Workflow',
-                'target_language' => $test_context['target_language'] ?? 'en',
-                'enabled' => true,
-                'steps' => $workflow_data['steps'] ?? []
-            ];
+        // Generate unique test ID
+        $test_id = uniqid('test_', true);
+        
+        // Store initial status
+        set_transient('polytrans_workflow_test_' . $test_id, [
+            'status' => 'running',
+            'started_at' => time()
+        ], 5 * MINUTE_IN_SECONDS);
 
-            // Execute test in test mode
-            $result = $this->execute_workflow($workflow, $test_context, true);
+        // Prepare args for background process
+        $bg_args = [
+            'test_id' => $test_id,
+            'workflow_data' => $workflow_data,
+            'test_context' => $test_context
+        ];
 
-            wp_send_json_success($result);
-        } catch (Exception $e) {
-            wp_send_json_error(['error' => $e->getMessage()]);
+        // Spawn background process
+        if (class_exists('PolyTrans_Background_Processor')) {
+            $spawned = PolyTrans_Background_Processor::spawn($bg_args, 'workflow-test');
+            
+            if ($spawned) {
+                wp_send_json_success([
+                    'test_id' => $test_id,
+                    'status' => 'started',
+                    'message' => 'Test started in background process, polling for results...'
+                ]);
+            } else {
+                // Fallback: run synchronously if background spawn failed
+                try {
+                    $workflow = [
+                        'id' => $test_id,
+                        'name' => 'Test Workflow',
+                        'target_language' => $test_context['target_language'] ?? 'en',
+                        'enabled' => true,
+                        'steps' => $workflow_data['steps'] ?? []
+                    ];
+
+                    $result = $this->execute_workflow($workflow, $test_context, true);
+                    
+                    wp_send_json_success($result);
+                } catch (Exception $e) {
+                    wp_send_json_error(['error' => $e->getMessage()]);
+                }
+            }
+        } else {
+            wp_send_json_error(['error' => 'Background processor not available']);
         }
     }
 
