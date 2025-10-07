@@ -179,7 +179,7 @@ class PolyTrans_Translation_Scheduler
                         </li>
                     <?php endforeach; ?>
                 </ul>
-                
+
                 <!-- Add More Languages Section -->
                 <div id="polytrans-add-more-section" style="display:none;margin-top:1em;padding:1em;background:#f9f9f9;border-radius:4px;">
                     <label for="polytrans-add-more-langs"><strong><?php esc_html_e('Add More Languages', 'polytrans'); ?></strong></label>
@@ -200,7 +200,7 @@ class PolyTrans_Translation_Scheduler
                         <button type="button" class="button" id="polytrans-add-more-cancel"><?php esc_html_e('Cancel', 'polytrans'); ?></button>
                     </div>
                 </div>
-                
+
                 <button type="button" class="button button-secondary" id="polytrans-add-more-btn" style="width:100%;margin-top:0.5em;display:none;">
                     <span class="dashicons dashicons-plus-alt" style="vertical-align:middle;"></span>
                     <?php esc_html_e('Add More Languages', 'polytrans'); ?>

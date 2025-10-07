@@ -936,7 +936,7 @@ class PolyTrans_Logs_Manager
                     var url = $(this).attr('href');
                     var urlParams = new URLSearchParams(url.split('?')[1]);
                     var page = urlParams.get('paged') || 1;
-                    
+
                     // Update the form's paged input or add it if it doesn't exist
                     var $pagedInput = $('#logs-filter-form input[name="paged"]');
                     if ($pagedInput.length) {
@@ -944,12 +944,12 @@ class PolyTrans_Logs_Manager
                     } else {
                         $('#logs-filter-form').append('<input type="hidden" name="paged" value="' + page + '">');
                     }
-                    
+
                     // Update the URL without reloading
                     if (window.history && window.history.pushState) {
                         window.history.pushState(null, '', url);
                     }
-                    
+
                     // Refresh the logs table
                     refreshLogsTable();
                 });
@@ -1058,13 +1058,13 @@ class PolyTrans_Logs_Manager
                     // Parse the current URL to get the page number
                     var urlParams = new URLSearchParams(window.location.search);
                     var page = urlParams.get('paged') || 1;
-                    
+
                     // Update the form's paged input
                     var $pagedInput = $('#logs-filter-form input[name="paged"]');
                     if ($pagedInput.length) {
                         $pagedInput.val(page);
                     }
-                    
+
                     // Refresh the logs table
                     refreshLogsTable();
                 });
@@ -1398,7 +1398,7 @@ class PolyTrans_Logs_Manager
         // Build the base URL for pagination with all current filters
         $base_url = admin_url('admin.php');
         $args = ['page' => 'polytrans-logs'];
-        
+
         if (!empty($search)) {
             $args['s'] = $search;
         }
@@ -1411,9 +1411,9 @@ class PolyTrans_Logs_Manager
         if (!empty($post_id)) {
             $args['post_id'] = $post_id;
         }
-        
+
         $base_url = add_query_arg($args, $base_url);
-        
+
         $page_links = paginate_links([
             'base' => add_query_arg('paged', '%#%', $base_url),
             'format' => '',

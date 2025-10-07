@@ -46,6 +46,7 @@ class PolyTrans_Post_Autocomplete
 
         $search = sanitize_text_field($_POST['search'] ?? '');
         $post_type = sanitize_text_field($_POST['post_type'] ?? 'any');
+        $target_language = sanitize_text_field($_POST['target_language'] ?? '');
 
         if (strlen($search) < 2) {
             wp_send_json_success(['posts' => []]);
@@ -69,8 +70,18 @@ class PolyTrans_Post_Autocomplete
                     'value' => '',
                     'compare' => '='
                 ]
-            ]
+            ],
         ];
+
+        // Filter by language if Polylang is available and language is specified
+        if (!empty($target_language) && function_exists('pll_get_post_language')) {
+            $args['lang'] = $target_language;
+            $args['tax_query'][] = [
+                'taxonomy' => 'language',
+                'field'    => 'slug',
+                'terms'    => $target_language,
+            ];
+        }
 
         $posts = get_posts($args);
 
@@ -83,6 +94,14 @@ class PolyTrans_Post_Autocomplete
             // Check if this is a translated post
             $original_post_id = get_post_meta($post->ID, '_polytrans_original_post_id', true);
             $is_translation = !empty($original_post_id);
+
+            // Get post language
+            $post_language = function_exists('pll_get_post_language') ?
+                pll_get_post_language($post->ID) : '';
+
+            // if ($post_language !== $target_language && $target_language !== '') {
+            //     continue;
+            // }
 
             // Get some interesting meta fields for testing
             $seo_title = get_post_meta($post->ID, '_yoast_wpseo_title', true);
@@ -106,12 +125,15 @@ class PolyTrans_Post_Autocomplete
 
             $results[] = [
                 'id' => $post->ID,
+                'ID' => $post->ID,
                 'title' => $post->post_title,
+                'post_title' => $post->post_title,
                 'content' => $post->post_content,
                 'excerpt' => $excerpt,
                 'post_type' => $post->post_type,
                 'post_status' => $post->post_status,
                 'post_date' => $post->post_date,
+                'language' => $post_language,
                 'is_translation' => $is_translation,
                 'original_post_id' => $original_post_id,
                 'meta' => $custom_fields,
@@ -165,6 +187,11 @@ class PolyTrans_Post_Autocomplete
         // Filter by language if Polylang is available and language is specified
         if ($language && function_exists('pll_get_post_language')) {
             $args['lang'] = $language;
+            $args['tax_query'][] = [
+                'taxonomy' => 'language',
+                'field'    => 'slug',
+                'terms'    => $language,
+            ];
         }
 
         $posts = get_posts($args);
