@@ -147,7 +147,7 @@ class PolyTrans
 
         // Initialize post-processing workflow manager
         PolyTrans_Workflow_Manager::get_instance();
-        
+
         // Initialize workflow meta box
         PolyTrans_Workflow_Metabox::get_instance();
 
