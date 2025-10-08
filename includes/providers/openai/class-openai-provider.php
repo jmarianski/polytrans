@@ -206,6 +206,10 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
     private function translate_with_openai($content, $source_lang, $target_lang, $assistant_id, $api_key)
     {
         PolyTrans_Logs_Manager::log("OpenAI run status: started ($source_lang -> $target_lang)", "info");
+
+        // Create OpenAI client
+        $client = new PolyTrans_OpenAI_Client($api_key);
+
         // Prepare the content for translation as JSON
         $content_to_translate = [
             'title' => $content['title'] ?? '',
@@ -218,157 +222,62 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
         $prompt = "Please translate the following JSON content from $source_lang to $target_lang. Return only a JSON object with the same structure but translated content:\n\n" . json_encode($content_to_translate, JSON_PRETTY_PRINT);
 
         // Create a thread
-        $thread_response = wp_remote_post('https://api.openai.com/v1/threads', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $api_key,
-                'Content-Type' => 'application/json',
-                'OpenAI-Beta' => 'assistants=v2'
-            ],
-            'body' => wp_json_encode([]),
-            'timeout' => 30
-        ]);
-
-        if (is_wp_error($thread_response)) {
+        $thread_result = $client->create_thread();
+        if (!$thread_result['success']) {
             return [
                 'success' => false,
-                'error' => 'Failed to create thread: ' . $thread_response->get_error_message()
+                'error' => 'Failed to create thread: ' . $thread_result['error']
             ];
         }
 
-        $thread_data = json_decode(wp_remote_retrieve_body($thread_response), true);
-        if (!isset($thread_data['id'])) {
-            return [
-                'success' => false,
-                'error' => 'Invalid thread response'
-            ];
-        }
-
-        $thread_id = $thread_data['id'];
+        $thread_id = $thread_result['thread_id'];
 
         // Add message to thread
-        $message_response = wp_remote_post("https://api.openai.com/v1/threads/$thread_id/messages", [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $api_key,
-                'Content-Type' => 'application/json',
-                'OpenAI-Beta' => 'assistants=v2'
-            ],
-            'body' => wp_json_encode([
-                'role' => 'user',
-                'content' => $prompt
-            ]),
-            'timeout' => 30
-        ]);
-
-        if (is_wp_error($message_response)) {
+        $message_result = $client->add_message($thread_id, 'user', $prompt);
+        if (!$message_result['success']) {
             return [
                 'success' => false,
-                'error' => 'Failed to add message: ' . $message_response->get_error_message()
+                'error' => 'Failed to add message: ' . $message_result['error']
             ];
         }
 
         // Run the assistant
-        $run_response = wp_remote_post("https://api.openai.com/v1/threads/$thread_id/runs", [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $api_key,
-                'Content-Type' => 'application/json',
-                'OpenAI-Beta' => 'assistants=v2'
-            ],
-            'body' => wp_json_encode([
-                'assistant_id' => $assistant_id
-            ]),
-            'timeout' => 30
-        ]);
-
-        if (is_wp_error($run_response)) {
+        $run_result = $client->run_assistant($thread_id, $assistant_id);
+        if (!$run_result['success']) {
             return [
                 'success' => false,
-                'error' => 'Failed to run assistant: ' . $run_response->get_error_message()
+                'error' => 'Failed to run assistant: ' . $run_result['error']
             ];
         }
 
-        $run_data = json_decode(wp_remote_retrieve_body($run_response), true);
-        if (!isset($run_data['id'])) {
-            return [
-                'success' => false,
-                'error' => 'Invalid run response'
-            ];
-        }
+        $run_id = $run_result['run_id'];
 
-        $run_id = $run_data['id'];
-
-        // Poll for completion
-        $max_attempts = 30;
-        $attempts = 0;
+        // Wait for completion using the client's built-in method
+        // This will poll up to 30 times with 1 second between checks (30 seconds total)
         sleep(10); // Initial wait to allow processing to start
 
-        while ($attempts < $max_attempts) {
-            sleep(rand(1, 10)); // Wait 2 seconds between checks
+        $completion_result = $client->wait_for_run_completion($thread_id, $run_id, 120, 1);
 
-            $status_response = wp_remote_get("https://api.openai.com/v1/threads/$thread_id/runs/$run_id", [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $api_key,
-                    'OpenAI-Beta' => 'assistants=v2'
-                ],
-                'timeout' => 30
-            ]);
-
-            if (is_wp_error($status_response)) {
-                return [
-                    'success' => false,
-                    'error' => 'Failed to check run status: ' . $status_response->get_error_message()
-                ];
-            }
-
-            $status_data = json_decode(wp_remote_retrieve_body($status_response), true);
-            $status = $status_data['status'] ?? 'unknown';
-
-            if ($status === 'completed') {
-                PolyTrans_Logs_Manager::log("OpenAI run status: completed ($source_lang -> $target_lang)", "info");
-                break;
-            } elseif ($status === 'failed' || $status === 'cancelled' || $status === 'expired') {
-                return [
-                    'success' => false,
-                    'error' => "OpenAI run $status: " . ($status_data['last_error']['message'] ?? 'Unknown error')
-                ];
-            } else {
-                PolyTrans_Logs_Manager::log("OpenAI run status: $status (attempt $attempts)", "info");
-            }
-
-            $attempts++;
-        }
-
-        if ($attempts >= $max_attempts) {
+        if (!$completion_result['success']) {
+            PolyTrans_Logs_Manager::log("OpenAI run status: " . ($completion_result['status'] ?? 'failed') . " ($source_lang -> $target_lang)", "error");
             return [
                 'success' => false,
-                'error' => 'OpenAI translation timed out'
+                'error' => $completion_result['error']
             ];
         }
+
+        PolyTrans_Logs_Manager::log("OpenAI run status: completed ($source_lang -> $target_lang)", "info");
 
         // Get the assistant's response
-        $messages_response = wp_remote_get("https://api.openai.com/v1/threads/$thread_id/messages?order=desc&limit=1", [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $api_key,
-                'OpenAI-Beta' => 'assistants=v2'
-            ],
-            'timeout' => 30
-        ]);
-
-        if (is_wp_error($messages_response)) {
+        $message_result = $client->get_latest_assistant_message($thread_id);
+        if (!$message_result['success']) {
             return [
                 'success' => false,
-                'error' => 'Failed to get messages: ' . $messages_response->get_error_message()
+                'error' => 'Failed to get messages: ' . $message_result['error']
             ];
         }
 
-        $messages_data = json_decode(wp_remote_retrieve_body($messages_response), true);
-        if (!isset($messages_data['data'][0]['content'][0]['text']['value'])) {
-            return [
-                'success' => false,
-                'error' => 'Invalid message response format'
-            ];
-        }
-
-        $response_text = $messages_data['data'][0]['content'][0]['text']['value'];
+        $response_text = $message_result['content'];
 
         // Extract JSON from the response
         if (preg_match('/```json\s*(.*?)\s*```/s', $response_text, $matches)) {
