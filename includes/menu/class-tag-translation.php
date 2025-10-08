@@ -140,15 +140,15 @@ class PolyTrans_Tag_Translation
 
             <!-- Export/Import controls (admin only) -->
             <?php if (current_user_can('manage_options')): ?>
-            <div>
-                <button id="export-tag-csv" class="button button-primary"><?php esc_html_e('Export CSV', 'polytrans'); ?></button>
-                <button id="show-import-csv" class="button"><?php esc_html_e('Import CSV', 'polytrans'); ?></button>
-                <span id="import-csv-area">
-                    <input type="file" id="import-csv-file" accept=".csv,text/csv" />
-                    <button id="import-csv-submit" class="button button-secondary"><?php esc_html_e('Import', 'polytrans'); ?></button>
-                    <button id="import-csv-cancel" class="button"><?php esc_html_e('Cancel', 'polytrans'); ?></button>
-                </span>
-            </div>
+                <div>
+                    <button id="export-tag-csv" class="button button-primary"><?php esc_html_e('Export CSV', 'polytrans'); ?></button>
+                    <button id="show-import-csv" class="button"><?php esc_html_e('Import CSV', 'polytrans'); ?></button>
+                    <span id="import-csv-area">
+                        <input type="file" id="import-csv-file" accept=".csv,text/csv" />
+                        <button id="import-csv-submit" class="button button-secondary"><?php esc_html_e('Import', 'polytrans'); ?></button>
+                        <button id="import-csv-cancel" class="button"><?php esc_html_e('Cancel', 'polytrans'); ?></button>
+                    </span>
+                </div>
             <?php endif; ?>
 
             <table class="widefat fixed striped" id="tag-translation-table">

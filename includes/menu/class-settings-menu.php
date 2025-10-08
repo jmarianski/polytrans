@@ -38,7 +38,7 @@ class PolyTrans_Settings_Menu
             'dashicons-translation',
             80
         );
-        
+
         // Rename first submenu item from "PolyTrans" to "Overview"
         add_submenu_page(
             'polytrans',
@@ -48,7 +48,7 @@ class PolyTrans_Settings_Menu
             'polytrans',
             [$this, 'render_overview']
         );
-        
+
         // Settings submenu - admin only
         add_submenu_page(
             'polytrans',
@@ -110,25 +110,25 @@ class PolyTrans_Settings_Menu
      */
     public function render_overview()
     {
-        ?>
+?>
         <div class="wrap">
             <h1><?php esc_html_e('PolyTrans Overview', 'polytrans'); ?></h1>
-            
+
             <div class="card">
                 <h2><?php esc_html_e('Welcome to PolyTrans', 'polytrans'); ?></h2>
                 <p><?php esc_html_e('PolyTrans is a powerful translation automation plugin that helps you manage multilingual content.', 'polytrans'); ?></p>
-                
+
                 <h3><?php esc_html_e('Quick Links', 'polytrans'); ?></h3>
                 <ul>
                     <li><a href="<?php echo admin_url('admin.php?page=polytrans-execute-workflow'); ?>"><?php esc_html_e('Execute Workflow', 'polytrans'); ?></a> - <?php esc_html_e('Run translation workflows on your posts', 'polytrans'); ?></li>
                     <li><a href="<?php echo admin_url('admin.php?page=polytrans-workflows'); ?>"><?php esc_html_e('Manage Workflows', 'polytrans'); ?></a> - <?php esc_html_e('Create and edit post-processing workflows', 'polytrans'); ?></li>
                     <li><a href="<?php echo admin_url('admin.php?page=polytrans-tag-translation'); ?>"><?php esc_html_e('Tag Translations', 'polytrans'); ?></a> - <?php esc_html_e('Manage tag translations', 'polytrans'); ?></li>
                     <?php if (current_user_can('manage_options')): ?>
-                    <li><a href="<?php echo admin_url('admin.php?page=polytrans-settings'); ?>"><?php esc_html_e('Settings', 'polytrans'); ?></a> - <?php esc_html_e('Configure PolyTrans (Admin only)', 'polytrans'); ?></li>
-                    <li><a href="<?php echo admin_url('admin.php?page=polytrans-logs'); ?>"><?php esc_html_e('Logs', 'polytrans'); ?></a> - <?php esc_html_e('View system logs (Admin only)', 'polytrans'); ?></li>
+                        <li><a href="<?php echo admin_url('admin.php?page=polytrans-settings'); ?>"><?php esc_html_e('Settings', 'polytrans'); ?></a> - <?php esc_html_e('Configure PolyTrans (Admin only)', 'polytrans'); ?></li>
+                        <li><a href="<?php echo admin_url('admin.php?page=polytrans-logs'); ?>"><?php esc_html_e('Logs', 'polytrans'); ?></a> - <?php esc_html_e('View system logs (Admin only)', 'polytrans'); ?></li>
                     <?php endif; ?>
                 </ul>
-                
+
                 <h3><?php esc_html_e('How to Use', 'polytrans'); ?></h3>
                 <ol>
                     <li><?php esc_html_e('Edit any post in WordPress', 'polytrans'); ?></li>
@@ -137,7 +137,7 @@ class PolyTrans_Settings_Menu
                 </ol>
             </div>
         </div>
-        <?php
+<?php
     }
 
     /**

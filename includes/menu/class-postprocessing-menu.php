@@ -329,9 +329,9 @@ class PolyTrans_Postprocessing_Menu
                                     <?php
                                     $is_enabled = isset($workflow['enabled']) && $workflow['enabled'];
                                     ?>
-                                    <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-execute-workflow&workflow_id=' . urlencode($workflow['id']))); ?>" 
-                                       class="button button-small button-primary" 
-                                       <?php echo !$is_enabled ? 'disabled aria-disabled="true" style="pointer-events: none; opacity: 0.5;"' : ''; ?>>
+                                    <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-execute-workflow&workflow_id=' . urlencode($workflow['id']))); ?>"
+                                        class="button button-small button-primary"
+                                        <?php echo !$is_enabled ? 'disabled aria-disabled="true" style="pointer-events: none; opacity: 0.5;"' : ''; ?>>
                                         <?php esc_html_e('Execute', 'polytrans'); ?>
                                     </a>
                                     <button type="button" class="button button-small workflow-duplicate" data-workflow-id="<?php echo esc_attr($workflow['id']); ?>">
@@ -503,14 +503,14 @@ class PolyTrans_Postprocessing_Menu
 
         // Get all workflows (only enabled ones)
         $all_workflows_raw = $storage_manager->get_all_workflows();
-        $all_workflows = array_values(array_filter($all_workflows_raw, function($workflow) use ($language_filter) {
+        $all_workflows = array_values(array_filter($all_workflows_raw, function ($workflow) use ($language_filter) {
             $is_enabled = isset($workflow['enabled']) && $workflow['enabled'];
-            
+
             // If language filter is set, also filter by language
             if ($language_filter && !empty($workflow['language'])) {
                 return $is_enabled && $workflow['language'] === $language_filter;
             }
-            
+
             return $is_enabled;
         }));
 
@@ -548,7 +548,7 @@ class PolyTrans_Postprocessing_Menu
                                 <div class="notice notice-info inline" style="margin: 0 0 15px 0; padding: 10px;">
                                     <p style="margin: 0;">
                                         <span class="dashicons dashicons-info" style="vertical-align: middle;"></span>
-                                        <?php 
+                                        <?php
                                         $lang_name = '';
                                         $lang_index = array_search($language_filter, $langs);
                                         if ($lang_index !== false) {
@@ -559,7 +559,7 @@ class PolyTrans_Postprocessing_Menu
                                         printf(
                                             esc_html__('Showing workflows for %s posts only. This matches your selected post\'s language.', 'polytrans'),
                                             '<strong>' . esc_html($lang_name) . '</strong>'
-                                        ); 
+                                        );
                                         ?>
                                     </p>
                                 </div>

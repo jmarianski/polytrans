@@ -321,11 +321,11 @@ class PolyTrans_Workflow_Manager
     {
         // For manual workflows, use translated_post_id if original_post_id is not provided
         $post_id = $context['original_post_id'] ?? $context['translated_post_id'] ?? null;
-        
+
         if (!$post_id) {
             return false;
         }
-        
+
         $post = get_post($post_id);
         if (!$post) {
             return false;
@@ -668,7 +668,7 @@ class PolyTrans_Workflow_Manager
             wp_send_json_error(['error' => 'Missing required parameters']);
             return;
         }
-        
+
         // If original_post_id not provided, use translated_post_id
         if (empty($original_post_id)) {
             $original_post_id = $translated_post_id;
