@@ -200,7 +200,7 @@ class PolyTrans_OpenAI_Client
     public function get_run_status($thread_id, $run_id)
     {
         $url = $this->base_url . "/threads/{$thread_id}/runs/{$run_id}";
-        $response = $this->make_request('GET', $url, null, 30);
+        $response = $this->make_request('GET', $url, null, 120);
 
         if (!$response['success']) {
             return [
@@ -360,32 +360,52 @@ class PolyTrans_OpenAI_Client
             $args['body'] = json_encode($body);
         }
 
-        $response = wp_remote_request($url, $args);
+        // Try up to 2 times (initial attempt + 1 retry)
+        $max_attempts = 2;
+        $last_error = null;
 
-        if (is_wp_error($response)) {
+        for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
+            $response = wp_remote_request($url, $args);
+
+            if (is_wp_error($response)) {
+                $last_error = $response->get_error_message();
+
+                // If this was a timeout and we have attempts left, retry
+                if ($attempt < $max_attempts && strpos($last_error, 'timeout') !== false) {
+                    error_log("PolyTrans OpenAI: Request timeout on attempt {$attempt}, retrying...");
+                    continue;
+                }
+
+                return [
+                    'success' => false,
+                    'error' => $last_error
+                ];
+            }
+
+            $status_code = wp_remote_retrieve_response_code($response);
+            $response_body = wp_remote_retrieve_body($response);
+            $data = json_decode($response_body, true);
+
+            if ($status_code < 200 || $status_code >= 300) {
+                $error_message = $data['error']['message'] ?? 'Unknown API error';
+                return [
+                    'success' => false,
+                    'error' => $error_message,
+                    'status_code' => $status_code
+                ];
+            }
+
             return [
-                'success' => false,
-                'error' => $response->get_error_message()
-            ];
-        }
-
-        $status_code = wp_remote_retrieve_response_code($response);
-        $response_body = wp_remote_retrieve_body($response);
-        $data = json_decode($response_body, true);
-
-        if ($status_code < 200 || $status_code >= 300) {
-            $error_message = $data['error']['message'] ?? 'Unknown API error';
-            return [
-                'success' => false,
-                'error' => $error_message,
+                'success' => true,
+                'data' => $data,
                 'status_code' => $status_code
             ];
         }
 
+        // This should not be reached, but just in case
         return [
-            'success' => true,
-            'data' => $data,
-            'status_code' => $status_code
+            'success' => false,
+            'error' => $last_error ?? 'Request failed after retries'
         ];
     }
 
