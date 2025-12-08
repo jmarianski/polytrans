@@ -73,6 +73,8 @@ class PolyTrans_Settings_Menu
 
             // Localize user autocomplete script
             wp_localize_script('polytrans-user-autocomplete', 'PolyTransUserAutocomplete', [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('polytrans_nonce'),
                 'i18n' => [
                     'no_results' => esc_html__('No users found.', 'polytrans'),
                     'searching' => esc_html__('Searching users...', 'polytrans'),
