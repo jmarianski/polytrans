@@ -156,11 +156,29 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                 PolyTrans_Logs_Manager::log("OpenAI: translating step $step_source -> $step_target with assistant $assistant_id", "info");
                 $result = $this->translate_with_openai($content_to_translate, $step_source, $step_target, $assistant_id, $openai_api_key);
                 if (!$result['success']) {
-                    PolyTrans_Logs_Manager::log("OpenAI: step $i failed ($step_source -> $step_target): " . $result['error'], "error");
+                    // Build detailed error message with error code if available
+                    $error_msg = $result['error'];
+                    $error_code = $result['error_code'] ?? null;
+
+                    if ($error_code) {
+                        $log_msg = "OpenAI: step $i failed ($step_source -> $step_target) [code: {$error_code}]: {$error_msg}";
+                    } else {
+                        $log_msg = "OpenAI: step $i failed ($step_source -> $step_target): {$error_msg}";
+                    }
+
+                    PolyTrans_Logs_Manager::log($log_msg, "error", [
+                        'step' => $i,
+                        'source_lang' => $step_source,
+                        'target_lang' => $step_target,
+                        'error_code' => $error_code,
+                        'error_details' => $result['error_details'] ?? null
+                    ]);
+
                     return [
                         'success' => false,
                         'translated_content' => null,
-                        'error' => "Translation step failed ($step_source -> $step_target): " . $result['error']
+                        'error' => "Translation step failed ($step_source -> $step_target): " . $error_msg,
+                        'error_code' => $error_code
                     ];
                 }
                 PolyTrans_Logs_Manager::log("OpenAI: step $i completed ($step_source -> $step_target)", "debug");
@@ -259,10 +277,33 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
         $completion_result = $client->wait_for_run_completion($thread_id, $run_id, 120, 1);
 
         if (!$completion_result['success']) {
-            PolyTrans_Logs_Manager::log("OpenAI run status: " . ($completion_result['status'] ?? 'failed') . " ($source_lang -> $target_lang)", "error");
+            // Extract detailed error information
+            $status = $completion_result['status'] ?? 'failed';
+            $error_code = $completion_result['error_code'] ?? null;
+            $error_msg = $completion_result['error'];
+
+            // Build detailed log message
+            if ($error_code) {
+                $log_msg = "OpenAI run status: {$status} [code: {$error_code}] ($source_lang -> $target_lang): {$error_msg}";
+            } else {
+                $log_msg = "OpenAI run status: {$status} ($source_lang -> $target_lang): {$error_msg}";
+            }
+
+            PolyTrans_Logs_Manager::log($log_msg, "error", [
+                'source_lang' => $source_lang,
+                'target_lang' => $target_lang,
+                'status' => $status,
+                'error_code' => $error_code,
+                'error_details' => $completion_result['error_details'] ?? null,
+                'thread_id' => $thread_id,
+                'run_id' => $run_id
+            ]);
+
             return [
                 'success' => false,
-                'error' => $completion_result['error']
+                'error' => $error_msg,
+                'error_code' => $error_code,
+                'status' => $status
             ];
         }
 

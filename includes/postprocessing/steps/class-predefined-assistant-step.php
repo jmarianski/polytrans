@@ -320,7 +320,9 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
             if (!$completion_response['success']) {
                 return [
                     'success' => false,
-                    'error' => $completion_response['error']
+                    'error' => $completion_response['error'],
+                    'error_code' => $completion_response['error_code'] ?? null,
+                    'status' => $completion_response['status'] ?? 'failed'
                 ];
             }
 

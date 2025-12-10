@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improved
+- **OpenAI Error Logging**: Detailed error codes and messages for translation failures
+  - Now shows specific error codes (rate_limit_exceeded, insufficient_quota, server_error, etc.)
+  - Includes human-readable error messages from OpenAI API
+  - Structured logging with error_code, error_details, thread_id, run_id
+  - **Before**: "OpenAI: step 0 failed (de -> en): Run ended with status: failed"
+  - **After**: "OpenAI: step 0 failed (de -> en) [code: rate_limit_exceeded]: Run ended with status: failed - Rate limit reached for requests"
+  - Makes debugging translation failures much faster (instantly see if it's rate limiting, insufficient funds, timeout, etc.)
+  - See: `docs/ERROR_LOGGING_IMPROVEMENTS.md` for full details and error code reference
+
 ## [1.3.5] - 2025-12-10
 
 ### Added

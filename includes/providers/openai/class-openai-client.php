@@ -245,10 +245,15 @@ class PolyTrans_OpenAI_Client
                     'data' => $status_response['data']
                 ];
             } elseif (in_array($status, ['failed', 'cancelled', 'expired'])) {
+                // Extract detailed error information from last_error field
+                $error_details = $this->extract_run_error_details($status_response['data']);
+
                 return [
                     'success' => false,
-                    'error' => "Run ended with status: {$status}",
-                    'status' => $status
+                    'error' => "Run ended with status: {$status}" . ($error_details['message'] ? " - {$error_details['message']}" : ''),
+                    'status' => $status,
+                    'error_code' => $error_details['code'],
+                    'error_details' => $error_details
                 ];
             }
 
@@ -410,8 +415,69 @@ class PolyTrans_OpenAI_Client
     }
 
     /**
+     * Extract detailed error information from OpenAI run response
+     *
+     * When a run fails, OpenAI API returns a last_error object with:
+     * - code: Error code (e.g., 'rate_limit_exceeded', 'server_error', 'insufficient_quota')
+     * - message: Human-readable error message
+     *
+     * @param array $run_data Full run response data from OpenAI API
+     * @return array Array with 'code' and 'message' keys
+     */
+    private function extract_run_error_details($run_data)
+    {
+        $error_details = [
+            'code' => null,
+            'message' => null,
+            'raw' => null
+        ];
+
+        // Check if last_error exists in response
+        if (isset($run_data['last_error']) && is_array($run_data['last_error'])) {
+            $last_error = $run_data['last_error'];
+
+            // Extract error code (e.g., 'rate_limit_exceeded', 'insufficient_quota')
+            if (isset($last_error['code'])) {
+                $error_details['code'] = $last_error['code'];
+            }
+
+            // Extract human-readable message
+            if (isset($last_error['message'])) {
+                $error_details['message'] = $last_error['message'];
+            }
+
+            // Store raw error for debugging
+            $error_details['raw'] = $last_error;
+        }
+
+        // If no last_error, try to extract from incomplete_details (for incomplete runs)
+        if (empty($error_details['code']) && isset($run_data['incomplete_details'])) {
+            $incomplete = $run_data['incomplete_details'];
+
+            if (isset($incomplete['reason'])) {
+                $error_details['code'] = 'incomplete_' . $incomplete['reason'];
+                $error_details['message'] = "Run incomplete: " . $incomplete['reason'];
+                $error_details['raw'] = $incomplete;
+            }
+        }
+
+        // Fallback: check for general error field (some endpoints use this)
+        if (empty($error_details['code']) && isset($run_data['error'])) {
+            if (is_array($run_data['error'])) {
+                $error_details['code'] = $run_data['error']['code'] ?? 'unknown_error';
+                $error_details['message'] = $run_data['error']['message'] ?? 'Unknown error occurred';
+                $error_details['raw'] = $run_data['error'];
+            } else {
+                $error_details['message'] = $run_data['error'];
+            }
+        }
+
+        return $error_details;
+    }
+
+    /**
      * Create a client instance from plugin settings
-     * 
+     *
      * @return PolyTrans_OpenAI_Client|null Client instance or null if not configured
      */
     public static function from_settings()
