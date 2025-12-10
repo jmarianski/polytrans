@@ -264,3 +264,206 @@ test('sets impossible type coercion to null', function () {
         ->and($result['warnings'])->toHaveCount(1);
 });
 
+// ============================================================================
+// Real-World Use Cases
+// ============================================================================
+
+test('use case 1: simple translation with KEY (EN→FR logistics)', function () {
+    // Simulates a simple translation assistant that returns KEY + translated text
+    $ai_response = "Sure! Here's the translation:\n\n```json\n{\n  \"KEY\": \"1\",\n  \"text\": \"🚛 Des chargements de **toute l'Europe** en un seul endroit !\"\n}\n```\n\nLet me know if you need anything else!";
+    
+    $schema = [
+        'KEY' => 'string',
+        'text' => 'string'
+    ];
+
+    $result = $this->parser->parse_with_schema($ai_response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['data']['KEY'])->toBe('1')
+        ->and($result['data']['text'])->toContain('🚛')
+        ->and($result['data']['text'])->toContain('**toute l\'Europe**')
+        ->and($result['warnings'])->toBeEmpty();
+});
+
+test('use case 2: batch translation with multiple items', function () {
+    // Simulates a batch translation assistant that returns array of items
+    $ai_response = <<<JSON
+Here are your translations:
+
+```json
+{
+  "items": [
+    {
+      "key": "title",
+      "content": "Chargements d'Europe"
+    },
+    {
+      "key": "content",
+      "content": "🚛 **Meilleure** bourse de fret !"
+    },
+    {
+      "key": "excerpt",
+      "content": "Trouvez des chargements"
+    },
+    {
+      "key": "meta_seo_title",
+      "content": "Bourse de Fret"
+    }
+  ]
+}
+```
+
+All done!
+JSON;
+    
+    $schema = [
+        'items' => 'array'
+    ];
+
+    $result = $this->parser->parse_with_schema($ai_response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['data']['items'])->toBeArray()
+        ->and($result['data']['items'])->toHaveCount(4)
+        ->and($result['data']['items'][0]['key'])->toBe('title')
+        ->and($result['data']['items'][0]['content'])->toBe('Chargements d\'Europe')
+        ->and($result['data']['items'][1]['content'])->toContain('🚛')
+        ->and($result['data']['items'][1]['content'])->toContain('**Meilleure**')
+        ->and($result['warnings'])->toBeEmpty();
+});
+
+test('use case 3: full post structure translation (WordPress content)', function () {
+    // Simulates a full WordPress post translation with nested meta
+    $ai_response = "I've translated your content from English to French:\n\n```json\n{\n  \"title\": \"Chargements de toute l'Europe\",\n  \"content\": \"🚛 **Trans.eu** est la bourse de fret la plus moderne !\\n\\nVoici ce que vous obtenez :\\n\\n📱 Application mobile\\n💬 Messagerie instantanée\\n🌍 Couverture européenne\",\n  \"excerpt\": \"Trouvez des chargements partout en Europe\",\n  \"meta\": {\n    \"seo_title\": \"Bourse de Fret Européenne | Trans.eu\",\n    \"seo_description\": \"Plateforme de transport routier avec des milliers de chargements\",\n    \"focus_keyword\": \"bourse de fret\",\n    \"reading_time\": \"3\"\n  }\n}\n```\n\nThe translation preserves all emojis, markdown formatting, and line breaks as requested.";
+    
+    $schema = [
+        'title' => 'string',
+        'content' => 'string',
+        'excerpt' => 'string',
+        'meta' => 'object'
+    ];
+
+    $result = $this->parser->parse_with_schema($ai_response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['data']['title'])->toBe('Chargements de toute l\'Europe')
+        ->and($result['data']['content'])->toContain('🚛')
+        ->and($result['data']['content'])->toContain('**Trans.eu**')
+        ->and($result['data']['content'])->toContain("\n\n") // Real newlines, not literal \n
+        ->and($result['data']['excerpt'])->toContain('Europe')
+        ->and($result['data']['meta'])->toBeArray()
+        ->and($result['data']['meta']['seo_title'])->toContain('Trans.eu')
+        ->and($result['data']['meta']['seo_description'])->toContain('transport')
+        ->and($result['data']['meta']['focus_keyword'])->toBe('bourse de fret')
+        ->and($result['data']['meta']['reading_time'])->toBe('3')
+        // meta is array in PHP (JSON object → PHP array), so we get a type coercion warning
+        ->and($result['warnings'])->toHaveCount(1)
+        ->and($result['warnings'][0])->toContain('Type coercion: meta');
+});
+
+test('use case 4: content analysis with scores and suggestions', function () {
+    // Simulates a content quality assistant that analyzes and scores content
+    $ai_response = <<<RESPONSE
+I've analyzed your post. Here's my assessment:
+
+```json
+{
+  "overall_score": 8.5,
+  "seo_score": 9,
+  "readability_score": 7,
+  "suggestions": [
+    "Add more internal links",
+    "Include relevant images",
+    "Optimize meta description length"
+  ],
+  "keyword_density": {
+    "transport": 5,
+    "logistics": 3,
+    "freight": 8
+  },
+  "approved": true,
+  "issues_found": 2
+}
+```
+
+Overall, it's a strong piece of content with minor improvements needed.
+RESPONSE;
+    
+    $schema = [
+        'overall_score' => 'number',
+        'seo_score' => 'number',
+        'readability_score' => 'number',
+        'suggestions' => 'array',
+        'keyword_density' => 'object',
+        'approved' => 'boolean',
+        'issues_found' => 'number'
+    ];
+
+    $result = $this->parser->parse_with_schema($ai_response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['data']['overall_score'])->toBe(8.5)
+        ->and($result['data']['seo_score'])->toBe(9)
+        ->and($result['data']['readability_score'])->toBe(7)
+        ->and($result['data']['suggestions'])->toBeArray()
+        ->and($result['data']['suggestions'])->toHaveCount(3)
+        ->and($result['data']['suggestions'][0])->toContain('internal links')
+        ->and($result['data']['keyword_density'])->toBeArray()
+        ->and($result['data']['keyword_density']['transport'])->toBe(5)
+        ->and($result['data']['keyword_density']['freight'])->toBe(8)
+        ->and($result['data']['approved'])->toBeTrue()
+        ->and($result['data']['issues_found'])->toBe(2)
+        // keyword_density is array in PHP (JSON object → PHP array), so we get a type coercion warning
+        ->and($result['warnings'])->toHaveCount(1)
+        ->and($result['warnings'][0])->toContain('Type coercion: keyword_density');
+});
+
+test('use case 5: partial response with missing fields and type coercion', function () {
+    // Simulates AI that forgets some fields or returns wrong types
+    $ai_response = <<<RESPONSE
+Here's what I found:
+
+```json
+{
+  "title": "Translated Title",
+  "content": "Some content here",
+  "seo_score": "8",
+  "approved": "yes",
+  "suggestions": "Add more keywords"
+}
+```
+
+Note: I couldn't analyze the excerpt as it was too short.
+RESPONSE;
+    
+    $schema = [
+        'title' => 'string',
+        'content' => 'string',
+        'excerpt' => 'string',
+        'seo_score' => 'number',
+        'readability_score' => 'number',
+        'approved' => 'boolean',
+        'suggestions' => 'array'
+    ];
+
+    $result = $this->parser->parse_with_schema($ai_response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        // Fields that exist
+        ->and($result['data']['title'])->toBe('Translated Title')
+        ->and($result['data']['content'])->toBe('Some content here')
+        // Missing fields → null
+        ->and($result['data']['excerpt'])->toBeNull()
+        ->and($result['data']['readability_score'])->toBeNull()
+        // Type coercion: string "8" → number 8
+        ->and($result['data']['seo_score'])->toBe(8)
+        // Type coercion: string "yes" → boolean true
+        ->and($result['data']['approved'])->toBeTrue()
+        // Type coercion: string → array
+        ->and($result['data']['suggestions'])->toBeArray()
+        ->and($result['data']['suggestions'])->toBe(['Add more keywords'])
+        // Should have warnings for missing fields and type coercions
+        ->and($result['warnings'])->toHaveCount(5); // 2 missing + 3 coercions
+});
+
