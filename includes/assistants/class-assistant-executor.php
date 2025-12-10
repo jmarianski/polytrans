@@ -86,12 +86,14 @@ class PolyTrans_Assistant_Executor {
 
 		// Return standardized result
 		return array(
-			'success'      => true,
-			'output'       => $processed['output'],
-			'provider'     => $config['provider'] ?? 'openai',
-			'model'        => $config['api_parameters']['model'] ?? 'unknown',
-			'usage'        => $api_response['usage'] ?? array(),
-			'raw_response' => $api_response,
+			'success'                   => true,
+			'output'                    => $processed['output'],
+			'provider'                  => $config['provider'] ?? 'openai',
+			'model'                     => $config['api_parameters']['model'] ?? 'unknown',
+			'usage'                     => $api_response['usage'] ?? array(),
+			'raw_response'              => $api_response,
+			'interpolated_system_prompt' => $prompts['system_prompt'] ?? null,
+			'interpolated_user_message'  => $prompts['user_message'] ?? null,
 		);
 	}
 

@@ -104,7 +104,11 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
                 'assistant_name' => $assistant['name'],
                 'provider' => $result['provider'] ?? 'unknown',
                 'model' => $result['model'] ?? 'unknown',
-                'usage' => $result['usage'] ?? []
+                'usage' => $result['usage'] ?? [],
+                'interpolated_system_prompt' => $result['interpolated_system_prompt'] ?? null,
+                'interpolated_user_message' => $result['interpolated_user_message'] ?? null,
+                'tokens_used' => $result['usage'] ?? null,
+                'raw_response' => $result['raw_response'] ?? null
             ];
         } catch (Exception $e) {
             return [
