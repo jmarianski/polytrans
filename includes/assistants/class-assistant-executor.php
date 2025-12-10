@@ -84,18 +84,8 @@ class PolyTrans_Assistant_Executor {
 			return $processed;
 		}
 
-		PolyTrans_Logs_Manager::log(
-			'Building final result array',
-			'debug',
-			array(
-				'has_output' => isset( $processed['output'] ),
-				'has_usage' => isset( $api_response['usage'] ),
-				'memory_usage' => memory_get_usage( true ),
-			)
-		);
-
 		// Return standardized result (without raw_response to avoid memory issues)
-		$result = array(
+		return array(
 			'success'                   => true,
 			'output'                    => $processed['output'],
 			'provider'                  => $config['provider'] ?? 'openai',
@@ -105,16 +95,6 @@ class PolyTrans_Assistant_Executor {
 			'interpolated_system_prompt' => $prompts['system_prompt'] ?? null,
 			'interpolated_user_message'  => $prompts['user_message'] ?? null,
 		);
-
-		PolyTrans_Logs_Manager::log(
-			'execute_with_config completed successfully',
-			'debug',
-			array(
-				'result_keys' => array_keys( $result ),
-			)
-		);
-
-		return $result;
 	}
 
 	/**
@@ -264,19 +244,6 @@ class PolyTrans_Assistant_Executor {
 			);
 		}
 
-		// Log successful API response (without full content to avoid memory issues)
-		PolyTrans_Logs_Manager::log(
-			'OpenAI API response received successfully',
-			'debug',
-			array(
-				'status_code' => $status_code,
-				'model' => $body_data['model'] ?? 'unknown',
-				'usage' => $body_data['usage'] ?? null,
-				'finish_reason' => $body_data['choices'][0]['finish_reason'] ?? 'unknown',
-				'response_length' => isset( $body_data['choices'][0]['message']['content'] ) ? strlen( $body_data['choices'][0]['message']['content'] ) : 0,
-			)
-		);
-
 		return $body_data;
 	}
 
@@ -290,15 +257,6 @@ class PolyTrans_Assistant_Executor {
 	public static function process_response( $response, $config ) {
 		$expected_format = $config['expected_format'] ?? 'text';
 
-		PolyTrans_Logs_Manager::log(
-			'Starting response processing',
-			'debug',
-			array(
-				'expected_format' => $expected_format,
-				'provider' => $config['provider'] ?? 'openai',
-			)
-		);
-
 		// Extract content from response (handle different API formats)
 		$content = self::extract_content_from_response( $response, $config['provider'] ?? 'openai' );
 
@@ -306,33 +264,13 @@ class PolyTrans_Assistant_Executor {
 			return new WP_Error( 'invalid_response', __( 'Failed to extract content from API response', 'polytrans' ) );
 		}
 
-		PolyTrans_Logs_Manager::log(
-			'Content extracted from response',
-			'debug',
-			array(
-				'content_length' => strlen( $content ),
-				'expected_format' => $expected_format,
-			)
-		);
-
 		// Process based on expected format
 		switch ( $expected_format ) {
 			case 'text':
 				return array( 'output' => $content );
 
 			case 'json':
-				$result = self::process_json_response( $content, $config );
-				
-				PolyTrans_Logs_Manager::log(
-					'process_json_response returned',
-					'debug',
-					array(
-						'is_error' => is_wp_error( $result ),
-						'has_output' => isset( $result['output'] ),
-					)
-				);
-				
-				return $result;
+				return self::process_json_response( $content, $config );
 
 			default:
 				return array( 'output' => $content );
@@ -388,28 +326,8 @@ class PolyTrans_Assistant_Executor {
 	 * @return array|WP_Error Parsed JSON or error.
 	 */
 	private static function process_json_response( $content, $config ) {
-		PolyTrans_Logs_Manager::log(
-			'Starting JSON parsing',
-			'debug',
-			array(
-				'content_length' => strlen( $content ),
-				'memory_usage' => memory_get_usage( true ),
-				'memory_peak' => memory_get_peak_usage( true ),
-			)
-		);
-
 		// Parse JSON
 		$decoded = json_decode( $content, true );
-
-		PolyTrans_Logs_Manager::log(
-			'JSON decode completed',
-			'debug',
-			array(
-				'success' => json_last_error() === JSON_ERROR_NONE,
-				'json_error' => json_last_error_msg(),
-				'memory_usage' => memory_get_usage( true ),
-			)
-		);
 
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			// Log parsing error (without full response to avoid DB/memory issues)
@@ -437,14 +355,6 @@ class PolyTrans_Assistant_Executor {
 
 		// Validate output_variables if specified
 		if ( ! empty( $config['output_variables'] ) ) {
-			PolyTrans_Logs_Manager::log(
-				'Validating output_variables',
-				'debug',
-				array(
-					'expected_vars' => $config['output_variables'],
-				)
-			);
-
 			$missing = array();
 			foreach ( $config['output_variables'] as $var ) {
 				if ( ! isset( $decoded[ $var ] ) ) {
@@ -466,14 +376,6 @@ class PolyTrans_Assistant_Executor {
 				);
 			}
 		}
-
-		PolyTrans_Logs_Manager::log(
-			'JSON processing completed successfully',
-			'debug',
-			array(
-				'decoded_keys' => array_keys( $decoded ),
-			)
-		);
 
 		return array( 'output' => $decoded );
 	}

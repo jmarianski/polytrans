@@ -384,12 +384,6 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
             // Extract numeric ID from managed_123 format
             $numeric_id = (int) str_replace('managed_', '', $assistant_id);
             
-            PolyTrans_Logs_Manager::log(
-                "Using Managed Assistant for translation (ID: {$numeric_id})",
-                "info",
-                ['source_lang' => $source_lang, 'target_lang' => $target_lang]
-            );
-
             // Get the assistant configuration
             $assistant = PolyTrans_Assistant_Manager::get_assistant($numeric_id);
             
@@ -409,30 +403,9 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                 'original' => $content,   // Original content (same at this point)
             ];
 
-            PolyTrans_Logs_Manager::log(
-                "Executing Managed Assistant",
-                "debug",
-                [
-                    'assistant_id' => $numeric_id,
-                    'context_keys' => array_keys($context),
-                    'memory_before' => memory_get_usage(true),
-                ]
-            );
-
             // Execute the assistant
             $executor = new PolyTrans_Assistant_Executor();
             $result = $executor->execute($numeric_id, $context);
-
-            PolyTrans_Logs_Manager::log(
-                "Managed Assistant execution completed",
-                "debug",
-                [
-                    'is_error' => is_wp_error($result),
-                    'has_success' => isset($result['success']),
-                    'success_value' => $result['success'] ?? null,
-                    'memory_after' => memory_get_usage(true),
-                ]
-            );
 
             if (is_wp_error($result)) {
                 return [
@@ -452,30 +425,11 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
 
             $ai_output = $result['output'] ?? '';
 
-            PolyTrans_Logs_Manager::log(
-                "AI output received from executor",
-                "debug",
-                [
-                    'output_type' => gettype($ai_output),
-                    'output_is_array' => is_array($ai_output),
-                    'output_keys' => is_array($ai_output) ? array_keys($ai_output) : null,
-                    'has_schema' => !empty($assistant['expected_output_schema']),
-                ]
-            );
-
             // Assistant_Executor already parses JSON and returns array
             // If we have expected_output_schema, the output is already parsed by executor
             if (!empty($assistant['expected_output_schema']) && $assistant['expected_format'] === 'json') {
                 // Output is already parsed array from Assistant_Executor
                 if (is_array($ai_output)) {
-                    PolyTrans_Logs_Manager::log(
-                        "AI output already parsed by executor, using directly",
-                        "debug",
-                        [
-                            'output_keys' => array_keys($ai_output),
-                        ]
-                    );
-
                     return [
                         'success' => true,
                         'translated_content' => $ai_output
@@ -483,26 +437,8 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                 }
 
                 // Fallback: if output is string, parse it (shouldn't happen)
-                PolyTrans_Logs_Manager::log(
-                    "Starting schema-based parsing (output is string)",
-                    "debug",
-                    [
-                        'schema_keys' => array_keys($assistant['expected_output_schema']),
-                        'output_length' => strlen($ai_output),
-                    ]
-                );
-
                 $parser = new PolyTrans_JSON_Response_Parser();
                 $parse_result = $parser->parse_with_schema($ai_output, $assistant['expected_output_schema']);
-
-                PolyTrans_Logs_Manager::log(
-                    "Schema parsing completed",
-                    "debug",
-                    [
-                        'parse_success' => $parse_result['success'],
-                        'has_warnings' => !empty($parse_result['warnings']),
-                    ]
-                );
 
             if (!$parse_result['success']) {
                 // Log parsing error (without full response to avoid DB/memory issues)
@@ -533,14 +469,6 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                 );
             }
 
-                PolyTrans_Logs_Manager::log(
-                    "Returning translated content",
-                    "debug",
-                    [
-                        'data_keys' => array_keys($parse_result['data']),
-                    ]
-                );
-
                 return [
                     'success' => true,
                     'translated_content' => $parse_result['data']
@@ -548,11 +476,6 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
             }
 
             // If no schema or not JSON format, return raw output (shouldn't happen for translations)
-            PolyTrans_Logs_Manager::log(
-                "Managed Assistant returned text response (no schema defined)",
-                'warning',
-                ['assistant_id' => $numeric_id]
-            );
 
             return [
                 'success' => true,

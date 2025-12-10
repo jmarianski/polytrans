@@ -698,13 +698,6 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
             }
         }
 
-        // Debug logging
-        error_log('[PolyTrans] ajax_load_openai_assistants returning: ' . json_encode([
-            'managed_count' => count($grouped_assistants['managed']),
-            'openai_count' => count($grouped_assistants['openai']),
-            'first_managed' => !empty($grouped_assistants['managed']) ? $grouped_assistants['managed'][0] : null
-        ]));
-
         // Return grouped structure
         wp_send_json_success($grouped_assistants);
     }
