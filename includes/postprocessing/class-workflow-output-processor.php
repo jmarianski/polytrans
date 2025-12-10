@@ -1027,7 +1027,7 @@ class PolyTrans_Workflow_Output_Processor
         }
 
         // Use Post Data Provider to rebuild complete context
-        require_once plugin_dir_path(__FILE__) . 'providers/class-post-data-provider.php';
+        // Note: Provider classes are autoloaded
         $post_data_provider = new PolyTrans_Post_Data_Provider();
 
         // Create a temporary context with the post ID

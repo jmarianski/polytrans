@@ -82,6 +82,12 @@ class LegacyAutoloader
         'PolyTrans_Managed_Assistant_Step' => 'postprocessing/steps/class-managed-assistant-step.php',
         'PolyTrans_Workflow_Manager' => 'postprocessing/class-workflow-manager.php',
         'PolyTrans_Workflow_Metabox' => 'postprocessing/class-workflow-metabox.php',
+        
+        // Providers (OpenAI, Google, etc.)
+        'PolyTrans_Google_Provider' => 'providers/google/class-google-provider.php',
+        'PolyTrans_OpenAI_Client' => 'providers/openai/class-openai-client.php',
+        'PolyTrans_OpenAI_Provider' => 'providers/openai/class-openai-provider.php',
+        'PolyTrans_OpenAI_Settings_Provider' => 'providers/openai/class-openai-settings-provider.php',
     ];
 
     /**

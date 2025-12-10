@@ -107,7 +107,7 @@ class PolyTrans_Assistant_Executor {
 	public static function interpolate_prompts( $config, $context ) {
 		// Load Variable Manager
 		if ( ! class_exists( 'PolyTrans_Variable_Manager' ) ) {
-			require_once POLYTRANS_PLUGIN_DIR . 'includes/postprocessing/class-variable-manager.php';
+			// Note: PolyTrans_Variable_Manager is autoloaded
 		}
 
 		$variable_manager = new PolyTrans_Variable_Manager();

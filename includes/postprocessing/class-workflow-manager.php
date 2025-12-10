@@ -46,9 +46,7 @@ class PolyTrans_Workflow_Manager
     private function init_components()
     {
         // Initialize managers
-        require_once plugin_dir_path(__FILE__) . 'managers/class-workflow-storage-manager.php';
-        require_once plugin_dir_path(__FILE__) . 'class-workflow-executor.php';
-        require_once plugin_dir_path(__FILE__) . 'class-variable-manager.php';
+        // Note: Workflow classes are autoloaded
 
         $this->storage_manager = new PolyTrans_Workflow_Storage_Manager();
         $this->executor = new PolyTrans_Workflow_Executor();

@@ -185,7 +185,7 @@ class PolyTrans_Translation_Handler
     private function process_with_background_processor($post_id, $source_lang, $target_lang, &$log, $log_key, $status_key)
     {
         // Require the background processor class
-        require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-background-processor.php';
+        // Note: PolyTrans_Background_Processor is autoloaded
 
         // Update status to 'translating' to indicate it's being processed via background
         update_post_meta($post_id, $status_key, 'translating');

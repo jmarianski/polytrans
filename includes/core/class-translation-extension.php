@@ -40,11 +40,8 @@ class PolyTrans_Translation_Extension
      */
     private function initialize_providers()
     {
-        // Load the provider registry
-        require_once POLYTRANS_PLUGIN_DIR . 'includes/providers/interface-translation-provider.php';
-        require_once POLYTRANS_PLUGIN_DIR . 'includes/providers/class-provider-registry.php';
-
         // Get all registered providers from the registry
+        // Note: Provider registry is now autoloaded via LegacyAutoloader
         $registry = PolyTrans_Provider_Registry::get_instance();
         $this->providers = $registry->get_providers();
     }

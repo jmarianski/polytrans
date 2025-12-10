@@ -474,7 +474,7 @@ class PolyTrans_Background_Processor
             ]);
 
             // Process the translation using the coordinator
-            require_once POLYTRANS_PLUGIN_DIR . 'includes/receiver/class-translation-coordinator.php';
+            // Note: PolyTrans_Translation_Coordinator is autoloaded
             $coordinator = new PolyTrans_Translation_Coordinator();
 
             // Prepare the request data for processing
@@ -590,9 +590,7 @@ class PolyTrans_Background_Processor
 
         try {
             // Get workflow manager instance
-            if (!class_exists('PolyTrans_Workflow_Manager')) {
-                require_once POLYTRANS_PLUGIN_DIR . 'includes/postprocessing/class-workflow-manager.php';
-            }
+            // Note: PolyTrans_Workflow_Manager is autoloaded
 
             $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
 
@@ -672,9 +670,7 @@ class PolyTrans_Background_Processor
 
         try {
             // Get workflow manager instance
-            if (!class_exists('PolyTrans_Workflow_Manager')) {
-                require_once POLYTRANS_PLUGIN_DIR . 'includes/postprocessing/class-workflow-manager.php';
-            }
+            // Note: PolyTrans_Workflow_Manager is autoloaded
 
             $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
 
@@ -746,9 +742,7 @@ class PolyTrans_Background_Processor
     public static function log($message, $level = 'info', $context = [])
     {
         // Load the logs manager class
-        if (!class_exists('PolyTrans_Logs_Manager')) {
-            require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-logs-manager.php';
-        }
+        // Note: PolyTrans_Logs_Manager is autoloaded
 
         // Extract post ID and languages from context if available
         $post_id = isset($context['post_id']) ? intval($context['post_id']) : 0;
@@ -788,9 +782,7 @@ class PolyTrans_Background_Processor
         $table_name = $wpdb->prefix . 'polytrans_logs';
 
         // Load the logs manager
-        if (!class_exists('PolyTrans_Logs_Manager')) {
-            require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-logs-manager.php';
-        }
+        // Note: PolyTrans_Logs_Manager is autoloaded
 
         // Check if the logs table exists
         $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;

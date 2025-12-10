@@ -147,7 +147,7 @@ class PolyTrans_Settings_Menu
      */
     public function render_settings()
     {
-        require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-translation-settings.php';
+        // Note: polytrans_settings class is autoloaded
         $settings = new polytrans_settings();
         $settings->render();
     }
