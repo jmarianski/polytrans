@@ -1,35 +1,82 @@
 # PolyTrans Architecture
 
-## Directory Structure
+## Directory Structure (PSR-4 Compliant)
 
 ```
 polytrans/
 ├── polytrans.php              # Main plugin file
 ├── includes/
-│   ├── class-polytrans.php   # Core plugin class
-│   ├── core/                  # WordPress integration
-│   │   ├── class-background-processor.php  # Async processing
-│   │   ├── class-translation-meta-box.php  # Post editor UI
-│   │   ├── class-translation-settings.php  # Settings management
-│   │   └── class-logs-manager.php          # Logging system
-│   ├── providers/             # Translation providers
-│   │   ├── interface-translation-provider.php
-│   │   ├── google/            # Google Translate
-│   │   └── openai/            # OpenAI provider
-│   ├── receiver/              # Translation processing
-│   │   ├── class-translation-coordinator.php
-│   │   └── managers/          # Specialized managers
-│   ├── postprocessing/        # Workflow system
-│   │   ├── class-workflow-manager.php
-│   │   ├── class-workflow-executor.php
-│   │   └── steps/             # Workflow step types
-│   ├── menu/                  # Admin menus
-│   └── scheduler/             # Translation scheduling
+│   ├── class-polytrans.php    # Core plugin class (legacy, no namespace)
+│   ├── Bootstrap.php          # PSR-4 autoloader initialization
+│   ├── Compatibility.php      # Backward-compatible class aliases
+│   ├── LegacyAutoloader.php   # Temporary autoloader (will be removed)
+│   ├── Assistants/            # ✅ PSR-4: PolyTrans\Assistants\
+│   │   ├── AssistantManager.php
+│   │   ├── AssistantExecutor.php
+│   │   └── AssistantMigration.php
+│   ├── Core/                  # ✅ PSR-4: PolyTrans\Core\
+│   │   ├── BackgroundProcessor.php
+│   │   ├── LogsManager.php
+│   │   ├── TranslationSettings.php
+│   │   ├── TranslationMetaBox.php
+│   │   └── ...
+│   ├── Debug/                 # ✅ PSR-4: PolyTrans\Debug\
+│   │   ├── WorkflowDebug.php
+│   │   └── WorkflowDebugMenu.php
+│   ├── Menu/                  # ✅ PSR-4: PolyTrans\Menu\
+│   │   ├── AssistantsMenu.php
+│   │   ├── PostprocessingMenu.php
+│   │   ├── SettingsMenu.php
+│   │   └── ...
+│   ├── PostProcessing/        # ✅ PSR-4: PolyTrans\PostProcessing\
+│   │   ├── WorkflowManager.php
+│   │   ├── WorkflowExecutor.php
+│   │   ├── JsonResponseParser.php
+│   │   ├── VariableManager.php
+│   │   ├── WorkflowStepInterface.php
+│   │   ├── VariableProviderInterface.php
+│   │   ├── Managers/
+│   │   │   └── WorkflowStorageManager.php
+│   │   ├── Providers/
+│   │   │   ├── PostDataProvider.php
+│   │   │   ├── MetaDataProvider.php
+│   │   │   └── ...
+│   │   └── Steps/
+│   │       ├── AiAssistantStep.php
+│   │       ├── ManagedAssistantStep.php
+│   │       └── PredefinedAssistantStep.php
+│   ├── Providers/             # ✅ PSR-4: PolyTrans\Providers\
+│   │   ├── TranslationProviderInterface.php
+│   │   ├── SettingsProviderInterface.php
+│   │   ├── ProviderRegistry.php
+│   │   ├── Google/
+│   │   │   └── GoogleProvider.php
+│   │   └── OpenAI/
+│   │       ├── OpenAIClient.php
+│   │       ├── OpenAIProvider.php
+│   │       └── OpenAISettingsProvider.php
+│   ├── Receiver/              # ✅ PSR-4: PolyTrans\Receiver\
+│   │   ├── TranslationCoordinator.php
+│   │   ├── TranslationReceiverExtension.php
+│   │   └── Managers/
+│   │       ├── RequestValidator.php
+│   │       ├── PostCreator.php
+│   │       └── ...
+│   ├── Scheduler/             # ✅ PSR-4: PolyTrans\Scheduler\
+│   │   ├── TranslationScheduler.php
+│   │   └── TranslationHandler.php
+│   └── Templating/            # ✅ PSR-4: PolyTrans\Templating\
+│       └── TwigEngine.php
 ├── assets/
 │   ├── css/                   # Stylesheets
 │   └── js/                    # JavaScript
-└── tests/                     # PHPUnit tests
+├── tests/                     # Pest/PHPUnit tests
+│   ├── Unit/                  # Unit tests
+│   └── Architecture/          # Architecture tests
+└── vendor/                    # Composer dependencies
 ```
+
+**Note:** All classes use PSR-4 autoloading. Backward-compatible aliases (e.g., `PolyTrans_Workflow_Manager` → `PolyTrans\PostProcessing\WorkflowManager`) are provided in `Compatibility.php`.
 
 ## Core Components
 
@@ -45,20 +92,25 @@ polytrans/
 
 ### Provider System
 
-**Interface:** `PolyTrans_Translation_Provider_Interface`
+**Interface:** `PolyTrans\Providers\TranslationProviderInterface` (alias: `PolyTrans_Translation_Provider_Interface`)
 
 Providers must implement:
 - `translate($content, $source_lang, $target_lang)`
 - `get_supported_languages()`
+- `get_settings_provider()` - Returns settings UI class
 
 **Current Providers:**
-- Google Translate (free, basic)
-- OpenAI (paid, high quality, context-aware)
+- **Google Translate** (`PolyTrans\Providers\Google\GoogleProvider`) - Free, basic
+- **OpenAI** (`PolyTrans\Providers\OpenAI\OpenAIProvider`) - Paid, high quality, context-aware, supports Managed Assistants
 
 ### Workflow System
 
+**Interface:** `PolyTrans\PostProcessing\WorkflowStepInterface` (alias: `PolyTrans_Workflow_Step_Interface`)
+
 **Step Types:**
-- `ai_assistant` - AI processing (OpenAI)
+- `managed_assistant` - Locally managed AI assistants (OpenAI/Claude/Gemini)
+- `ai_assistant` - OpenAI Assistants API (legacy)
+- `predefined_assistant` - Predefined OpenAI assistants
 - `find_replace` - Text replacement
 - `regex_replace` - Regex operations
 
@@ -98,6 +150,53 @@ Uses `WP_Background_Process` pattern:
 - **Notification Manager** - Sends emails
 
 Each manager has single responsibility, can be extended independently.
+
+## PSR-4 Autoloading
+
+### Namespace Structure
+
+All classes follow PSR-4 standard with the base namespace `PolyTrans`:
+
+```
+PolyTrans\
+├── Assistants\          # AI Assistants management
+├── Core\                # WordPress integration
+├── Debug\               # Debugging tools
+├── Menu\                # Admin menus
+├── PostProcessing\      # Workflow system
+│   ├── Managers\
+│   ├── Providers\
+│   └── Steps\
+├── Providers\           # Translation providers
+│   ├── Google\
+│   └── OpenAI\
+├── Receiver\            # Translation processing
+│   └── Managers\
+├── Scheduler\           # Translation scheduling
+└── Templating\          # Twig engine
+```
+
+### Backward Compatibility
+
+For backward compatibility, class aliases are provided in `includes/Compatibility.php`:
+
+```php
+// Old style (still works)
+$manager = new PolyTrans_Workflow_Manager();
+
+// New style (PSR-4)
+$manager = new \PolyTrans\PostProcessing\WorkflowManager();
+```
+
+### Autoloader Bootstrap
+
+The plugin uses a three-tier autoloading system:
+
+1. **Composer Autoloader** - Loads vendor dependencies (Twig, etc.)
+2. **PSR-4 Autoloader** - Loads namespaced classes (`PolyTrans\*`)
+3. **LegacyAutoloader** - Temporary loader for remaining non-namespaced classes (will be removed)
+
+Initialization happens in `includes/Bootstrap.php`, called from `polytrans.php`.
 
 ## Key Classes
 
