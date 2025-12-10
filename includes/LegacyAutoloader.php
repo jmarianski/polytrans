@@ -26,6 +26,10 @@ class LegacyAutoloader
      * As we migrate classes, we remove them from this array.
      */
     private static $classMap = [
+        // Debug & Templating (no namespace, kept as-is)
+        'PolyTrans_Workflow_Debug' => 'debug/class-workflow-debug.php',
+        'PolyTrans_Twig_Engine' => 'templating/class-twig-template-engine.php',
+        
         // Provider system - ✅ MIGRATED TO PSR-4!
         // 'PolyTrans_Provider_Registry' => 'providers/class-provider-registry.php', // ✅ MIGRATED
         

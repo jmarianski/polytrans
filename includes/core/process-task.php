@@ -56,9 +56,7 @@ if (!defined('ABSPATH') && isset($argv) && count($argv) > 1) {
     $args = $process_data['args'] ?? [];
     $action = $process_data['action'] ?? '';
 
-    // Load the background processor class
-    require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-background-processor.php';
-
+    // Background processor is now autoloaded via PSR-4
     // Execute the task
     if (class_exists('PolyTrans_Background_Processor')) {
         error_log("[polytrans] Background process running task: $action");

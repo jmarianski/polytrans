@@ -24,8 +24,7 @@ add_action('admin_menu', function () {
 
 function polytrans_workflow_debug_page()
 {
-    // Load the debug class
-    require_once plugin_dir_path(__FILE__) . 'class-workflow-debug.php';
+    // Debug class is loaded automatically (no namespace, legacy autoloader handles it)
 
 ?>
     <div class="wrap">
