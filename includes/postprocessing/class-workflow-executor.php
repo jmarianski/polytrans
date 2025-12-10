@@ -37,6 +37,10 @@ class PolyTrans_Workflow_Executor
         // Predefined Assistant step
         require_once plugin_dir_path(__FILE__) . 'steps/class-predefined-assistant-step.php';
         $this->register_step(new PolyTrans_Predefined_Assistant_Step());
+
+        // Managed Assistant step (Phase 1 - centralized management)
+        require_once plugin_dir_path(__FILE__) . 'steps/class-managed-assistant-step.php';
+        $this->register_step(new PolyTrans_Managed_Assistant_Step());
     }
 
     /**
