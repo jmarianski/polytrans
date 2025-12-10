@@ -107,7 +107,6 @@ class PolyTrans
         require_once $includes_dir . 'menu/class-tag-translation.php';
         require_once $includes_dir . 'menu/class-postprocessing-menu.php';
         require_once $includes_dir . 'menu/class-assistants-menu.php';
-        require_once $includes_dir . 'menu/class-language-pairs-menu.php';
 
         // Post-processing system
         // NOTE: Twig Engine uses Composer autoloader (Twig namespace), loaded lazily in Variable Manager
@@ -152,7 +151,6 @@ class PolyTrans
         PolyTrans_Post_Autocomplete::get_instance();
         PolyTrans_Postprocessing_Menu::get_instance();
         PolyTrans_Assistants_Menu::get_instance();
-        PolyTrans_Language_Pairs_Menu::init();
 
         // Initialize the translation extension (handles incoming translation requests)
         PolyTrans_Translation_Extension::get_instance();

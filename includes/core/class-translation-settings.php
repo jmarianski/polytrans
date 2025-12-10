@@ -140,6 +140,7 @@ class polytrans_settings
             <div class="nav-tab-wrapper">
                 <a href="#provider-settings" class="nav-tab nav-tab-active" id="provider-tab"><?php esc_html_e('Translation Provider', 'polytrans'); ?></a>
                 <a href="#basic-settings" class="nav-tab" id="basic-tab"><?php esc_html_e('Basic Settings', 'polytrans'); ?></a>
+                <a href="#language-pairs-settings" class="nav-tab" id="language-pairs-tab"><?php esc_html_e('Language Pairs', 'polytrans'); ?></a>
                 <a href="#tag-settings" class="nav-tab" id="tag-tab"><?php esc_html_e('Tag Settings', 'polytrans'); ?></a>
                 <a href="#email-settings" class="nav-tab" id="email-tab"><?php esc_html_e('Email Settings', 'polytrans'); ?></a>
                 <?php foreach ($settings_providers as $provider_id => $settings_provider): ?>
@@ -195,6 +196,11 @@ class polytrans_settings
                     </div>
 
                     <?php $this->render_language_config_table($settings); ?>
+                </div>
+
+                <!-- Language Pairs Tab -->
+                <div id="language-pairs-settings" class="tab-content" style="display:none;">
+                    <?php $this->render_language_pairs_settings($settings); ?>
                 </div>
 
                 <!-- Tag Settings Tab -->
@@ -526,5 +532,262 @@ class polytrans_settings
         <textarea id="base-tags-textarea" name="base_tags" style="width:100%;min-height:150px;font-family:monospace;" placeholder="<?php esc_attr_e('Enter tags separated by new lines or commas...', 'polytrans'); ?>"><?php echo esc_textarea($base_tags); ?></textarea>
         <br><small><?php esc_html_e('These tags will be used for automatic translation and tag mapping between languages. You can add tags that you want to translate now or that you want to use in future automatic translations.', 'polytrans'); ?></small>
 <?php
+    }
+
+    /**
+     * Render Language Pairs settings tab
+     */
+    private function render_language_pairs_settings($settings)
+    {
+        $openai_assistants = $settings['openai_assistants'] ?? [];
+        $openai_path_rules = $settings['openai_path_rules'] ?? [];
+
+        ?>
+        <h2><?php esc_html_e('Assistant Mapping', 'polytrans'); ?></h2>
+        <p class="description">
+            <?php esc_html_e('Select which assistant (Managed or OpenAI API) to use for each language pair. Assistants are loaded from your OpenAI account and from PolyTrans → AI Assistants.', 'polytrans'); ?>
+        </p>
+
+        <div id="assistants-loading" style="display:none; padding: 10px; background: #f0f0f1; margin: 10px 0;">
+            <p><em><?php esc_html_e('Loading assistants...', 'polytrans'); ?></em></p>
+        </div>
+
+        <div id="assistants-error" style="display:none; padding: 10px; background: #f8d7da; color: #721c24; margin: 10px 0;">
+            <p><?php esc_html_e('Unable to load assistants. Please check your OpenAI API key in OpenAI Configuration tab.', 'polytrans'); ?></p>
+        </div>
+
+        <div id="assistants-mapping-container">
+            <?php $this->render_assistant_mapping_table($openai_assistants); ?>
+        </div>
+
+        <hr style="margin: 30px 0;">
+
+        <h2><?php esc_html_e('Translation Path Rules', 'polytrans'); ?></h2>
+        <p class="description">
+            <?php esc_html_e('Define routing rules for translations. Use intermediate languages for better quality (e.g., PL → EN → FR instead of direct PL → FR).', 'polytrans'); ?>
+        </p>
+
+        <div id="path-rules-container">
+            <?php $this->render_path_rules_table($openai_path_rules); ?>
+        </div>
+
+        <button type="button" id="add-path-rule" class="button" style="margin-top: 10px;">
+            <?php esc_html_e('Add Rule', 'polytrans'); ?>
+        </button>
+
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            // Add path rule
+            $('#add-path-rule').on('click', function() {
+                var ruleIndex = $('#path-rules-container tbody tr').length;
+                var newRow = `
+                    <tr>
+                        <td>
+                            <select name="openai_path_rules[${ruleIndex}][source]" required>
+                                <option value="all"><?php esc_html_e('All', 'polytrans'); ?></option>
+                                <?php foreach ($this->langs as $i => $lang): ?>
+                                <option value="<?php echo esc_attr($lang); ?>">
+                                    <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                        <td>
+                            <select name="openai_path_rules[${ruleIndex}][target]" required>
+                                <option value="all"><?php esc_html_e('All', 'polytrans'); ?></option>
+                                <?php foreach ($this->langs as $i => $lang): ?>
+                                <option value="<?php echo esc_attr($lang); ?>">
+                                    <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                        <td>
+                            <select name="openai_path_rules[${ruleIndex}][intermediate]">
+                                <option value=""><?php esc_html_e('None (Direct)', 'polytrans'); ?></option>
+                                <?php foreach ($this->langs as $i => $lang): ?>
+                                <option value="<?php echo esc_attr($lang); ?>">
+                                    <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                        <td>
+                            <button type="button" class="button remove-rule"><?php esc_html_e('Remove', 'polytrans'); ?></button>
+                        </td>
+                    </tr>
+                `;
+                $('#path-rules-container tbody').append(newRow);
+            });
+
+            // Remove path rule
+            $(document).on('click', '.remove-rule', function() {
+                $(this).closest('tr').remove();
+            });
+        });
+        </script>
+        <?php
+    }
+
+    /**
+     * Render assistant mapping table
+     */
+    private function render_assistant_mapping_table($openai_assistants)
+    {
+        if (empty($this->langs)) {
+            echo '<p><em>' . esc_html__('No languages configured. Please configure languages in Basic Settings first.', 'polytrans') . '</em></p>';
+            return;
+        }
+
+        $language_pairs = $this->get_language_pairs();
+
+        if (empty($language_pairs)) {
+            echo '<p><em>' . esc_html__('No language pairs available.', 'polytrans') . '</em></p>';
+            return;
+        }
+
+        ?>
+        <table class="widefat fixed striped" style="margin-top: 10px;">
+            <thead>
+                <tr>
+                    <th style="width: 30%;"><?php esc_html_e('Language Pair', 'polytrans'); ?></th>
+                    <th style="width: 70%;"><?php esc_html_e('Assistant', 'polytrans'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($language_pairs as $pair): ?>
+                    <?php
+                    $source_name = $this->get_language_name($pair['source']);
+                    $target_name = $this->get_language_name($pair['target']);
+                    $assistant_key = $pair['key'];
+                    $selected_assistant = $openai_assistants[$assistant_key] ?? '';
+                    ?>
+                    <tr>
+                        <td>
+                            <strong><?php echo esc_html($source_name); ?> → <?php echo esc_html($target_name); ?></strong>
+                        </td>
+                        <td>
+                            <!-- Hidden input to preserve the actual value -->
+                            <input type="hidden"
+                                name="openai_assistants[<?php echo esc_attr($assistant_key); ?>]"
+                                value="<?php echo esc_attr($selected_assistant); ?>"
+                                class="openai-assistant-hidden"
+                                data-pair="<?php echo esc_attr($assistant_key); ?>" />
+
+                            <!-- Visible select for user interaction -->
+                            <select class="openai-assistant-select"
+                                data-pair="<?php echo esc_attr($assistant_key); ?>"
+                                data-selected="<?php echo esc_attr($selected_assistant); ?>"
+                                style="width: 100%; max-width: 500px;">
+                                <option value=""><?php esc_html_e('Loading assistants...', 'polytrans'); ?></option>
+                            </select>
+
+                            <?php if (!empty($selected_assistant)): ?>
+                                <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                    <?php echo esc_html(sprintf(__('Current: %s', 'polytrans'), $selected_assistant)); ?>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php
+    }
+
+    /**
+     * Render path rules table
+     */
+    private function render_path_rules_table($rules)
+    {
+        ?>
+        <table class="widefat fixed striped" id="path-rules-table" style="margin-top: 10px;">
+            <thead>
+                <tr>
+                    <th style="width: 25%;"><?php esc_html_e('Source Language', 'polytrans'); ?></th>
+                    <th style="width: 25%;"><?php esc_html_e('Target Language', 'polytrans'); ?></th>
+                    <th style="width: 35%;"><?php esc_html_e('Intermediate Language', 'polytrans'); ?></th>
+                    <th style="width: 15%;"><?php esc_html_e('Actions', 'polytrans'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($rules)): ?>
+                    <?php foreach ($rules as $index => $rule): ?>
+                        <tr>
+                            <td>
+                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][source]" required>
+                                    <option value="all" <?php selected($rule['source'], 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
+                                    <?php foreach ($this->langs as $i => $lang): ?>
+                                        <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['source'], $lang); ?>>
+                                            <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+                            <td>
+                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][target]" required>
+                                    <option value="all" <?php selected($rule['target'], 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
+                                    <?php foreach ($this->langs as $i => $lang): ?>
+                                        <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['target'], $lang); ?>>
+                                            <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+                            <td>
+                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][intermediate]">
+                                    <option value="" <?php selected(empty($rule['intermediate'])); ?>><?php esc_html_e('None (Direct)', 'polytrans'); ?></option>
+                                    <?php foreach ($this->langs as $i => $lang): ?>
+                                        <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['intermediate'] ?? '', $lang); ?>>
+                                            <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+                            <td>
+                                <button type="button" class="button remove-rule"><?php esc_html_e('Remove', 'polytrans'); ?></button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="4"><em><?php esc_html_e('No path rules defined. Click "Add Rule" to create one.', 'polytrans'); ?></em></td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+        <?php
+    }
+
+    /**
+     * Get language pairs
+     */
+    private function get_language_pairs()
+    {
+        $pairs = [];
+        foreach ($this->langs as $source) {
+            foreach ($this->langs as $target) {
+                if ($source !== $target) {
+                    $pairs[] = [
+                        'source' => $source,
+                        'target' => $target,
+                        'key' => $source . '_to_' . $target
+                    ];
+                }
+            }
+        }
+        return $pairs;
+    }
+
+    /**
+     * Get language name
+     */
+    private function get_language_name($code)
+    {
+        $index = array_search($code, $this->langs);
+        if ($index !== false && isset($this->lang_names[$index])) {
+            return $this->lang_names[$index];
+        }
+        return strtoupper($code);
     }
 }
