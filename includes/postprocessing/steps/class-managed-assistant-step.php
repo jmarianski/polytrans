@@ -95,10 +95,16 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
                 ];
             }
 
+            // Get the AI output
+            $ai_output = $result['output'] ?? $result['data'] ?? null;
+            
             // Return successful result
+            // Wrap output in 'data' array with 'ai_response' key for compatibility with output processor
             return [
                 'success' => true,
-                'data' => $result['output'] ?? $result['data'] ?? null,
+                'data' => [
+                    'ai_response' => $ai_output  // Wrap in array so auto_detect_response_value can find it
+                ],
                 'execution_time' => $execution_time,
                 'assistant_id' => $assistant_id,
                 'assistant_name' => $assistant['name'],
