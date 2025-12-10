@@ -463,13 +463,32 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                 ]
             );
 
-            // If assistant has expected_output_schema and expected_format is 'json', parse the response
+            // Assistant_Executor already parses JSON and returns array
+            // If we have expected_output_schema, the output is already parsed by executor
             if (!empty($assistant['expected_output_schema']) && $assistant['expected_format'] === 'json') {
+                // Output is already parsed array from Assistant_Executor
+                if (is_array($ai_output)) {
+                    PolyTrans_Logs_Manager::log(
+                        "AI output already parsed by executor, using directly",
+                        "debug",
+                        [
+                            'output_keys' => array_keys($ai_output),
+                        ]
+                    );
+
+                    return [
+                        'success' => true,
+                        'translated_content' => $ai_output
+                    ];
+                }
+
+                // Fallback: if output is string, parse it (shouldn't happen)
                 PolyTrans_Logs_Manager::log(
-                    "Starting schema-based parsing",
+                    "Starting schema-based parsing (output is string)",
                     "debug",
                     [
                         'schema_keys' => array_keys($assistant['expected_output_schema']),
+                        'output_length' => strlen($ai_output),
                     ]
                 );
 
