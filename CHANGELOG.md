@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2025-12-10
+
+### 🎉 Major Release: PSR-4 Architecture Migration
+
+This release represents a **complete architectural refactoring** of the PolyTrans plugin to modern PHP standards (PSR-4). All 60+ classes have been migrated to namespaced structure with full backward compatibility.
+
+### Added - PSR-4 Architecture
+
+- **Complete PSR-4 Migration**: All classes now follow PSR-4 autoloading standard
+  - Base namespace: `PolyTrans\`
+  - Organized into logical modules: `Assistants\`, `Core\`, `Debug\`, `Menu\`, `PostProcessing\`, `Providers\`, `Receiver\`, `Scheduler\`, `Templating\`
+  - Zero manual `require_once` statements (except WordPress core)
+  - Composer-based autoloading for all classes
+  
+- **Three-Tier Autoloading System**:
+  1. Composer Autoloader - Vendor dependencies (Twig, etc.)
+  2. PSR-4 Autoloader - Namespaced classes (`PolyTrans\*`)
+  3. LegacyAutoloader - Temporary backward compatibility (empty, will be removed)
+
+- **Backward Compatibility Layer**: 
+  - All old class names still work via aliases (e.g., `PolyTrans_Workflow_Manager` → `PolyTrans\PostProcessing\WorkflowManager`)
+  - Zero breaking changes for existing code
+  - Seamless upgrade path
+
+- **New Directory Structure**:
+  ```
+  includes/
+  ├── Assistants/          # PolyTrans\Assistants\
+  ├── Core/                # PolyTrans\Core\
+  ├── Debug/               # PolyTrans\Debug\
+  ├── Menu/                # PolyTrans\Menu\
+  ├── PostProcessing/      # PolyTrans\PostProcessing\
+  ├── Providers/           # PolyTrans\Providers\
+  ├── Receiver/            # PolyTrans\Receiver\
+  ├── Scheduler/           # PolyTrans\Scheduler\
+  └── Templating/          # PolyTrans\Templating\
+  ```
+
+- **Migrated Modules** (60+ classes):
+  - ✅ Assistants (3 classes)
+  - ✅ Core (8 classes)
+  - ✅ Debug (2 classes)
+  - ✅ Menu (5 classes)
+  - ✅ PostProcessing (11 classes + 4 interfaces)
+  - ✅ Providers (6 classes + 2 interfaces)
+  - ✅ Receiver (11 classes)
+  - ✅ Scheduler (2 classes)
+  - ✅ Templating (1 class)
+
+- **Interface Migration**: All 4 interfaces migrated to PSR-4
+  - `TranslationProviderInterface`
+  - `SettingsProviderInterface`
+  - `WorkflowStepInterface`
+  - `VariableProviderInterface`
+
+### Removed - Cleanup
+
+- **Deleted Unused Files**:
+  - `includes/core/process-task.php` (not used, BackgroundProcessor creates dynamic scripts)
+  - All old lowercase directories (`debug/`, `templating/`, `core/`)
+  - All `class-*.php` files (replaced with PSR-4 versions)
+
+### Fixed - PSR-4 Migration
+
+- **Namespace Resolution**: Added leading backslash to all global class references in namespaced files (9 occurrences)
+- **Test Compatibility**: Updated all test files to use PSR-4 autoloading
+- **Bootstrap Loading**: Fixed interface loading order (interfaces before aliases)
+- **Strict Types**: Fixed `declare(strict_types=1)` position in TwigEngine
+
+### Improved - Code Quality
+
+- **Reduced Cognitive Load**: Organized code into logical modules
+- **Better Maintainability**: Clear namespace structure makes navigation easier
+- **Modern PHP Standards**: Follows PSR-4, PSR-12 coding standards
+- **Improved Testing**: All unit tests passing with new structure
+
+### Documentation
+
+- **Updated ARCHITECTURE.md**: Complete rewrite reflecting PSR-4 structure
+- **Updated README.md**: All file paths updated to new structure
+- **Added PSR-4 Guide**: Documentation of namespace structure and autoloading
+
 ### Added
 - **Managed Assistants in Translation System**: Integrated Managed Assistants with system translations
   - Grouped dropdown UI showing both Managed and OpenAI API Assistants
