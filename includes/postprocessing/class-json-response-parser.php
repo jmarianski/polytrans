@@ -75,11 +75,58 @@ class PolyTrans_JSON_Response_Parser
     }
 
     /**
+     * Normalize schema format (supports both simple and object format)
+     * 
+     * @param array $schema Schema definition
+     * @return array ['normalized_schema' => [...], 'mappings' => [...]]
+     */
+    private function normalize_schema($schema)
+    {
+        $normalized = [];
+        $mappings = [];
+        
+        foreach ($schema as $field_name => $definition) {
+            if (is_array($definition)) {
+                // Check if this is an object schema (has 'type' key) or nested schema
+                if (isset($definition['type'])) {
+                    // Object format: {"type": "string", "target": "post.title", "required": true}
+                    $normalized[$field_name] = $definition['type'];
+                    
+                    // Store target mapping if present
+                    if (isset($definition['target'])) {
+                        $mappings[$field_name] = [
+                            'target' => $definition['target'],
+                            'required' => $definition['required'] ?? false
+                        ];
+                    }
+                } else {
+                    // Nested schema - recursively normalize
+                    $nested_result = $this->normalize_schema($definition);
+                    $normalized[$field_name] = $nested_result['normalized_schema'];
+                    
+                    // Prefix nested mappings with parent field name
+                    foreach ($nested_result['mappings'] as $nested_field => $nested_mapping) {
+                        $mappings[$field_name . '.' . $nested_field] = $nested_mapping;
+                    }
+                }
+            } else {
+                // Simple format: "string" or nested array
+                $normalized[$field_name] = $definition;
+            }
+        }
+        
+        return [
+            'normalized_schema' => $normalized,
+            'mappings' => $mappings
+        ];
+    }
+    
+    /**
      * Parse response with schema validation and type coercion
      * 
      * @param string $response Raw AI response
-     * @param array $schema Expected schema ['field_name' => 'type']
-     * @return array Result with 'success', 'data', 'warnings', 'error'
+     * @param array $schema Expected schema (supports simple and object format)
+     * @return array Result with 'success', 'data', 'warnings', 'error', 'mappings'
      */
     public function parse_with_schema($response, $schema = [])
     {
@@ -90,7 +137,8 @@ class PolyTrans_JSON_Response_Parser
             return [
                 'success' => false,
                 'error' => 'Failed to extract JSON from response',
-                'raw_response' => $response
+                'raw_response' => $response,
+                'mappings' => []
             ];
         }
 
@@ -99,16 +147,22 @@ class PolyTrans_JSON_Response_Parser
             return [
                 'success' => true,
                 'data' => $json_data,
-                'warnings' => []
+                'warnings' => [],
+                'mappings' => []
             ];
         }
+
+        // Normalize schema (supports both simple and object format)
+        $schema_info = $this->normalize_schema($schema);
+        $normalized_schema = $schema_info['normalized_schema'];
+        $mappings = $schema_info['mappings'];
 
         // Validate and coerce according to schema
         $result_data = [];
         $warnings = [];
 
         // Process schema fields
-        foreach ($schema as $field_name => $expected_type) {
+        foreach ($normalized_schema as $field_name => $expected_type) {
             if (isset($json_data[$field_name])) {
                 $raw_value = $json_data[$field_name];
                 
@@ -195,7 +249,8 @@ class PolyTrans_JSON_Response_Parser
         return [
             'success' => true,
             'data' => $result_data,
-            'warnings' => $warnings
+            'warnings' => $warnings,
+            'mappings' => $mappings
         ];
     }
 

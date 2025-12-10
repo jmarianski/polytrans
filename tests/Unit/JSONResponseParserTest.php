@@ -386,6 +386,125 @@ JSON;
 });
 
 // ============================================================================
+// Object Schema Format with Auto-Mapping Tests
+// ============================================================================
+
+test('parses object schema format with target mappings', function () {
+    $response = <<<JSON
+{
+  "title": "Test Post Title",
+  "content": "Post content here",
+  "excerpt": "Post excerpt"
+}
+JSON;
+
+    $schema = [
+        'title' => [
+            'type' => 'string',
+            'target' => 'post.title',
+            'required' => true
+        ],
+        'content' => [
+            'type' => 'string',
+            'target' => 'post.content'
+        ],
+        'excerpt' => [
+            'type' => 'string',
+            'target' => 'post.excerpt'
+        ]
+    ];
+
+    $result = $this->parser->parse_with_schema($response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['data']['title'])->toBe('Test Post Title')
+        ->and($result['data']['content'])->toBe('Post content here')
+        ->and($result['data']['excerpt'])->toBe('Post excerpt')
+        ->and($result['mappings'])->toBeArray()
+        ->and($result['mappings']['title']['target'])->toBe('post.title')
+        ->and($result['mappings']['title']['required'])->toBeTrue()
+        ->and($result['mappings']['content']['target'])->toBe('post.content')
+        ->and($result['mappings']['excerpt']['target'])->toBe('post.excerpt');
+});
+
+test('parses nested object schema with target mappings', function () {
+    $response = <<<JSON
+{
+  "title": "Test Post",
+  "meta": {
+    "seo_title": "SEO Title",
+    "seo_description": "SEO Description"
+  }
+}
+JSON;
+
+    $schema = [
+        'title' => [
+            'type' => 'string',
+            'target' => 'post.title'
+        ],
+        'meta' => [
+            'seo_title' => [
+                'type' => 'string',
+                'target' => 'meta.seo_title',
+                'required' => true
+            ],
+            'seo_description' => [
+                'type' => 'string',
+                'target' => 'meta.seo_description'
+            ]
+        ]
+    ];
+
+    $result = $this->parser->parse_with_schema($response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['data']['title'])->toBe('Test Post')
+        ->and($result['data']['meta']['seo_title'])->toBe('SEO Title')
+        ->and($result['data']['meta']['seo_description'])->toBe('SEO Description')
+        ->and($result['mappings'])->toBeArray()
+        ->and($result['mappings']['title']['target'])->toBe('post.title')
+        ->and($result['mappings']['meta.seo_title']['target'])->toBe('meta.seo_title')
+        ->and($result['mappings']['meta.seo_title']['required'])->toBeTrue()
+        ->and($result['mappings']['meta.seo_description']['target'])->toBe('meta.seo_description');
+});
+
+test('supports mixed simple and object schema format', function () {
+    $response = <<<JSON
+{
+  "title": "Test Post",
+  "custom_field": "Custom Value",
+  "meta": {
+    "seo_title": "SEO Title"
+  }
+}
+JSON;
+
+    $schema = [
+        'title' => [
+            'type' => 'string',
+            'target' => 'post.title'
+        ],
+        'custom_field' => 'string', // Simple format (no auto-mapping)
+        'meta' => [
+            'seo_title' => [
+                'type' => 'string',
+                'target' => 'meta.seo_title'
+            ]
+        ]
+    ];
+
+    $result = $this->parser->parse_with_schema($response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['data']['title'])->toBe('Test Post')
+        ->and($result['data']['custom_field'])->toBe('Custom Value')
+        ->and($result['mappings'])->toHaveKey('title')
+        ->and($result['mappings'])->not->toHaveKey('custom_field') // No mapping for simple format
+        ->and($result['mappings'])->toHaveKey('meta.seo_title');
+});
+
+// ============================================================================
 // Real-World Use Cases
 // ============================================================================
 

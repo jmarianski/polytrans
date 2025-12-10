@@ -101,6 +101,7 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
             // Parse output using schema if defined
             $parsed_data = ['ai_response' => $ai_output];
             $parse_warnings = [];
+            $auto_actions = [];
             
             if (!empty($assistant['expected_output_schema']) && $assistant['expected_format'] === 'json') {
                 $parser = new PolyTrans_JSON_Response_Parser();
@@ -110,6 +111,17 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
                     // Use parsed structured data
                     $parsed_data = $parse_result['data'];
                     $parse_warnings = $parse_result['warnings'] ?? [];
+                    
+                    // Generate auto-actions from mappings
+                    if (!empty($parse_result['mappings'])) {
+                        $auto_actions = $this->generate_auto_actions($parse_result['mappings'], $parsed_data);
+                        
+                        PolyTrans_Logs_Manager::log(
+                            "Assistant '{$assistant['name']}' generated " . count($auto_actions) . " auto-actions from schema mappings",
+                            'info',
+                            ['assistant_id' => $assistant_id, 'auto_actions' => $auto_actions]
+                        );
+                    }
                     
                     // Log warnings if any
                     if (!empty($parse_warnings)) {
@@ -135,6 +147,7 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
             return [
                 'success' => true,
                 'data' => $parsed_data,  // Structured data from parser or wrapped raw output
+                'auto_actions' => $auto_actions,  // Auto-generated actions from schema mappings
                 'execution_time' => $execution_time,
                 'assistant_id' => $assistant_id,
                 'assistant_name' => $assistant['name'],
@@ -156,6 +169,97 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
         }
     }
 
+    /**
+     * Generate auto-actions from schema mappings
+     * 
+     * @param array $mappings Schema mappings with target definitions
+     * @param array $data Parsed data from AI response
+     * @return array Auto-generated actions
+     */
+    private function generate_auto_actions($mappings, $data)
+    {
+        $actions = [];
+        
+        foreach ($mappings as $field_path => $mapping) {
+            $target = $mapping['target'];
+            $value = $this->get_nested_value($data, $field_path);
+            
+            // Skip if value is null and field is not required
+            if ($value === null && !($mapping['required'] ?? false)) {
+                continue;
+            }
+            
+            // Parse target format: "post.title", "meta.seo_title", "taxonomy.category.term"
+            $target_parts = explode('.', $target, 2);
+            $target_type = $target_parts[0];
+            $target_key = $target_parts[1] ?? null;
+            
+            switch ($target_type) {
+                case 'post':
+                    // Post field: post.title, post.content, post.excerpt
+                    if ($target_key) {
+                        $actions[] = [
+                            'type' => 'update_post_field',
+                            'field' => $target_key,
+                            'value' => $value,
+                            'source' => $field_path
+                        ];
+                    }
+                    break;
+                    
+                case 'meta':
+                    // Post meta: meta.seo_title, meta.seo_description
+                    if ($target_key) {
+                        $actions[] = [
+                            'type' => 'update_post_meta',
+                            'meta_key' => $target_key,
+                            'value' => $value,
+                            'source' => $field_path
+                        ];
+                    }
+                    break;
+                    
+                case 'taxonomy':
+                    // Taxonomy: taxonomy.category.term_name
+                    if ($target_key) {
+                        $taxonomy_parts = explode('.', $target_key, 2);
+                        $actions[] = [
+                            'type' => 'assign_taxonomy',
+                            'taxonomy' => $taxonomy_parts[0],
+                            'term' => $taxonomy_parts[1] ?? $value,
+                            'value' => $value,
+                            'source' => $field_path
+                        ];
+                    }
+                    break;
+            }
+        }
+        
+        return $actions;
+    }
+    
+    /**
+     * Get nested value from array using dot notation
+     * 
+     * @param array $data Data array
+     * @param string $path Dot notation path (e.g., "meta.seo_title")
+     * @return mixed Value or null if not found
+     */
+    private function get_nested_value($data, $path)
+    {
+        $keys = explode('.', $path);
+        $value = $data;
+        
+        foreach ($keys as $key) {
+            if (!is_array($value) || !isset($value[$key])) {
+                return null;
+            }
+            $value = $value[$key];
+        }
+        
+        return $value;
+    }
+    
     /**
      * Validate step configuration
      */
