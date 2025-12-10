@@ -1,0 +1,19 @@
+Translate the following WordPress post from {{ source_language }} to {{ target_language }}:
+
+{
+  "title": "{{ translated.title|escape('js') }}",
+  "content": "{{ translated.content|escape('js') }}",
+  "excerpt": "{{ translated.excerpt|escape('js') }}",
+  "meta": {
+    {% set meta_fields = [] %}
+    {% for key, value in translated.meta %}
+      {% if value %}
+        {% set meta_fields = meta_fields|merge(['"' ~ key ~ '": "' ~ value|escape('js') ~ '"']) %}
+      {% endif %}
+    {% endfor %}
+    {{ meta_fields|join(',\n    ')|raw }}
+  }
+}
+
+Return the translated content in the same JSON structure. Translate only the values, keep all keys in English.
+
