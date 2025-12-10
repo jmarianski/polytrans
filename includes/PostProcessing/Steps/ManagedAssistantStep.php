@@ -15,6 +15,7 @@
 
 namespace PolyTrans\PostProcessing\Steps;
 
+use PolyTrans\PostProcessing\WorkflowStepInterface;
 use PolyTrans\Assistants\AssistantManager;
 use PolyTrans\Assistants\AssistantExecutor;
 
@@ -22,7 +23,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class ManagedAssistantStep implements \PolyTrans_Workflow_Step_Interface
+class ManagedAssistantStep implements WorkflowStepInterface
 {
     /**
      * Get the step type identifier

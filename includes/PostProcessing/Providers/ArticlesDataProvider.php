@@ -2,6 +2,8 @@
 
 namespace PolyTrans\PostProcessing\Providers;
 
+use PolyTrans\PostProcessing\VariableProviderInterface;
+
 /**
  * Articles Data Provider
  * 
@@ -13,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class ArticlesDataProvider implements \PolyTrans_Variable_Provider_Interface
+class ArticlesDataProvider implements VariableProviderInterface
 {
     /**
      * Get the provider identifier

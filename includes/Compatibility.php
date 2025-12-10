@@ -25,6 +25,14 @@ if (!defined('ABSPATH')) {
  */
 
 // ============================================================================
+// INTERFACES
+// ============================================================================
+class_alias('PolyTrans\Providers\TranslationProviderInterface', 'PolyTrans_Translation_Provider_Interface');
+class_alias('PolyTrans\Providers\SettingsProviderInterface', 'PolyTrans_Settings_Provider_Interface');
+class_alias('PolyTrans\PostProcessing\WorkflowStepInterface', 'PolyTrans_Workflow_Step_Interface');
+class_alias('PolyTrans\PostProcessing\VariableProviderInterface', 'PolyTrans_Variable_Provider_Interface');
+
+// ============================================================================
 // ASSISTANTS MODULE
 // ============================================================================
 class_alias('PolyTrans\Assistants\AssistantManager', 'PolyTrans_Assistant_Manager');

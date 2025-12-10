@@ -66,13 +66,7 @@ class PolyTrans
     {
         $includes_dir = POLYTRANS_PLUGIN_DIR . 'includes/';
 
-        // Load interfaces (needed before classes that implement them)
-        require_once $includes_dir . 'providers/interface-translation-provider.php';
-        require_once $includes_dir . 'providers/interface-settings-provider.php';
-        require_once $includes_dir . 'postprocessing/interface-workflow-step.php';
-        require_once $includes_dir . 'postprocessing/interface-variable-provider.php';
-
-        // All classes are now loaded via LegacyAutoloader!
+        // All interfaces and classes are now loaded via PSR-4 autoloader and LegacyAutoloader!
         // This reduces this method from 48 require_once to just 4 interfaces.
         
         // Debug tools (only load in admin, not autoloadable due to procedural code)

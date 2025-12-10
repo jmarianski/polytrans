@@ -2,6 +2,8 @@
 
 namespace PolyTrans\PostProcessing;
 
+use PolyTrans\PostProcessing\VariableProviderInterface;
+
 /**
  * Variable Manager
  * 
@@ -42,7 +44,7 @@ class VariableManager
 
         // Get variables from each provider
         foreach ($data_providers as $provider) {
-            if ($provider instanceof PolyTrans_Variable_Provider_Interface) {
+            if ($provider instanceof VariableProviderInterface) {
                 try {
                     if ($provider->can_provide($context)) {
                         $provider_variables = $provider->get_variables($context);

@@ -2,6 +2,7 @@
 
 namespace PolyTrans\Providers\OpenAI;
 
+use PolyTrans\Providers\TranslationProviderInterface;
 use PolyTrans\PostProcessing\JsonResponseParser;
 use PolyTrans\Assistants\AssistantManager;
 use PolyTrans\Assistants\AssistantExecutor;
@@ -15,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class OpenAIProvider implements \PolyTrans_Translation_Provider_Interface
+class OpenAIProvider implements TranslationProviderInterface
 {
     /**
      * Get the provider identifier

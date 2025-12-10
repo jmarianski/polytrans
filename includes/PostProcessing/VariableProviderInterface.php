@@ -7,11 +7,13 @@
  * to workflow execution context.
  */
 
+namespace PolyTrans\PostProcessing;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-interface PolyTrans_Variable_Provider_Interface
+interface VariableProviderInterface
 {
     /**
      * Get the provider identifier

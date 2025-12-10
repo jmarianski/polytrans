@@ -39,16 +39,14 @@ class Bootstrap
 
     /**
      * Load interfaces that need to be available before class definitions
+     * 
+     * Note: Interfaces are now PSR-4 compliant and autoloaded by Composer.
+     * This method is kept for backward compatibility but is no longer needed.
      */
     private static function loadInterfaces()
     {
-        $includes_dir = POLYTRANS_PLUGIN_DIR . 'includes/';
-        
-        // Load interfaces
-        require_once $includes_dir . 'providers/interface-translation-provider.php';
-        require_once $includes_dir . 'providers/interface-settings-provider.php';
-        require_once $includes_dir . 'postprocessing/interface-workflow-step.php';
-        require_once $includes_dir . 'postprocessing/interface-variable-provider.php';
+        // Interfaces are now autoloaded via PSR-4 (PolyTrans\Providers\*, PolyTrans\PostProcessing\*)
+        // No manual loading required!
     }
 
     /**

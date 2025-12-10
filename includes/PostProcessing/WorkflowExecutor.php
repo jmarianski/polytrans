@@ -2,6 +2,7 @@
 
 namespace PolyTrans\PostProcessing;
 
+use PolyTrans\PostProcessing\WorkflowStepInterface;
 use PolyTrans\PostProcessing\Steps\AiAssistantStep;
 use PolyTrans\PostProcessing\Steps\PredefinedAssistantStep;
 use PolyTrans\PostProcessing\Steps\ManagedAssistantStep;
@@ -50,11 +51,11 @@ class WorkflowExecutor
     /**
      * Register a workflow step type
      * 
-     * @param PolyTrans_Workflow_Step_Interface $step
+     * @param WorkflowStepInterface $step
      */
     public function register_step($step)
     {
-        if ($step instanceof PolyTrans_Workflow_Step_Interface) {
+        if ($step instanceof WorkflowStepInterface) {
             $this->step_registry[$step->get_type()] = $step;
         }
     }
@@ -572,7 +573,7 @@ class WorkflowExecutor
      * Get step handler by type
      * 
      * @param string $type Step type
-     * @return PolyTrans_Workflow_Step_Interface|null
+     * @return WorkflowStepInterface|null
      */
     public function get_step_handler($type)
     {

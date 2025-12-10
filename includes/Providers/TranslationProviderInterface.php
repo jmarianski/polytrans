@@ -6,11 +6,13 @@
  * This interface focuses purely on translation functionality
  */
 
+namespace PolyTrans\Providers;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-interface PolyTrans_Translation_Provider_Interface
+interface TranslationProviderInterface
 {
     /**
      * Get the provider identifier (unique string)

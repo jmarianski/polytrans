@@ -2,6 +2,8 @@
 
 namespace PolyTrans\Providers\Google;
 
+use PolyTrans\Providers\TranslationProviderInterface;
+
 /**
  * Google Translate Provider
  * Implements Google Translate integration following the provider interface
@@ -11,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class GoogleProvider implements \PolyTrans_Translation_Provider_Interface
+class GoogleProvider implements TranslationProviderInterface
 {
     /**
      * Get the provider identifier

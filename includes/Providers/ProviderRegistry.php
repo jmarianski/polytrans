@@ -2,6 +2,8 @@
 
 namespace PolyTrans\Providers;
 
+use PolyTrans\Providers\TranslationProviderInterface;
+
 /**
  * Translation Provider Registry
  * Manages registration and access to translation providers
@@ -41,13 +43,9 @@ class ProviderRegistry
      */
     public function load_default_providers()
     {
-        // Load interfaces
-        require_once POLYTRANS_PLUGIN_DIR . 'includes/providers/interface-settings-provider.php';
+        // All interfaces and classes are now PSR-4 autoloaded
 
-        // Load built-in providers
-        // Note: Provider classes are autoloaded
-
-        // Register default providers
+        // Register default providers (using backward-compatible aliases)
         $this->register_provider(new \PolyTrans_Google_Provider());
         $this->register_provider(new \PolyTrans_OpenAI_Provider());
     }
@@ -67,9 +65,9 @@ class ProviderRegistry
 
     /**
      * Register a translation provider
-     * @param \PolyTrans_Translation_Provider_Interface $provider
+     * @param TranslationProviderInterface $provider
      */
-    public function register_provider(\PolyTrans_Translation_Provider_Interface $provider)
+    public function register_provider(TranslationProviderInterface $provider)
     {
         $this->providers[$provider->get_id()] = $provider;
     }
@@ -105,7 +103,7 @@ class ProviderRegistry
     /**
      * Get a specific provider by ID
      * @param string $provider_id
-     * @return \PolyTrans_Translation_Provider_Interface|null
+     * @return TranslationProviderInterface|null
      */
     public function get_provider($provider_id)
     {

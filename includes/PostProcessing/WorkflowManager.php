@@ -2,6 +2,8 @@
 
 namespace PolyTrans\PostProcessing;
 
+use PolyTrans\PostProcessing\WorkflowStepInterface;
+use PolyTrans\PostProcessing\VariableProviderInterface;
 use PolyTrans\PostProcessing\Managers\WorkflowStorageManager;
 use PolyTrans\PostProcessing\Providers\PostDataProvider;
 use PolyTrans\PostProcessing\Providers\MetaDataProvider;
@@ -134,11 +136,11 @@ class WorkflowManager
     /**
      * Register a data provider
      * 
-     * @param PolyTrans_Variable_Provider_Interface $provider
+     * @param VariableProviderInterface $provider
      */
     public function register_data_provider($provider)
     {
-        if ($provider instanceof PolyTrans_Variable_Provider_Interface) {
+        if ($provider instanceof VariableProviderInterface) {
             $this->data_providers[$provider->get_provider_id()] = $provider;
         }
     }
@@ -146,11 +148,11 @@ class WorkflowManager
     /**
      * Register a workflow step type
      * 
-     * @param PolyTrans_Workflow_Step_Interface $step
+     * @param WorkflowStepInterface $step
      */
     public function register_workflow_step($step)
     {
-        if ($step instanceof PolyTrans_Workflow_Step_Interface) {
+        if ($step instanceof WorkflowStepInterface) {
             $this->workflow_steps[$step->get_type()] = $step;
         }
     }

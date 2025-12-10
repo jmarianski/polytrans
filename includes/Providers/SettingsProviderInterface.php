@@ -5,11 +5,13 @@
  * Defines the contract for provider settings UI and management
  */
 
+namespace PolyTrans\Providers;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-interface PolyTrans_Settings_Provider_Interface
+interface SettingsProviderInterface
 {
     /**
      * Get the settings provider identifier (should match the translation provider ID)

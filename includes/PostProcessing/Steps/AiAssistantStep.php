@@ -8,11 +8,13 @@
 
 namespace PolyTrans\PostProcessing\Steps;
 
+use PolyTrans\PostProcessing\WorkflowStepInterface;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class AiAssistantStep implements \PolyTrans_Workflow_Step_Interface
+class AiAssistantStep implements WorkflowStepInterface
 {
     /**
      * Get the step type identifier

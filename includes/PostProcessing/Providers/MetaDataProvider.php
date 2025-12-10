@@ -2,6 +2,8 @@
 
 namespace PolyTrans\PostProcessing\Providers;
 
+use PolyTrans\PostProcessing\VariableProviderInterface;
+
 /**
  * Meta Data Provider
  * 
@@ -12,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class MetaDataProvider implements \PolyTrans_Variable_Provider_Interface
+class MetaDataProvider implements VariableProviderInterface
 {
     /**
      * Get the provider identifier

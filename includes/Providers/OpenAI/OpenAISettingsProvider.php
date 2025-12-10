@@ -2,6 +2,7 @@
 
 namespace PolyTrans\Providers\OpenAI;
 
+use PolyTrans\Providers\SettingsProviderInterface;
 use PolyTrans\Assistants\AssistantManager;
 
 /**
@@ -13,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class OpenAISettingsProvider implements \PolyTrans_Settings_Provider_Interface
+class OpenAISettingsProvider implements SettingsProviderInterface
 {
     /**
      * Get the settings provider identifier

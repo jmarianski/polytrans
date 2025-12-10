@@ -7,11 +7,13 @@
  * as part of a post-processing workflow.
  */
 
+namespace PolyTrans\PostProcessing;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-interface PolyTrans_Workflow_Step_Interface
+interface WorkflowStepInterface
 {
     /**
      * Get the step type identifier
