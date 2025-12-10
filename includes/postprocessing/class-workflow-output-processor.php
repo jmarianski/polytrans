@@ -919,6 +919,14 @@ class PolyTrans_Workflow_Output_Processor
                 if (isset($updated_context['translated_post']['meta'])) {
                     $updated_context['translated_post']['meta'][$change['meta_key']] = $change['value'];
                 }
+                // Phase 0.2: Update translated.meta structure for Twig variable access
+                if (!isset($updated_context['translated'])) {
+                    $updated_context['translated'] = [];
+                }
+                if (!isset($updated_context['translated']['meta'])) {
+                    $updated_context['translated']['meta'] = [];
+                }
+                $updated_context['translated']['meta'][$change['meta_key']] = $change['value'];
                 if (isset($updated_context['translated']['meta'])) {
                     $updated_context['translated']['meta'][$change['meta_key']] = $change['value'];
                 }
