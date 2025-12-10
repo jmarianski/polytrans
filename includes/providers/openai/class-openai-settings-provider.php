@@ -653,12 +653,22 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         $managed_assistants = PolyTrans_Assistant_Manager::get_all_assistants();
         if (!empty($managed_assistants)) {
             foreach ($managed_assistants as $assistant) {
-                $model_display = 'Unknown';
+                $model_display = 'No model';
+                
+                // Try to get model from api_parameters
                 if (!empty($assistant['api_parameters'])) {
                     $api_params = is_string($assistant['api_parameters']) 
                         ? json_decode($assistant['api_parameters'], true) 
                         : $assistant['api_parameters'];
-                    $model_display = $api_params['model'] ?? 'Unknown';
+                    
+                    if (is_array($api_params) && !empty($api_params['model'])) {
+                        $model_display = $api_params['model'];
+                    }
+                }
+                
+                // Fallback: use global setting indicator
+                if ($model_display === 'No model' || empty($model_display)) {
+                    $model_display = 'Global Setting';
                 }
 
                 $grouped_assistants['managed'][] = [
@@ -687,6 +697,13 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
                 }
             }
         }
+
+        // Debug logging
+        error_log('[PolyTrans] ajax_load_openai_assistants returning: ' . json_encode([
+            'managed_count' => count($grouped_assistants['managed']),
+            'openai_count' => count($grouped_assistants['openai']),
+            'first_managed' => !empty($grouped_assistants['managed']) ? $grouped_assistants['managed'][0] : null
+        ]));
 
         // Return grouped structure
         wp_send_json_success($grouped_assistants);
