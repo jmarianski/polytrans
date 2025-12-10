@@ -39,45 +39,32 @@ class PolyTrans_Assistant_Migration_Manager
             // Get all workflows
             $storage_manager = new PolyTrans_Workflow_Storage_Manager();
             $workflows = $storage_manager->get_all_workflows();
-            
-            PolyTrans_Logs_Manager::log("Found " . count($workflows) . " workflows to check", 'info');
 
             if (empty($workflows)) {
-                PolyTrans_Logs_Manager::log("No workflows found, migration skipped", 'info');
                 return $stats;
             }
 
             foreach ($workflows as $workflow) {
                 $workflow_modified = false;
                 $stats['workflows_processed']++;
-                
-                PolyTrans_Logs_Manager::log("Checking workflow: {$workflow['name']} (ID: {$workflow['id']})", 'debug');
 
                 if (empty($workflow['steps']) || !is_array($workflow['steps'])) {
-                    PolyTrans_Logs_Manager::log("Workflow {$workflow['name']} has no steps, skipping", 'debug');
                     continue;
                 }
 
                 foreach ($workflow['steps'] as $step_index => &$step) {
                     $step_type = $step['type'] ?? 'unknown';
-                    PolyTrans_Logs_Manager::log("Step {$step_index}: {$step['name']} (type: {$step_type})", 'debug');
                     
                     // Only migrate ai_assistant steps
                     if ($step_type !== 'ai_assistant') {
-                        PolyTrans_Logs_Manager::log("Step {$step_index} is not ai_assistant, skipping", 'debug');
                         continue;
                     }
-                    
-                    PolyTrans_Logs_Manager::log("Migrating step {$step_index}: {$step['name']}", 'info');
 
                     try {
                         // Create managed assistant from ai_assistant config
-                        PolyTrans_Logs_Manager::log("Creating managed assistant from step config", 'debug');
                         $assistant_id = self::create_managed_assistant_from_step($step, $workflow);
                         
                         if ($assistant_id) {
-                            PolyTrans_Logs_Manager::log("Assistant created with ID: {$assistant_id}", 'debug');
-                            
                             // Update step to use managed assistant
                             $step = self::convert_step_to_managed($step, $assistant_id);
                             $stats['steps_migrated']++;
@@ -90,7 +77,7 @@ class PolyTrans_Assistant_Migration_Manager
                                 ['workflow_id' => $workflow['id'], 'step_index' => $step_index, 'assistant_id' => $assistant_id]
                             );
                         } else {
-                            $error_msg = "Failed to create managed assistant for step '{$step['name']}' in workflow '{$workflow['name']}' - create_managed_assistant_from_step returned false";
+                            $error_msg = "Failed to create managed assistant for step '{$step['name']}' in workflow '{$workflow['name']}'";
                             $stats['errors'][] = $error_msg;
                             PolyTrans_Logs_Manager::log($error_msg, 'error');
                         }
@@ -98,7 +85,6 @@ class PolyTrans_Assistant_Migration_Manager
                         $error_msg = "Failed to migrate step '{$step['name']}' in workflow '{$workflow['name']}': {$e->getMessage()}";
                         $stats['errors'][] = $error_msg;
                         PolyTrans_Logs_Manager::log($error_msg, 'error');
-                        PolyTrans_Logs_Manager::log("Exception trace: " . $e->getTraceAsString(), 'error');
                     }
                 }
 
@@ -132,26 +118,18 @@ class PolyTrans_Assistant_Migration_Manager
      */
     private static function create_managed_assistant_from_step($step, $workflow)
     {
-        PolyTrans_Logs_Manager::log("create_managed_assistant_from_step called", 'debug');
-        
         // Build assistant name from workflow and step names
         $workflow_name = $workflow['name'] ?? 'Unnamed Workflow';
         $step_name = $step['name'] ?? 'Unnamed Step';
         $assistant_name = "[Migrated] {$workflow_name} - {$step_name}";
-        
-        PolyTrans_Logs_Manager::log("Assistant name: {$assistant_name}", 'debug');
 
         // Extract configuration from step
         $system_prompt = $step['system_prompt'] ?? '';
         $user_message = $step['user_message'] ?? '';
         
-        PolyTrans_Logs_Manager::log("System prompt length: " . strlen($system_prompt) . ", User message length: " . strlen($user_message), 'debug');
-        
         // Combine system prompt and user message into single prompt template
         // Using Twig syntax for better variable handling
         $prompt_template = self::build_prompt_template($system_prompt, $user_message);
-        
-        PolyTrans_Logs_Manager::log("Prompt template length: " . strlen($prompt_template), 'debug');
 
         // Extract model (default to gpt-4o-mini if not specified)
         $model = !empty($step['model']) ? $step['model'] : 'gpt-4o-mini';
@@ -193,20 +171,12 @@ class PolyTrans_Assistant_Migration_Manager
         ];
 
         // Check if similar assistant already exists (to avoid duplicates)
-        PolyTrans_Logs_Manager::log("Checking for existing assistant", 'debug');
         $existing_assistant = self::find_existing_assistant($assistant_name, $prompt_template);
         if ($existing_assistant) {
-            PolyTrans_Logs_Manager::log(
-                "Reusing existing assistant '{$assistant_name}' (ID: {$existing_assistant['id']})",
-                'info'
-            );
             return $existing_assistant['id'];
         }
 
         // Create new assistant
-        PolyTrans_Logs_Manager::log("Creating new assistant: {$assistant_name}", 'debug');
-        PolyTrans_Logs_Manager::log("Assistant data: " . json_encode($assistant_data), 'debug');
-        
         $result = PolyTrans_Assistant_Manager::create_assistant($assistant_data);
         
         // Check if result is WP_Error
@@ -221,7 +191,6 @@ class PolyTrans_Assistant_Migration_Manager
             return false;
         }
         
-        PolyTrans_Logs_Manager::log("Assistant created successfully with ID: {$result}", 'info');
         return $result;
     }
 

@@ -45,16 +45,27 @@
                 return;
             }
 
-            // Initialize prompt editor using the reusable module
+            // Initialize system prompt editor
             if (typeof PolyTransPromptEditor !== 'undefined') {
-                const container = document.getElementById('prompt-editor-container');
-                if (container) {
-                    this.promptEditor = PolyTransPromptEditor.create(container, {
-                        initialValue: window.polytransAssistantData.prompt_template || '',
-                        placeholder: 'Enter your assistant prompt template here...\n\nYou can use Twig variables like {{ title }}, {{ content }}, etc.',
-                        rows: 15
+                const systemContainer = document.getElementById('system-prompt-editor-container');
+                if (systemContainer) {
+                    this.systemPromptEditor = PolyTransPromptEditor.create(systemContainer, {
+                        initialValue: window.polytransAssistantData.system_prompt || '',
+                        placeholder: 'Enter system instructions here...\n\nExample: You are a content quality expert. Analyze posts for grammar, SEO, and readability.',
+                        rows: 8
                     });
-                    this.promptEditor.init();
+                    this.systemPromptEditor.init();
+                }
+
+                // Initialize user message template editor
+                const userContainer = document.getElementById('user-message-editor-container');
+                if (userContainer) {
+                    this.userMessageEditor = PolyTransPromptEditor.create(userContainer, {
+                        initialValue: window.polytransAssistantData.user_message_template || '',
+                        placeholder: 'Enter user message template here...\n\nYou can use Twig variables like {{ title }}, {{ content }}, etc.\n\nExample:\nTitle: {{ title }}\nContent: {{ content }}\n\nPlease analyze this content.',
+                        rows: 10
+                    });
+                    this.userMessageEditor.init();
                 }
             }
         },
@@ -129,17 +140,23 @@
             const $form = $(e.currentTarget);
             const $submitBtn = $form.find('button[type="submit"]');
 
-            // Get prompt value from editor
-            let promptValue = '';
-            if (this.promptEditor && this.promptEditor.getValue) {
-                promptValue = this.promptEditor.getValue();
+            // Get system prompt from editor
+            let systemPrompt = '';
+            if (this.systemPromptEditor && this.systemPromptEditor.getValue) {
+                systemPrompt = this.systemPromptEditor.getValue();
+            }
+
+            // Get user message template from editor
+            let userMessage = '';
+            if (this.userMessageEditor && this.userMessageEditor.getValue) {
+                userMessage = this.userMessageEditor.getValue();
             }
 
             // Validate required fields
             const name = $('#assistant-name').val().trim();
             const provider = $('#assistant-provider').val();
             
-            if (!name || !provider || !promptValue) {
+            if (!name || !provider || !systemPrompt) {
                 this.showNotice(polytransAssistants.strings.requiredField, 'error');
                 return;
             }
@@ -154,7 +171,8 @@
                 name: name,
                 provider: provider,
                 model: $('#assistant-model').val(),
-                prompt_template: promptValue,
+                system_prompt: systemPrompt,
+                user_message_template: userMessage,
                 response_format: $('#assistant-response-format').val(),
                 config: {
                     temperature: parseFloat($('#assistant-temperature').val()) || 0.7,

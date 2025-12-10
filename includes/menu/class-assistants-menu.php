@@ -333,11 +333,23 @@ class PolyTrans_Assistants_Menu
 
                         <tr>
                             <th scope="row">
-                                <label for="assistant-prompt"><?php esc_html_e('Prompt Template', 'polytrans'); ?> <span class="required">*</span></label>
+                                <label for="assistant-system-prompt"><?php esc_html_e('System Instructions', 'polytrans'); ?> <span class="required">*</span></label>
                             </th>
                             <td>
-                                <div id="prompt-editor-container"></div>
-                                <p class="description"><?php esc_html_e('Template for the assistant prompt. Use Twig syntax for variables: {{ variable_name }}', 'polytrans'); ?></p>
+                                <div id="system-prompt-editor-container"></div>
+                                <p class="description"><?php esc_html_e('Instructions that define how the assistant should behave. This is static and doesn\'t change between requests.', 'polytrans'); ?></p>
+                                <p class="description"><strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> "You are a content quality expert. Analyze posts for grammar, SEO, and readability. Always respond in JSON format."</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th scope="row">
+                                <label for="assistant-user-message"><?php esc_html_e('User Message Template', 'polytrans'); ?></label>
+                            </th>
+                            <td>
+                                <div id="user-message-editor-container"></div>
+                                <p class="description"><?php esc_html_e('Template for the user message with dynamic data. Use Twig syntax for variables: {{ variable_name }}', 'polytrans'); ?></p>
+                                <p class="description"><strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> "Title: {{ title }}\nContent: {{ content }}\n\nPlease analyze this content."</p>
                             </td>
                         </tr>
 
@@ -405,23 +417,32 @@ class PolyTrans_Assistants_Menu
         $name = isset($_POST['name']) ? sanitize_text_field(wp_unslash($_POST['name'])) : '';
         $provider = isset($_POST['provider']) ? sanitize_text_field(wp_unslash($_POST['provider'])) : '';
         $model = isset($_POST['model']) ? sanitize_text_field(wp_unslash($_POST['model'])) : '';
-        $prompt_template = isset($_POST['prompt_template']) ? wp_unslash($_POST['prompt_template']) : '';
+        $system_prompt = isset($_POST['system_prompt']) ? wp_unslash($_POST['system_prompt']) : '';
+        $user_message_template = isset($_POST['user_message_template']) ? wp_unslash($_POST['user_message_template']) : '';
         $response_format = isset($_POST['response_format']) ? sanitize_text_field(wp_unslash($_POST['response_format'])) : 'text';
         $config = isset($_POST['config']) ? wp_unslash($_POST['config']) : [];
 
         // Validate required fields
-        if (empty($name) || empty($provider) || empty($prompt_template)) {
+        if (empty($name) || empty($provider) || empty($system_prompt)) {
             wp_send_json_error(['message' => __('Required fields are missing.', 'polytrans')]);
         }
 
-        // Prepare assistant data
+        // Prepare API parameters
+        $api_parameters = [
+            'model' => $model,
+            'temperature' => $config['temperature'] ?? 0.7,
+            'max_tokens' => $config['max_tokens'] ?? 2000
+        ];
+
+        // Prepare assistant data matching Assistant Manager structure
         $assistant_data = [
             'name' => $name,
             'provider' => $provider,
-            'model' => $model,
-            'prompt_template' => $prompt_template,
-            'response_format' => $response_format,
-            'config' => $config
+            'system_prompt' => $system_prompt,
+            'user_message_template' => $user_message_template,
+            'api_parameters' => json_encode($api_parameters),
+            'expected_format' => $response_format,
+            'output_variables' => null
         ];
 
         // Save or update assistant
