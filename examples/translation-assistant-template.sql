@@ -80,4 +80,5 @@ Return the translated content in the same JSON structure.',
 -- FR→EN: French → English
 
 -- To create multiple assistants, run this query multiple times with different values.
+-- Note: The assistant ID will be shown by the installation script
 

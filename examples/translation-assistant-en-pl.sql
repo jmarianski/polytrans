@@ -69,7 +69,5 @@ Return the translated content in the same JSON structure.',
     1
 );
 
--- Get the ID of the newly created assistant
-SELECT LAST_INSERT_ID() as assistant_id, 
-       'Translation EN→PL assistant created successfully!' as message;
+-- Note: The assistant ID will be shown by the installation script
 

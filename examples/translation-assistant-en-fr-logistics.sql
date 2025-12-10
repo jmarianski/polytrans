@@ -79,4 +79,5 @@ INSERT INTO wp_polytrans_assistants (
 -- Input: "🚛 Loads from **all over Europe** in one place! KEY: 1"
 -- Output: {"KEY": "1", "text": "🚛 Des chargements de **toute l'Europe** en un seul endroit !"}
 -- Context access: {{ step_1_output.KEY }}, {{ step_1_output.text }}
+-- Note: The assistant ID will be shown by the installation script
 
