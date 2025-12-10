@@ -2,6 +2,15 @@
 
 A comprehensive WordPress plugin for managing multilingual content translation workflows with AI-powered translation support and advanced workflow automation.
 
+**Version**: 1.3.5 | **Status**: Phase 0 Complete ✅
+
+## 📚 Documentation
+
+- **[Full Documentation Index](docs/INDEX.md)** - Complete documentation structure
+- **[Quick Start Guide](QUICK_START.md)** - Get started in 5 minutes
+- **[Changelog](CHANGELOG.md)** - Version history and changes
+- **[Phase 0 Summary](docs/development/phase-0/)** - Latest improvements (v1.3.0-1.3.5)
+
 ## Table of Contents
 
 - [Features](#features)
