@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Workflow Test UI**: Added collapsible sections to display interpolated prompts (System Prompt & User Message) sent to AI after Twig variable interpolation
+- **Managed Assistant Output**: Fixed output structure to wrap AI response in array format (`{ 'ai_response': '...' }`) so output processor can correctly extract values for saving to meta/content
+- **Context Variable Updates**: Fixed `translated.meta` not being updated after `update_post_meta` action, enabling subsequent steps to access meta values via `{{ translated.meta.KEY }}`
+- **Workflow Sanitization**: Added missing sanitization case for `managed_assistant` step type, fixing issue where `assistant_id` was stripped during workflow save
+- **Assistant Migration**: Fixed critical bugs in workflow migration from `ai_assistant` to `managed_assistant`:
+  - Correctly separate system prompt and user message based on delimiter
+  - Properly handle WP_Error returns from Assistant_Manager
+  - Update workflow array reference (not just local variable) when converting steps
+  - Cast API parameters to correct types (int for max_tokens, float for temperature/top_p)
+
 ### Improved
 - **OpenAI Error Logging**: Detailed error codes and messages for translation failures
   - Now shows specific error codes (rate_limit_exceeded, insufficient_quota, server_error, etc.)
@@ -31,21 +42,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Admin UI (PolyTrans > AI Assistants):**
   - List view with assistant details (name, provider, model, response format, created date)
   - Create/Edit assistant form with:
-    - Name, provider (OpenAI/Claude/Gemini), model selection
-    - Prompt template editor with Twig syntax
+    - Name, provider (OpenAI/Claude/Gemini), model dropdown with "Use Global Setting" option
+    - **Separate editors** for System Instructions and User Message Template
+    - Prompt template editor with Twig syntax and variable pills
     - Response format (text/json)
-    - Configuration (temperature, max_tokens)
+    - Configuration (temperature, max_tokens, top_p)
   - Delete assistant with confirmation
   - Test assistant functionality with sample variables
   - Beautiful, responsive interface matching WordPress admin design
+  - Shared CSS/JS components with workflow editor for consistency
   
   **Workflow Integration:**
   - New step type: "Managed AI Assistant" (managed_assistant)
   - Uses assistants configured in Admin UI
   - Automatic Twig variable interpolation from workflow context
-  - Dropdown selector showing all available assistants
+  - Dropdown selector showing all available assistants with model info
   - Backward compatible with existing workflow steps
   - AJAX endpoint for loading managed assistants in workflow editor
+  - **Automatic Migration**: Existing `ai_assistant` steps are automatically converted to `managed_assistant` on plugin activation/update
+  - Migration creates managed assistants from old step configs and updates workflows
+  - Manual migration trigger available in AI Assistants admin page
   
   **Benefits:**
   - ✅ Centralized management - configure once, use everywhere
