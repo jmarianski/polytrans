@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Security_Manager
+class SecurityManager
 {
     /**
      * Validates permission for translation receiver endpoints.

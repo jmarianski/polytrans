@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Status_Manager
+class StatusManager
 {
     /**
      * Updates the translation status to completed.

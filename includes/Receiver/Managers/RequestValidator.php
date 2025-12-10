@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Request_Validator
+class RequestValidator
 {
     /**
      * Validates the incoming translation request parameters.

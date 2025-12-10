@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Taxonomy_Manager
+class TaxonomyManager
 {
     /**
      * Sets up categories and tags for the translated post in the target language.

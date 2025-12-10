@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Post_Creator
+class PostCreator
 {
     /**
      * Creates a new WordPress post with the translated content.

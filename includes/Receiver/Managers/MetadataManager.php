@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Metadata_Manager
+class MetadataManager
 {
     /**
      * Sets up metadata for the translated post, including translation markers and copied meta.

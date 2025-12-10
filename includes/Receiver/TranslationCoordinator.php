@@ -23,14 +23,14 @@ class TranslationCoordinator
 
     public function __construct()
     {
-        $this->validator = new PolyTrans_Translation_Request_Validator();
-        $this->post_creator = new PolyTrans_Translation_Post_Creator();
-        $this->metadata_manager = new PolyTrans_Translation_Metadata_Manager();
-        $this->taxonomy_manager = new PolyTrans_Translation_Taxonomy_Manager();
-        $this->language_manager = new PolyTrans_Translation_Language_Manager();
-        $this->notification_manager = new PolyTrans_Translation_Notification_Manager();
-        $this->status_manager = new PolyTrans_Translation_Status_Manager();
-        $this->media_manager = new PolyTrans_Translation_Media_Manager();
+        $this->validator = new Managers\RequestValidator();
+        $this->post_creator = new Managers\PostCreator();
+        $this->metadata_manager = new Managers\MetadataManager();
+        $this->taxonomy_manager = new Managers\TaxonomyManager();
+        $this->language_manager = new Managers\LanguageManager();
+        $this->notification_manager = new Managers\NotificationManager();
+        $this->status_manager = new Managers\StatusManager();
+        $this->media_manager = new Managers\MediaManager();
     }
 
     /**

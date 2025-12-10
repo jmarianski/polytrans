@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Media_Manager
+class MediaManager
 {
     /**
      * Sets up the featured image for the translated post.

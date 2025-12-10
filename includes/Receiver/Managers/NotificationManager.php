@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Notification_Manager
+class NotificationManager
 {
     /**
      * Handles notifications for translation completion.

@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Language_Manager
+class LanguageManager
 {
     /**
      * Sets up language assignment and status for the translated post.
