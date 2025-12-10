@@ -32,6 +32,13 @@ class_alias('PolyTrans\Assistants\AssistantExecutor', 'PolyTrans_Assistant_Execu
 class_alias('PolyTrans\Assistants\AssistantMigration', 'PolyTrans_Assistant_Migration_Manager');
 
 // ============================================================================
+// POSTPROCESSING STEPS
+// ============================================================================
+class_alias('PolyTrans\PostProcessing\Steps\ManagedAssistantStep', 'PolyTrans_Managed_Assistant_Step');
+// class_alias('PolyTrans\PostProcessing\Steps\AiAssistantStep', 'PolyTrans_AI_Assistant_Step');
+// class_alias('PolyTrans\PostProcessing\Steps\PredefinedAssistantStep', 'PolyTrans_Predefined_Assistant_Step');
+
+// ============================================================================
 // CORE MODULE
 // ============================================================================
 // class_alias('PolyTrans\Core\Settings\SettingsManager', 'PolyTrans_Translation_Settings');

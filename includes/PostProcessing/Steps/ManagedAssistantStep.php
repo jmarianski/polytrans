@@ -13,11 +13,16 @@
  * - Comprehensive error handling
  */
 
+namespace PolyTrans\PostProcessing\Steps;
+
+use PolyTrans\Assistants\AssistantManager;
+use PolyTrans\Assistants\AssistantExecutor;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interface
+class ManagedAssistantStep implements \PolyTrans_Workflow_Step_Interface
 {
     /**
      * Get the step type identifier
@@ -61,7 +66,7 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
             }
 
             // Verify assistant exists
-            $assistant = PolyTrans_Assistant_Manager::get_assistant($assistant_id);
+            $assistant = AssistantManager::get_assistant($assistant_id);
             if (!$assistant) {
                 return [
                     'success' => false,
@@ -70,7 +75,7 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
             }
 
             // Execute assistant with context as variables
-            $result = PolyTrans_Assistant_Executor::execute($assistant_id, $context);
+            $result = AssistantExecutor::execute($assistant_id, $context);
 
             $execution_time = microtime(true) - $start_time;
 
@@ -104,7 +109,7 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
             $auto_actions = [];
             
             if (!empty($assistant['expected_output_schema']) && $assistant['expected_format'] === 'json') {
-                $parser = new PolyTrans_JSON_Response_Parser();
+                $parser = new \PolyTrans_JSON_Response_Parser();
                 $parse_result = $parser->parse_with_schema($ai_output, $assistant['expected_output_schema']);
                 
                 if ($parse_result['success']) {
@@ -313,7 +318,7 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
     public function get_config_schema()
     {
         // Get all available assistants
-        $assistants = PolyTrans_Assistant_Manager::get_all_assistants();
+        $assistants = AssistantManager::get_all_assistants();
         $assistant_options = ['' => __('Select an assistant...', 'polytrans')];
         
         foreach ($assistants as $assistant) {
