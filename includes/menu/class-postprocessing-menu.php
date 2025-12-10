@@ -41,6 +41,7 @@ class PolyTrans_Postprocessing_Menu
         add_action('wp_ajax_polytrans_search_posts', [$this, 'ajax_search_posts']);
         add_action('wp_ajax_polytrans_get_post_data', [$this, 'ajax_get_post_data']);
         add_action('wp_ajax_polytrans_load_openai_assistants_for_workflow', [$this, 'ajax_load_openai_assistants_for_workflow']);
+        add_action('wp_ajax_polytrans_load_managed_assistants', [$this, 'ajax_load_managed_assistants']);
     }
 
     /**
@@ -1022,6 +1023,33 @@ class PolyTrans_Postprocessing_Menu
                 'model' => $assistant['model'] ?? 'gpt-4'
             ];
         }, $all_assistants);
+
+        wp_send_json_success($assistants);
+    }
+
+    /**
+     * AJAX: Load managed assistants for workflow editor
+     */
+    public function ajax_load_managed_assistants()
+    {
+        // Check nonce
+        if (!check_ajax_referer('polytrans_workflows_nonce', 'nonce', false)) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+
+        // Get all managed assistants
+        $assistants = PolyTrans_Assistant_Manager::get_all_assistants();
+
+        if (empty($assistants)) {
+            wp_send_json_error('No managed assistants found. Create one in PolyTrans > AI Assistants.');
+            return;
+        }
 
         wp_send_json_success($assistants);
     }

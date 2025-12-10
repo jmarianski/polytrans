@@ -101,6 +101,7 @@ class PolyTrans
         require_once $includes_dir . 'menu/class-logs-menu.php';
         require_once $includes_dir . 'menu/class-tag-translation.php';
         require_once $includes_dir . 'menu/class-postprocessing-menu.php';
+        require_once $includes_dir . 'menu/class-assistants-menu.php';
 
         // Post-processing system
         // NOTE: Twig Engine uses Composer autoloader (Twig namespace), loaded lazily in Variable Manager
@@ -116,6 +117,7 @@ class PolyTrans
         require_once $includes_dir . 'postprocessing/providers/class-articles-data-provider.php';
         require_once $includes_dir . 'postprocessing/steps/class-ai-assistant-step.php';
         require_once $includes_dir . 'postprocessing/steps/class-predefined-assistant-step.php';
+        require_once $includes_dir . 'postprocessing/steps/class-managed-assistant-step.php';
         require_once $includes_dir . 'postprocessing/class-workflow-manager.php';
         require_once $includes_dir . 'postprocessing/class-workflow-metabox.php';
 
@@ -142,6 +144,7 @@ class PolyTrans
         PolyTrans_User_Autocomplete::get_instance();
         PolyTrans_Post_Autocomplete::get_instance();
         PolyTrans_Postprocessing_Menu::get_instance();
+        PolyTrans_Assistants_Menu::get_instance();
 
         // Initialize the translation extension (handles incoming translation requests)
         PolyTrans_Translation_Extension::get_instance();
@@ -183,6 +186,7 @@ class PolyTrans
         PolyTrans_Tag_Translation::get_instance()->add_admin_menu();
         PolyTrans_Logs_Menu::get_instance()->add_logs_submenu();
         PolyTrans_Postprocessing_Menu::get_instance()->add_admin_menu();
+        PolyTrans_Assistants_Menu::get_instance()->add_admin_menu();
 
         // Rename the first submenu item to Overview
         global $submenu;
@@ -202,6 +206,7 @@ class PolyTrans
         PolyTrans_Tag_Translation::get_instance()->enqueue_admin_scripts($hook);
         PolyTrans_Translation_Scheduler::get_instance()->enqueue_admin_scripts($hook);
         PolyTrans_Postprocessing_Menu::get_instance()->enqueue_assets($hook);
+        PolyTrans_Assistants_Menu::get_instance()->enqueue_assets($hook);
     }
 
     /**

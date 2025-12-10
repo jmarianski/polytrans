@@ -1,0 +1,127 @@
+/**
+ * AI Assistants Admin Styles
+ * 
+ * Styles for the AI Assistants management interface.
+ * Part of Phase 1: AI Assistants Management System.
+ */
+
+/* Assistant List Table */
+.wp-list-table .column-name {
+    width: 25%;
+}
+
+.wp-list-table .column-provider {
+    width: 15%;
+}
+
+.wp-list-table .column-model {
+    width: 15%;
+}
+
+.wp-list-table .column-format {
+    width: 10%;
+}
+
+.wp-list-table .column-created {
+    width: 15%;
+}
+
+.wp-list-table .column-actions {
+    width: 20%;
+}
+
+/* Assistant Editor Form */
+#assistant-editor-form .form-table th {
+    width: 200px;
+}
+
+#assistant-editor-form .required {
+    color: #d63638;
+}
+
+#prompt-editor-container {
+    max-width: 100%;
+}
+
+.assistant-editor-actions {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+.assistant-editor-actions .button {
+    margin-right: 10px;
+}
+
+/* Test Results */
+#test-results-container {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+#test-results-container h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+#test-results-container h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.test-result-data pre {
+    background: #f6f7f7;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 15px;
+    overflow-x: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.test-result-data ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.test-result-data ul li {
+    margin: 5px 0;
+}
+
+/* Notices */
+.notice.is-dismissible {
+    position: relative;
+    padding-right: 38px;
+}
+
+/* Loading state */
+.button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+    .wp-list-table .column-provider,
+    .wp-list-table .column-model,
+    .wp-list-table .column-format,
+    .wp-list-table .column-created {
+        display: none;
+    }
+
+    .wp-list-table .column-name {
+        width: 60%;
+    }
+
+    .wp-list-table .column-actions {
+        width: 40%;
+    }
+}
+

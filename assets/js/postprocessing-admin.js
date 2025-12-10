@@ -115,6 +115,54 @@
         });
     }
 
+    /**
+     * Populate managed assistant dropdown for a specific step
+     */
+    function populateManagedAssistantDropdown(stepIndex, selectedAssistantId = '') {
+        const $select = $(`#step-${stepIndex}-managed-assistant-id`);
+        if (!$select.length) {
+            return;
+        }
+
+        // Show loading state
+        $select.html('<option value="">Loading assistants...</option>');
+        $select.prop('disabled', true);
+
+        // Load managed assistants via AJAX
+        $.ajax({
+            url: polytransWorkflows.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'polytrans_load_managed_assistants',
+                nonce: polytransWorkflows.nonce
+            }
+        }).done(function (response) {
+            if (response.success) {
+                const assistants = response.data;
+
+                // Clear and populate options
+                $select.empty();
+                $select.append('<option value="">Select an assistant...</option>');
+
+                assistants.forEach(function (assistant) {
+                    const isSelected = String(assistant.id) === String(selectedAssistantId) ? 'selected' : '';
+                    const label = `${assistant.name} (${assistant.provider} - ${assistant.model})`;
+                    $select.append(`<option value="${assistant.id}" ${isSelected}>${label}</option>`);
+                });
+
+                $select.prop('disabled', false);
+            } else {
+                $select.html('<option value="">⚠ Failed to load assistants</option>');
+                $select.prop('disabled', false);
+                showNotification('Failed to load managed assistants: ' + (response.data || 'Unknown error'), 'error');
+            }
+        }).fail(function () {
+            $select.html('<option value="">⚠ Failed to load assistants</option>');
+            $select.prop('disabled', false);
+            showNotification('Failed to load managed assistants', 'error');
+        });
+    }
+
     // Initialize when DOM is ready
     $(document).ready(function () {
         initializeWorkflowEditor();
@@ -371,6 +419,7 @@
                 <select id="step-${index}-type" name="steps[${index}][type]" required>
                     <option value="ai_assistant" ${step.type === 'ai_assistant' ? 'selected' : ''}>🤖 AI Assistant (Custom) - Configure your own system prompt and settings</option>
                     <option value="predefined_assistant" ${step.type === 'predefined_assistant' ? 'selected' : ''}>⚙️ Predefined AI Assistant - Use OpenAI assistant with pre-configured settings</option>
+                    <option value="managed_assistant" ${step.type === 'managed_assistant' ? 'selected' : ''}>✨ Managed AI Assistant - Use centrally managed assistant with Twig templates</option>
                 </select>
                 <small>Choose the type of AI processing for this step</small>
             </div>
@@ -387,6 +436,14 @@
             // Trigger assistant loading for predefined assistant steps
             setTimeout(() => {
                 populateAssistantDropdown(index, step.assistant_id);
+            }, 10);
+        } else if (step.type === 'managed_assistant') {
+            html += renderManagedAssistantFields(step, index);
+            html += renderOutputActionsSection(step, index);
+
+            // Trigger assistant loading for managed assistant steps
+            setTimeout(() => {
+                populateManagedAssistantDropdown(index, step.assistant_id);
             }, 10);
         }
 
@@ -510,6 +567,35 @@
                 <label for="step-${index}-output-variables">Output Variables (for JSON format)</label>
                 <input type="text" id="step-${index}-output-variables" name="steps[${index}][output_variables]" value="${escapeHtml(outputVariables)}">
                 <small>📊 <strong>For JSON only:</strong> "quality_rating, recommendations" - Leave empty to include all JSON fields. <strong>For Plain Text:</strong> Always use "processed_content" as source variable.</small>
+            </div>
+        `;
+    }
+
+    /**
+     * Render Managed Assistant specific fields
+     */
+    function renderManagedAssistantFields(step, index) {
+        const assistantId = step.assistant_id || '';
+
+        return `
+            <div class="workflow-step-field">
+                <label for="step-${index}-assistant-id">Managed AI Assistant</label>
+                <select id="step-${index}-managed-assistant-id" name="steps[${index}][assistant_id]" required data-step-index="${index}">
+                    <option value="">Loading assistants...</option>
+                </select>
+                <small>✨ Choose a centrally managed AI assistant configured in PolyTrans > AI Assistants. The assistant's prompt template will be rendered with Twig using workflow context variables.</small>
+            </div>
+            <div class="workflow-step-field">
+                <div class="notice notice-info inline">
+                    <p><strong>ℹ️ About Managed Assistants:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>Configured via <strong>PolyTrans > AI Assistants</strong> menu</li>
+                        <li>Supports <strong>OpenAI, Claude, and Gemini</strong> providers</li>
+                        <li>Uses <strong>Twig template engine</strong> for variable interpolation</li>
+                        <li>Prompt template is defined in the assistant configuration</li>
+                        <li>All workflow context variables are automatically available</li>
+                    </ul>
+                </div>
             </div>
         `;
     }

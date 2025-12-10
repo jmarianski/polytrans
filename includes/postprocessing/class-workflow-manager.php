@@ -92,8 +92,14 @@ class PolyTrans_Workflow_Manager
      */
     private function register_default_steps()
     {
-        // AI Assistant step will be loaded separately
-        // For now, we'll define the structure
+        // Register AI Assistant step (custom prompts)
+        $this->register_workflow_step(new PolyTrans_AI_Assistant_Step());
+        
+        // Register Predefined Assistant step (OpenAI Assistants API)
+        $this->register_workflow_step(new PolyTrans_Predefined_Assistant_Step());
+        
+        // Register Managed Assistant step (Phase 1 - centralized management)
+        $this->register_workflow_step(new PolyTrans_Managed_Assistant_Step());
     }
 
     /**
