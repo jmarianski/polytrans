@@ -207,7 +207,7 @@ class PostprocessingMenu
      */
     public function render_workflow_page()
     {
-        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
         $storage_manager = $workflow_manager->get_storage_manager();
 
         // Get current action
@@ -235,7 +235,7 @@ class PostprocessingMenu
      */
     private function render_workflow_list()
     {
-        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
         $storage_manager = $workflow_manager->get_storage_manager();
         $workflows = $storage_manager->get_all_workflows();
         $statistics = $storage_manager->get_workflow_statistics();
@@ -367,7 +367,7 @@ class PostprocessingMenu
      */
     private function render_workflow_editor($workflow_id, $is_new = false)
     {
-        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
         $storage_manager = $workflow_manager->get_storage_manager();
 
         // Get workflow data
@@ -457,7 +457,7 @@ class PostprocessingMenu
      */
     private function render_workflow_tester($workflow_id)
     {
-        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
         $storage_manager = $workflow_manager->get_storage_manager();
 
         $workflow = $storage_manager->get_workflow($workflow_id);
@@ -485,7 +485,7 @@ class PostprocessingMenu
      */
     public function render_execute_workflow_page()
     {
-        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
         $storage_manager = $workflow_manager->get_storage_manager();
 
         // Get URL parameters
@@ -774,7 +774,7 @@ class PostprocessingMenu
         // Remove WordPress magic quotes if they exist
         $workflow_data = wp_unslash($workflow_data);
 
-        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
         $storage_manager = $workflow_manager->get_storage_manager();
 
         // Sanitize workflow data
@@ -816,7 +816,7 @@ class PostprocessingMenu
             return;
         }
 
-        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
         $storage_manager = $workflow_manager->get_storage_manager();
 
         if ($storage_manager->delete_workflow($workflow_id)) {
@@ -849,7 +849,7 @@ class PostprocessingMenu
             return;
         }
 
-        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
         $storage_manager = $workflow_manager->get_storage_manager();
 
         $new_workflow_id = $storage_manager->duplicate_workflow($workflow_id, $new_name);
@@ -886,7 +886,7 @@ class PostprocessingMenu
             return;
         }
 
-        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
         $storage_manager = $workflow_manager->get_storage_manager();
         $workflow = $storage_manager->get_workflow($workflow_id);
 
@@ -903,7 +903,7 @@ class PostprocessingMenu
     public function ajax_test_workflow()
     {
         // This is handled by the workflow manager
-        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
         $workflow_manager->ajax_test_workflow();
     }
 
@@ -913,7 +913,7 @@ class PostprocessingMenu
     public function ajax_search_posts()
     {
         // Delegate to the autocomplete class which now supports language filtering
-        $post_autocomplete = PolyTrans_Post_Autocomplete::get_instance();
+        $post_autocomplete = \PolyTrans_Post_Autocomplete::get_instance();
         $post_autocomplete->ajax_search_posts();
     }
 
@@ -1002,7 +1002,7 @@ class PostprocessingMenu
         }
 
         // Create OpenAI client from settings
-        $client = PolyTrans_OpenAI_Client::from_settings();
+        $client = \PolyTrans_OpenAI_Client::from_settings();
         if (!$client) {
             wp_send_json_error('OpenAI API key not configured');
             return;
@@ -1046,7 +1046,7 @@ class PostprocessingMenu
         }
 
         // Get all managed assistants
-        $assistants = PolyTrans_Assistant_Manager::get_all_assistants();
+        $assistants = AssistantManager::get_all_assistants();
 
         if (empty($assistants)) {
             wp_send_json_error('No managed assistants found. Create one in PolyTrans > AI Assistants.');
@@ -1068,7 +1068,7 @@ class PostprocessingMenu
 
         try {
             $provider = new \PolyTrans_OpenAI_Settings_Provider();
-            $reflection = new ReflectionClass($provider);
+            $reflection = new \ReflectionClass($provider);
             $method = $reflection->getMethod('get_assistants');
             $method->setAccessible(true);
             return $method->invoke($provider);
@@ -1089,7 +1089,7 @@ class PostprocessingMenu
 
         try {
             $provider = new \PolyTrans_OpenAI_Settings_Provider();
-            $reflection = new ReflectionClass($provider);
+            $reflection = new \ReflectionClass($provider);
             $method = $reflection->getMethod('get_grouped_models');
             $method->setAccessible(true);
             return $method->invoke($provider);
