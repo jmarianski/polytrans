@@ -4,7 +4,7 @@
  * Plugin Name: PolyTrans
  * Plugin URI: https://github.com/your-username/polytrans
  * Description: Advanced multilingual translation management system with AI-powered translation, scheduling, and review workflow
- * Version: 1.2.1
+ * Version: 1.3.5
  * Author: PolyTrans Team
  * Author URI: https://github.com/your-username/polytrans
  * Text Domain: polytrans
@@ -20,10 +20,15 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('POLYTRANS_VERSION', '1.2.1');
+define('POLYTRANS_VERSION', '1.3.5');
 define('POLYTRANS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('POLYTRANS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('POLYTRANS_PLUGIN_FILE', __FILE__);
+
+// Load Composer dependencies (Twig, etc.)
+if (file_exists(POLYTRANS_PLUGIN_DIR . 'vendor/autoload.php')) {
+    require_once POLYTRANS_PLUGIN_DIR . 'vendor/autoload.php';
+}
 
 // Include the main plugin class
 require_once POLYTRANS_PLUGIN_DIR . 'includes/class-polytrans.php';
@@ -88,6 +93,16 @@ function polytrans_init()
 add_action('plugins_loaded', 'polytrans_init');
 
 /**
+ * Check workflows table on admin_init (in case activation hook didn't run)
+ */
+function polytrans_check_workflows_table()
+{
+    require_once POLYTRANS_PLUGIN_DIR . 'includes/postprocessing/managers/class-workflow-storage-manager.php';
+    PolyTrans_Workflow_Storage_Manager::initialize();
+}
+add_action('admin_init', 'polytrans_check_workflows_table');
+
+/**
  * Plugin activation hook
  */
 function polytrans_activate()
@@ -131,6 +146,10 @@ function polytrans_activate()
         // Just log to error_log
         error_log("[polytrans] Plugin activated, database logging disabled in settings");
     }
+
+    // Initialize workflows table (will migrate if needed)
+    require_once POLYTRANS_PLUGIN_DIR . 'includes/postprocessing/managers/class-workflow-storage-manager.php';
+    PolyTrans_Workflow_Storage_Manager::initialize();
 
     // Check the logs table structure for debugging
     if (class_exists('PolyTrans_Background_Processor')) {

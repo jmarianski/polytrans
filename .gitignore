@@ -20,6 +20,9 @@ Thumbs.db
 /build/
 /dist/
 
+# Cache
+/cache/
+
 # Testing
 /coverage/
 /tests/_output/

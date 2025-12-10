@@ -6,10 +6,11 @@ RUN apt-get update && apt-get install -y \
     unzip \
     zip \
     libxml2-dev \
+    libzip-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-install xml
+# Install PHP extensions (all needed for Pest + PHPUnit + WordPress)
+RUN docker-php-ext-install xml dom simplexml pdo pdo_mysql zip
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

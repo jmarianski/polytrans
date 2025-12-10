@@ -59,13 +59,21 @@ class PolyTrans_Post_Data_Provider implements PolyTrans_Variable_Provider_Interf
             }
         }
 
-        // Add convenience aliases for common fields
+        // Add convenience aliases for common fields (from translated post)
         if (isset($variables['translated_post'])) {
             $variables['title'] = $variables['translated_post']['title'] ?? '';
             $variables['content'] = $variables['translated_post']['content'] ?? '';
             $variables['excerpt'] = $variables['translated_post']['excerpt'] ?? '';
             $variables['author_name'] = $variables['translated_post']['author_name'] ?? '';
             $variables['date'] = $variables['translated_post']['date'] ?? '';
+        }
+
+        // Add short aliases for nested access (Phase 0.1 improvement)
+        if (isset($variables['original_post'])) {
+            $variables['original'] = $variables['original_post'];
+        }
+        if (isset($variables['translated_post'])) {
+            $variables['translated'] = $variables['translated_post'];
         }
 
         return $variables;
@@ -77,39 +85,46 @@ class PolyTrans_Post_Data_Provider implements PolyTrans_Variable_Provider_Interf
     public function get_available_variables()
     {
         return [
-            // Convenience aliases for most common fields
+            // Top-level convenience aliases (most common)
             'title',
             'content',
             'excerpt',
             'author_name',
             'date',
-            // Full post objects
+            // Short aliases (Phase 0.1 - recommended)
+            'original',
+            'original.title',
+            'original.content',
+            'original.excerpt',
+            'original.slug',
+            'original.status',
+            'original.type',
+            'original.author_name',
+            'original.date',
+            'original.categories',
+            'original.tags',
+            'original.meta',
+            'translated',
+            'translated.title',
+            'translated.content',
+            'translated.excerpt',
+            'translated.slug',
+            'translated.status',
+            'translated.type',
+            'translated.author_name',
+            'translated.date',
+            'translated.categories',
+            'translated.tags',
+            'translated.meta',
+            // Full post objects (legacy, still supported)
             'original_post',
             'original_post.title',
             'original_post.content',
             'original_post.excerpt',
-            'original_post.slug',
-            'original_post.status',
-            'original_post.type',
-            'original_post.author_id',
-            'original_post.author_name',
-            'original_post.date',
-            'original_post.modified',
-            'original_post.categories',
-            'original_post.tags',
             'translated_post',
             'translated_post.title',
             'translated_post.content',
-            'translated_post.excerpt',
-            'translated_post.slug',
-            'translated_post.status',
-            'translated_post.type',
-            'translated_post.author_id',
-            'translated_post.author_name',
-            'translated_post.date',
-            'translated_post.modified',
-            'translated_post.categories',
-            'translated_post.tags'
+            'translated_post.excerpt'
         ];
     }
 
@@ -130,75 +145,60 @@ class PolyTrans_Post_Data_Provider implements PolyTrans_Variable_Provider_Interf
     public function get_variable_documentation()
     {
         return [
-            // Convenience aliases (most commonly used)
+            // Top-level convenience aliases (most commonly used)
             'title' => [
-                'description' => __('Post title (convenience alias)', 'polytrans'),
-                'example' => '{title}'
+                'description' => __('Translated post title', 'polytrans'),
+                'example' => '{{ title }}'
             ],
             'content' => [
-                'description' => __('Post content/body (convenience alias)', 'polytrans'),
-                'example' => '{content}'
+                'description' => __('Translated post content', 'polytrans'),
+                'example' => '{{ content }}'
             ],
             'excerpt' => [
-                'description' => __('Post excerpt (convenience alias)', 'polytrans'),
-                'example' => '{excerpt}'
+                'description' => __('Translated post excerpt', 'polytrans'),
+                'example' => '{{ excerpt }}'
             ],
-            'author_name' => [
-                'description' => __('Post author name (convenience alias)', 'polytrans'),
-                'example' => '{author_name}'
-            ],
-            'date' => [
-                'description' => __('Post date (convenience alias)', 'polytrans'),
-                'example' => '{date}'
-            ],
-            // Full post objects
-            'original_post' => [
-                'description' => __('Complete original post object', 'polytrans'),
-                'example' => '{original_post.title} - {original_post.content}'
-            ],
-            'original_post.title' => [
+            // Short aliases (Phase 0.1 - RECOMMENDED)
+            'original.title' => [
                 'description' => __('Original post title', 'polytrans'),
-                'example' => '{original_post.title}'
+                'example' => '{{ original.title }}'
             ],
-            'original_post.content' => [
-                'description' => __('Original post content/body', 'polytrans'),
-                'example' => '{original_post.content}'
+            'original.content' => [
+                'description' => __('Original post content', 'polytrans'),
+                'example' => '{{ original.content }}'
             ],
-            'original_post.excerpt' => [
+            'original.excerpt' => [
                 'description' => __('Original post excerpt', 'polytrans'),
-                'example' => '{original_post.excerpt}'
+                'example' => '{{ original.excerpt }}'
             ],
-            'original_post.categories' => [
-                'description' => __('Original post categories (array)', 'polytrans'),
-                'example' => '{original_post.categories}'
+            'original.meta.KEY' => [
+                'description' => __('Original post meta field', 'polytrans'),
+                'example' => '{{ original.meta.seo_title }}'
             ],
-            'original_post.tags' => [
-                'description' => __('Original post tags (array)', 'polytrans'),
-                'example' => '{original_post.tags}'
+            'translated.title' => [
+                'description' => __('Translated post title', 'polytrans'),
+                'example' => '{{ translated.title }}'
             ],
-            'translated_post' => [
-                'description' => __('Complete translated post object', 'polytrans'),
-                'example' => '{translated_post.title} - {translated_post.content}'
+            'translated.content' => [
+                'description' => __('Translated post content', 'polytrans'),
+                'example' => '{{ translated.content }}'
+            ],
+            'translated.excerpt' => [
+                'description' => __('Translated post excerpt', 'polytrans'),
+                'example' => '{{ translated.excerpt }}'
+            ],
+            'translated.meta.KEY' => [
+                'description' => __('Translated post meta field', 'polytrans'),
+                'example' => '{{ translated.meta.seo_description }}'
+            ],
+            // Legacy (still supported for backward compatibility)
+            'original_post.title' => [
+                'description' => __('Original post title (legacy)', 'polytrans'),
+                'example' => '{{ original_post.title }}'
             ],
             'translated_post.title' => [
-                'description' => __('Translated post title', 'polytrans'),
-                'example' => '{translated_post.title}'
-            ],
-            'translated_post.content' => [
-                'description' => __('Translated post content/body', 'polytrans'),
-                'example' => '{translated_post.content}'
-            ],
-            'translated_post.excerpt' => [
-                'description' => __('Translated post excerpt', 'polytrans'),
-                'example' => '{translated_post.excerpt}'
-            ],
-            'original_post.meta.{key}' => [
-                'description' => __('Original post meta field (replace {key} with actual meta key)', 'polytrans'),
-                'example' => '{original_post.meta.seo_title} or {original_post.meta.custom_field}'
-            ],
-            'translated_post.meta.{key}' => [
-                'description' => __('Translated post meta field (replace {key} with actual meta key)', 'polytrans'),
-                'example' => '{translated_post.meta.seo_title} or {translated_post.meta.custom_field}'
+                'description' => __('Translated post title (legacy)', 'polytrans'),
+                'example' => '{{ translated_post.title }}'
             ]
         ];
     }

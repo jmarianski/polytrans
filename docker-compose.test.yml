@@ -1,0 +1,64 @@
+# Docker Compose configuration for PolyTrans testing
+# Provides isolated test environment with all dependencies
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml run --rm polytrans-test
+#   docker compose -f docker-compose.test.yml run --rm polytrans-test composer install
+#   docker compose -f docker-compose.test.yml run --rm polytrans-test ./vendor/bin/pest
+#
+# Or use helper script: ./run-tests.sh
+
+version: '3.8'
+
+networks:
+  polytrans-test:
+    driver: bridge
+
+services:
+  # PolyTrans test runner
+  polytrans-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: polytrans-test
+    network_mode: "host"
+    volumes:
+      - .:/app
+      # Use host vendor directory for better compatibility
+      # - polytrans-vendor:/app/vendor
+      - polytrans-cache:/app/cache
+    working_dir: /app
+    environment:
+      - COMPOSER_CACHE_DIR=/tmp/composer-cache
+      - PHP_IDE_CONFIG=serverName=polytrans-test
+      - COMPOSER_ALLOW_SUPERUSER=1
+
+  # MySQL for integration tests (WordPress DB simulation)
+  mysql-test:
+    image: mysql:5.7
+    container_name: polytrans-mysql-test
+    networks:
+      - polytrans-test
+    ports:
+      - "3307:3306"  # Different port to avoid conflicts
+    environment:
+      MYSQL_ROOT_PASSWORD: test_root_pass
+      MYSQL_DATABASE: wordpress_test
+      MYSQL_USER: wp_test
+      MYSQL_PASSWORD: wp_test_pass
+    volumes:
+      - mysql-test-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ptest_root_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  polytrans-vendor:
+    driver: local
+  polytrans-cache:
+    driver: local
+  mysql-test-data:
+    driver: local

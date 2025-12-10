@@ -840,6 +840,7 @@ class PolyTrans_Workflow_Output_Processor
 
     /**
      * Apply a change to the context (for test mode)
+     * Phase 0.2: Also updates new variable structure (original.*, translated.*, top-level aliases)
      */
     private function apply_change_to_context($context, $change)
     {
@@ -847,32 +848,104 @@ class PolyTrans_Workflow_Output_Processor
 
         switch ($change['action']) {
             case 'update_post_title':
+                // Legacy
                 $updated_context['post_title'] = $change['value'];
+                // Phase 0.1: Update new structures
+                $updated_context['title'] = $change['value'];
+                if (isset($updated_context['translated_post'])) {
+                    $updated_context['translated_post']['title'] = $change['value'];
+                }
+                if (isset($updated_context['translated'])) {
+                    $updated_context['translated']['title'] = $change['value'];
+                }
                 break;
+
             case 'update_post_content':
+                // Legacy
                 $updated_context['post_content'] = $change['value'];
+                // Phase 0.1: Update new structures
+                $updated_context['content'] = $change['value'];
+                if (isset($updated_context['translated_post'])) {
+                    $updated_context['translated_post']['content'] = $change['value'];
+                }
+                if (isset($updated_context['translated'])) {
+                    $updated_context['translated']['content'] = $change['value'];
+                }
                 break;
+
             case 'update_post_excerpt':
+                // Legacy
                 $updated_context['post_excerpt'] = $change['value'];
+                // Phase 0.1: Update new structures
+                $updated_context['excerpt'] = $change['value'];
+                if (isset($updated_context['translated_post'])) {
+                    $updated_context['translated_post']['excerpt'] = $change['value'];
+                }
+                if (isset($updated_context['translated'])) {
+                    $updated_context['translated']['excerpt'] = $change['value'];
+                }
                 break;
+
             case 'update_post_status':
                 $updated_context['post_status'] = $change['value'];
+                if (isset($updated_context['translated_post'])) {
+                    $updated_context['translated_post']['status'] = $change['value'];
+                }
+                if (isset($updated_context['translated'])) {
+                    $updated_context['translated']['status'] = $change['value'];
+                }
                 break;
+
             case 'update_post_date':
                 $updated_context['post_date'] = $change['value'];
                 $updated_context['post_date_gmt'] = get_gmt_from_date($change['value']);
+                if (isset($updated_context['translated_post'])) {
+                    $updated_context['translated_post']['date'] = $change['value'];
+                    $updated_context['translated_post']['date_gmt'] = get_gmt_from_date($change['value']);
+                }
+                if (isset($updated_context['translated'])) {
+                    $updated_context['translated']['date'] = $change['value'];
+                    $updated_context['translated']['date_gmt'] = get_gmt_from_date($change['value']);
+                }
                 break;
+
             case 'update_post_meta':
+                // Legacy
                 if (!isset($updated_context['meta'])) {
                     $updated_context['meta'] = [];
                 }
                 $updated_context['meta'][$change['meta_key']] = $change['value'];
+                // Phase 0.1: Update nested structures
+                if (isset($updated_context['translated_post']['meta'])) {
+                    $updated_context['translated_post']['meta'][$change['meta_key']] = $change['value'];
+                }
+                if (isset($updated_context['translated']['meta'])) {
+                    $updated_context['translated']['meta'][$change['meta_key']] = $change['value'];
+                }
                 break;
+
             case 'append_to_post_content':
-                $updated_context['post_content'] = ($updated_context['post_content'] ?? '') . $change['value'];
+                $new_content = ($updated_context['post_content'] ?? '') . $change['value'];
+                $updated_context['post_content'] = $new_content;
+                $updated_context['content'] = $new_content;
+                if (isset($updated_context['translated_post'])) {
+                    $updated_context['translated_post']['content'] = $new_content;
+                }
+                if (isset($updated_context['translated'])) {
+                    $updated_context['translated']['content'] = $new_content;
+                }
                 break;
+
             case 'prepend_to_post_content':
-                $updated_context['post_content'] = $change['value'] . ($updated_context['post_content'] ?? '');
+                $new_content = $change['value'] . ($updated_context['post_content'] ?? '');
+                $updated_context['post_content'] = $new_content;
+                $updated_context['content'] = $new_content;
+                if (isset($updated_context['translated_post'])) {
+                    $updated_context['translated_post']['content'] = $new_content;
+                }
+                if (isset($updated_context['translated'])) {
+                    $updated_context['translated']['content'] = $new_content;
+                }
                 break;
         }
 
@@ -924,18 +997,48 @@ class PolyTrans_Workflow_Output_Processor
     /**
      * Refresh context from database to get current values
      */
+    /**
+     * Refresh context from database after changes (production mode)
+     * Phase 0.2: Uses Post Data Provider for complete context rebuild
+     */
     private function refresh_context_from_database($context)
     {
-        if (!isset($context['post_id'])) {
+        // Find the post ID from various possible fields
+        $post_id = $context['translated_post_id'] ??
+            $context['post_id'] ??
+            $context['original_post_id'] ??
+            null;
+
+        if (!$post_id) {
             return $context;
         }
 
-        $post = get_post($context['post_id']);
+        $post = get_post($post_id);
         if (!$post) {
             return $context;
         }
 
-        $updated_context = $context;
+        // Use Post Data Provider to rebuild complete context
+        require_once plugin_dir_path(__FILE__) . 'providers/class-post-data-provider.php';
+        $post_data_provider = new PolyTrans_Post_Data_Provider();
+
+        // Create a temporary context with the post ID
+        $temp_context = [
+            'translated_post_id' => $post_id
+        ];
+
+        // Add original_post_id if available
+        if (isset($context['original_post_id'])) {
+            $temp_context['original_post_id'] = $context['original_post_id'];
+        }
+
+        // Get fresh post data from provider
+        $fresh_post_data = $post_data_provider->get_variables($temp_context);
+
+        // Merge fresh data into context (preserving other context data like language, etc.)
+        $updated_context = array_merge($context, $fresh_post_data);
+
+        // Also update legacy fields for backward compatibility
         $updated_context['post_title'] = $post->post_title;
         $updated_context['post_content'] = $post->post_content;
         $updated_context['post_excerpt'] = $post->post_excerpt;

@@ -14,6 +14,20 @@ if (!defined('ABSPATH')) {
 class PolyTrans_Variable_Manager
 {
     /**
+     * Lazy load Twig Engine (requires Composer autoloader)
+     *
+     * @return void
+     */
+    private function load_twig_engine() {
+        if (!class_exists('PolyTrans_Twig_Engine')) {
+            $twig_engine_path = dirname(__DIR__) . '/templating/class-twig-template-engine.php';
+            if (file_exists($twig_engine_path)) {
+                require_once $twig_engine_path;
+            }
+        }
+    }
+
+    /**
      * Build execution context from providers
      * 
      * @param array $context Base context (post IDs, language, etc.)
@@ -50,7 +64,10 @@ class PolyTrans_Variable_Manager
 
     /**
      * Interpolate variables in a string template
-     * 
+     *
+     * Uses Twig template engine for modern templating with fallback to regex.
+     * Supports both legacy {variable} syntax and Twig {{ variable }} syntax.
+     *
      * @param string $template Template string with {variable} placeholders
      * @param array $context Variable context
      * @return string Interpolated string
@@ -61,6 +78,40 @@ class PolyTrans_Variable_Manager
             return $template;
         }
 
+        // Lazy load Twig Engine (requires Composer autoloader)
+        $this->load_twig_engine();
+
+        // Use Twig Engine if available
+        if (class_exists('PolyTrans_Twig_Engine')) {
+            try {
+                return PolyTrans_Twig_Engine::render($template, $context);
+            } catch (Exception $e) {
+                // Twig failed, fall back to legacy regex
+                PolyTrans_Logs_Manager::log(
+                    "Twig rendering failed, using legacy regex: " . $e->getMessage(),
+                    'warning',
+                    [
+                        'source' => 'variable_manager',
+                        'template_preview' => substr($template, 0, 100),
+                        'exception' => $e->getMessage()
+                    ]
+                );
+            }
+        }
+
+        // Fallback to legacy regex interpolation
+        return $this->interpolate_template_legacy($template, $context);
+    }
+
+    /**
+     * Legacy regex-based variable interpolation (fallback)
+     *
+     * @param string $template Template string with {variable} placeholders
+     * @param array $context Variable context
+     * @return string Interpolated string
+     */
+    private function interpolate_template_legacy($template, $context)
+    {
         // Find variable placeholders (but not JSON structures)
         // This pattern matches {variable_name} or {object.property} but not JSON like {"key": "value"}
         $pattern = '/\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}/';

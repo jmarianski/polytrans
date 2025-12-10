@@ -13,21 +13,199 @@ if (!defined('ABSPATH')) {
 
 class PolyTrans_Workflow_Storage_Manager
 {
-    const OPTION_NAME = 'polytrans_workflows';
+    const TABLE_NAME = 'polytrans_workflows';
+    const LEGACY_OPTION_NAME = 'polytrans_workflows';
     const SETTINGS_OPTION_NAME = 'polytrans_postprocessing_settings';
+    const MIGRATION_FLAG = 'polytrans_workflows_migrated';
+
+    /**
+     * Initialize - Create table and migrate if needed
+     * Called on plugin activation and admin_init
+     */
+    public static function initialize()
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
+
+        // Check if table exists
+        $table_exists = ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name);
+
+        if (!$table_exists) {
+            // Create table
+            self::create_workflows_table();
+
+            // Migrate from wp_options if data exists
+            $legacy_data = get_option(self::LEGACY_OPTION_NAME, []);
+            if (!empty($legacy_data)) {
+                self::migrate_from_options($legacy_data);
+            }
+
+            return;
+        }
+
+        // Table exists - check if we need to migrate
+        $migrated = get_option(self::MIGRATION_FLAG, false);
+
+        if (!$migrated) {
+            $legacy_data = get_option(self::LEGACY_OPTION_NAME, []);
+            if (!empty($legacy_data)) {
+                self::migrate_from_options($legacy_data);
+            } else {
+                // No data to migrate, just set flag
+                update_option(self::MIGRATION_FLAG, true);
+            }
+        }
+    }
+
+    /**
+     * Create workflows table using dbDelta
+     */
+    private static function create_workflows_table()
+    {
+        global $wpdb;
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE $table_name (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            workflow_id varchar(255) NOT NULL,
+            name varchar(255) NOT NULL,
+            description text,
+            language varchar(10) NOT NULL,
+            enabled tinyint(1) DEFAULT 1,
+            triggers text NOT NULL,
+            steps longtext NOT NULL,
+            output_actions text NOT NULL,
+            attribution_user_id bigint(20) unsigned,
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            created_by bigint(20) unsigned,
+            PRIMARY KEY  (id),
+            UNIQUE KEY workflow_id (workflow_id),
+            KEY language (language),
+            KEY enabled (enabled),
+            KEY name (name)
+        ) $charset_collate;";
+
+        dbDelta($sql);
+
+        error_log("[PolyTrans] Created workflows table: $table_name");
+    }
+
+    /**
+     * Migrate workflows from wp_options to database table
+     */
+    private static function migrate_from_options($legacy_workflows)
+    {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
+        $migrated_count = 0;
+        $errors = [];
+
+        // Backup legacy data first
+        update_option(self::LEGACY_OPTION_NAME . '_backup', $legacy_workflows);
+
+        foreach ($legacy_workflows as $workflow) {
+            try {
+                // Prepare data for insertion
+                $data = [
+                    'workflow_id' => $workflow['id'] ?? 'workflow_' . uniqid(),
+                    'name' => $workflow['name'] ?? 'Unnamed Workflow',
+                    'description' => $workflow['description'] ?? '',
+                    'language' => $workflow['language'] ?? $workflow['target_language'] ?? '',
+                    'enabled' => isset($workflow['enabled']) ? (int)$workflow['enabled'] : 1,
+
+                    // JSON encode complex fields
+                    'triggers' => wp_json_encode($workflow['triggers'] ?? []),
+                    'steps' => wp_json_encode($workflow['steps'] ?? []),
+                    'output_actions' => wp_json_encode($workflow['output_actions'] ?? []),
+
+                    'attribution_user_id' => $workflow['attribution_user'] ?? null,
+
+                    'created_at' => current_time('mysql'),
+                    'updated_at' => current_time('mysql'),
+                    'created_by' => get_current_user_id()
+                ];
+
+                // Insert into table
+                $result = $wpdb->insert($table_name, $data);
+
+                if ($result) {
+                    $migrated_count++;
+                } else {
+                    $errors[] = "Failed to migrate workflow: {$data['workflow_id']} - " . $wpdb->last_error;
+                }
+
+            } catch (Exception $e) {
+                $errors[] = "Exception migrating workflow: " . $e->getMessage();
+            }
+        }
+
+        // Set migration flag
+        update_option(self::MIGRATION_FLAG, true);
+
+        // Log results
+        error_log("[PolyTrans] Workflow migration complete: $migrated_count workflows migrated");
+        if (!empty($errors)) {
+            error_log("[PolyTrans] Migration errors: " . implode("; ", $errors));
+        }
+
+        return [
+            'success' => empty($errors),
+            'migrated' => $migrated_count,
+            'errors' => $errors
+        ];
+    }
+
+    /**
+     * Hydrate workflow from database row (decode JSON, backward compatibility)
+     */
+    private static function hydrate_workflow($row)
+    {
+        return [
+            'id' => $row['workflow_id'],  // Map workflow_id to 'id' for backward compatibility
+            'name' => $row['name'],
+            'description' => $row['description'],
+            'language' => $row['language'],
+            'target_language' => $row['language'],  // Alias for backward compatibility
+            'enabled' => (bool)$row['enabled'],
+
+            'triggers' => json_decode($row['triggers'], true) ?: [],
+            'steps' => json_decode($row['steps'], true) ?: [],
+            'output_actions' => json_decode($row['output_actions'], true) ?: [],
+
+            'attribution_user' => $row['attribution_user_id'],
+
+            'created_at' => $row['created_at'],
+            'updated_at' => $row['updated_at'],
+            'created_by' => $row['created_by']
+        ];
+    }
 
     /**
      * Get all workflows
-     * 
+     *
      * @return array Array of workflow definitions
      */
     public function get_all_workflows()
     {
-        $workflows = get_option(self::OPTION_NAME, []);
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
 
-        // Ensure workflows is an array
-        if (!is_array($workflows)) {
-            $workflows = [];
+        $results = $wpdb->get_results("SELECT * FROM $table_name ORDER BY name ASC", ARRAY_A);
+
+        if (!$results) {
+            return [];
+        }
+
+        // Decode JSON fields and apply backward compatibility
+        $workflows = [];
+        foreach ($results as $row) {
+            $workflows[] = self::hydrate_workflow($row);
         }
 
         return $workflows;
@@ -35,85 +213,117 @@ class PolyTrans_Workflow_Storage_Manager
 
     /**
      * Get workflows for a specific language
-     * 
+     *
      * @param string $language Language code
      * @return array Array of workflows for the language
      */
     public function get_workflows_for_language($language)
     {
-        $all_workflows = $this->get_all_workflows();
-        $language_workflows = [];
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
 
-        foreach ($all_workflows as $workflow) {
-            if (isset($workflow['language']) && $workflow['language'] === $language) {
-                $language_workflows[] = $workflow;
-            }
+        $results = $wpdb->get_results(
+            $wpdb->prepare("SELECT * FROM $table_name WHERE language = %s ORDER BY name ASC", $language),
+            ARRAY_A
+        );
+
+        if (!$results) {
+            return [];
         }
 
-        return $language_workflows;
+        $workflows = [];
+        foreach ($results as $row) {
+            $workflows[] = self::hydrate_workflow($row);
+        }
+
+        return $workflows;
     }
 
     /**
      * Get a specific workflow by ID
-     * 
+     *
      * @param string $workflow_id Workflow ID
      * @return array|null Workflow definition or null if not found
      */
     public function get_workflow($workflow_id)
     {
-        $workflows = $this->get_all_workflows();
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
 
-        foreach ($workflows as $workflow) {
-            if (isset($workflow['id']) && $workflow['id'] === $workflow_id) {
-                return $workflow;
-            }
+        $row = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM $table_name WHERE workflow_id = %s", $workflow_id),
+            ARRAY_A
+        );
+
+        if (!$row) {
+            return null;
         }
 
-        return null;
+        return self::hydrate_workflow($row);
     }
 
     /**
-     * Save a workflow
-     * 
+     * Save a workflow (insert or update)
+     *
      * @param array $workflow Workflow definition
-     * @return bool Success status
+     * @return array Result with 'success' and 'errors'
      */
     public function save_workflow($workflow)
     {
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
+
         // Validate workflow structure
         $validation = $this->validate_workflow($workflow);
         if (!$validation['valid']) {
             return ['success' => false, 'errors' => $validation['errors']];
         }
 
-        $workflows = $this->get_all_workflows();
         $workflow_id = $workflow['id'];
 
-        // Find existing workflow or add new one
-        $found = false;
-        foreach ($workflows as $index => $existing_workflow) {
-            if (isset($existing_workflow['id']) && $existing_workflow['id'] === $workflow_id) {
-                $workflows[$index] = $workflow;
-                $found = true;
-                break;
-            }
-        }
+        // Check if workflow exists
+        $exists = $wpdb->get_var(
+            $wpdb->prepare("SELECT id FROM $table_name WHERE workflow_id = %s", $workflow_id)
+        );
 
-        if (!$found) {
-            $workflows[] = $workflow;
-        }
+        // Prepare data for insert/update
+        $data = [
+            'workflow_id' => $workflow_id,
+            'name' => $workflow['name'] ?? 'Unnamed Workflow',
+            'description' => $workflow['description'] ?? '',
+            'language' => $workflow['language'] ?? $workflow['target_language'] ?? '',
+            'enabled' => isset($workflow['enabled']) ? (int)$workflow['enabled'] : 1,
 
-        // Only update if workflows have changed
-        $existing_workflows = get_option(self::OPTION_NAME, []);
-        if ($workflows === $existing_workflows) {
-            $success = true;
+            'triggers' => wp_json_encode($workflow['triggers'] ?? []),
+            'steps' => wp_json_encode($workflow['steps'] ?? []),
+            'output_actions' => wp_json_encode($workflow['output_actions'] ?? []),
+
+            'attribution_user_id' => $workflow['attribution_user'] ?? null,
+            'updated_at' => current_time('mysql')
+        ];
+
+        if ($exists) {
+            // Update existing workflow
+            $result = $wpdb->update(
+                $table_name,
+                $data,
+                ['workflow_id' => $workflow_id]
+            );
+
+            $success = $result !== false;
         } else {
-            $success = update_option(self::OPTION_NAME, $workflows);
-        }
-        $errors = [];
+            // Insert new workflow
+            $data['created_at'] = current_time('mysql');
+            $data['created_by'] = get_current_user_id();
 
+            $result = $wpdb->insert($table_name, $data);
+
+            $success = $result !== false;
+        }
+
+        $errors = [];
         if (!$success) {
-            $errors[] = 'Unknown error updating option';
+            $errors[] = $wpdb->last_error ?: 'Unknown error saving workflow';
         }
 
         return ['success' => $success, 'errors' => $errors];
@@ -121,22 +331,18 @@ class PolyTrans_Workflow_Storage_Manager
 
     /**
      * Delete a workflow
-     * 
+     *
      * @param string $workflow_id Workflow ID
      * @return bool Success status
      */
     public function delete_workflow($workflow_id)
     {
-        $workflows = $this->get_all_workflows();
-        $updated_workflows = [];
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
 
-        foreach ($workflows as $workflow) {
-            if (!isset($workflow['id']) || $workflow['id'] !== $workflow_id) {
-                $updated_workflows[] = $workflow;
-            }
-        }
+        $result = $wpdb->delete($table_name, ['workflow_id' => $workflow_id]);
 
-        return update_option(self::OPTION_NAME, $updated_workflows);
+        return $result !== false;
     }
 
     /**
@@ -418,30 +624,69 @@ class PolyTrans_Workflow_Storage_Manager
 
     /**
      * Clean up orphaned workflow data
-     * 
+     * Deletes workflows with invalid structure from database
+     *
      * @return int Number of items cleaned up
      */
     public function cleanup_orphaned_data()
     {
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
         $cleaned = 0;
 
-        // Clean up workflows with invalid structure
+        // Get all workflows from database
         $workflows = $this->get_all_workflows();
-        $valid_workflows = [];
 
         foreach ($workflows as $workflow) {
             $validation = $this->validate_workflow($workflow);
-            if ($validation['valid']) {
-                $valid_workflows[] = $workflow;
-            } else {
+            if (!$validation['valid']) {
+                // Delete invalid workflow
+                $wpdb->delete($table_name, ['workflow_id' => $workflow['id']]);
                 $cleaned++;
             }
         }
 
-        if ($cleaned > 0) {
-            update_option(self::OPTION_NAME, $valid_workflows);
+        return $cleaned;
+    }
+
+    /**
+     * Get workflows using a specific assistant
+     * For Phase 1 - assistants system
+     *
+     * @param int|string $assistant_id Assistant ID to search for
+     * @return array Workflows using this assistant
+     */
+    public function get_workflows_using_assistant($assistant_id)
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
+
+        // Search for assistant_id in steps JSON
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM $table_name WHERE steps LIKE %s",
+                '%"assistant_id":' . $wpdb->esc_like($assistant_id) . '%'
+            ),
+            ARRAY_A
+        );
+
+        if (!$results) {
+            return [];
         }
 
-        return $cleaned;
+        $workflows = [];
+        foreach ($results as $row) {
+            $workflow = self::hydrate_workflow($row);
+
+            // Verify assistant is actually used (not just substring match)
+            foreach ($workflow['steps'] as $step) {
+                if (isset($step['assistant_id']) && $step['assistant_id'] == $assistant_id) {
+                    $workflows[] = $workflow;
+                    break;
+                }
+            }
+        }
+
+        return $workflows;
     }
 }

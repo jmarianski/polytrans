@@ -103,6 +103,7 @@ class PolyTrans
         require_once $includes_dir . 'menu/class-postprocessing-menu.php';
 
         // Post-processing system
+        // NOTE: Twig Engine uses Composer autoloader (Twig namespace), loaded lazily in Variable Manager
         require_once $includes_dir . 'postprocessing/interface-workflow-step.php';
         require_once $includes_dir . 'postprocessing/interface-variable-provider.php';
         require_once $includes_dir . 'postprocessing/class-variable-manager.php';

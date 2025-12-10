@@ -74,10 +74,19 @@ class PolyTrans_Postprocessing_Menu
     {
         // Enqueue for workflow management page
         if (strpos($hook_suffix, 'polytrans-workflows') !== false) {
+            // Enqueue prompt editor module (reusable component)
+            wp_enqueue_script(
+                'polytrans-prompt-editor',
+                POLYTRANS_PLUGIN_URL . 'assets/js/prompt-editor.js',
+                ['jquery'],
+                POLYTRANS_VERSION,
+                true
+            );
+
             wp_enqueue_script(
                 'polytrans-workflows',
                 POLYTRANS_PLUGIN_URL . 'assets/js/postprocessing-admin.js',
-                ['jquery', 'wp-util'],
+                ['jquery', 'wp-util', 'polytrans-prompt-editor'],
                 POLYTRANS_VERSION,
                 true
             );
@@ -417,26 +426,7 @@ class PolyTrans_Postprocessing_Menu
                 </div>
             </form>
 
-            <!-- Variable Documentation Panel -->
-            <div id="variable-docs-panel" style="margin-top: 30px;">
-                <h2><?php esc_html_e('Available Variables', 'polytrans'); ?></h2>
-                <div class="postbox">
-                    <div class="inside">
-                        <p><?php esc_html_e('You can use these variables in your system prompts by wrapping them in curly braces, e.g., {original_post.title}', 'polytrans'); ?></p>
-                        <div class="variable-docs-grid">
-                            <?php foreach ($variable_docs as $var_name => $doc): ?>
-                                <div class="variable-doc-item">
-                                    <code class="variable-name"><?php echo esc_html($var_name); ?></code>
-                                    <p class="variable-description"><?php echo esc_html($doc['description']); ?></p>
-                                    <?php if (isset($doc['example'])): ?>
-                                        <code class="variable-example"><?php echo esc_html($doc['example']); ?></code>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Legacy variable documentation panel removed - now using compact pills in JS -->
         </div>
 
         <script type="text/javascript">
