@@ -1997,7 +1997,7 @@ However, the integration of AI in healthcare also raises important questions abo
                         </summary>
                         <div class="prompt-content" style="margin-top: 10px; padding: 10px; background: #fafafa; border-left: 3px solid #2271b1; font-family: monospace; white-space: pre-wrap; font-size: 12px;">
 ${escapeHtml(systemPrompt)}
-                        </div>
+                    </div>
                     </details>
                 `;
             }
@@ -2010,7 +2010,7 @@ ${escapeHtml(systemPrompt)}
                         </summary>
                         <div class="prompt-content" style="margin-top: 10px; padding: 10px; background: #fafafa; border-left: 3px solid #2271b1; font-family: monospace; white-space: pre-wrap; font-size: 12px;">
 ${escapeHtml(userMessage)}
-                        </div>
+                    </div>
                     </details>
                 `;
             }

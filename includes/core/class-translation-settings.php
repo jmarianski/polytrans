@@ -543,6 +543,21 @@ class polytrans_settings
         $openai_path_rules = $settings['openai_path_rules'] ?? [];
 
         ?>
+        <h2><?php esc_html_e('Translation Path Rules', 'polytrans'); ?></h2>
+        <p class="description">
+            <?php esc_html_e('Define routing rules for translations. Use intermediate languages for better quality (e.g., PL → EN → FR instead of direct PL → FR).', 'polytrans'); ?>
+        </p>
+
+        <div id="path-rules-container">
+            <?php $this->render_path_rules_table($openai_path_rules); ?>
+        </div>
+
+        <button type="button" id="add-path-rule" class="button" style="margin-top: 10px;">
+            <?php esc_html_e('Add Rule', 'polytrans'); ?>
+        </button>
+
+        <hr style="margin: 30px 0;">
+
         <h2><?php esc_html_e('Assistant Mapping', 'polytrans'); ?></h2>
         <p class="description">
             <?php esc_html_e('Select which assistant (Managed or OpenAI API) to use for each language pair. Assistants are loaded from your OpenAI account and from PolyTrans → AI Assistants.', 'polytrans'); ?>
@@ -559,21 +574,6 @@ class polytrans_settings
         <div id="assistants-mapping-container">
             <?php $this->render_assistant_mapping_table($openai_assistants); ?>
         </div>
-
-        <hr style="margin: 30px 0;">
-
-        <h2><?php esc_html_e('Translation Path Rules', 'polytrans'); ?></h2>
-        <p class="description">
-            <?php esc_html_e('Define routing rules for translations. Use intermediate languages for better quality (e.g., PL → EN → FR instead of direct PL → FR).', 'polytrans'); ?>
-        </p>
-
-        <div id="path-rules-container">
-            <?php $this->render_path_rules_table($openai_path_rules); ?>
-        </div>
-
-        <button type="button" id="add-path-rule" class="button" style="margin-top: 10px;">
-            <?php esc_html_e('Add Rule', 'polytrans'); ?>
-        </button>
 
         <script type="text/javascript">
         jQuery(document).ready(function($) {

@@ -660,7 +660,7 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
                     $api_params = is_string($assistant['api_parameters']) 
                         ? json_decode($assistant['api_parameters'], true) 
                         : $assistant['api_parameters'];
-                    
+
                     if (is_array($api_params) && !empty($api_params['model'])) {
                         $model_display = $api_params['model'];
                     }
@@ -690,10 +690,10 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
                 foreach ($openai_assistants as $assistant) {
                     $grouped_assistants['openai'][] = [
                         'id' => $assistant['id'], // Keep original asst_xxx format
-                        'name' => $assistant['name'] ?? 'Unnamed Assistant',
-                        'description' => $assistant['description'] ?? '',
-                        'model' => $assistant['model'] ?? 'gpt-4'
-                    ];
+                'name' => $assistant['name'] ?? 'Unnamed Assistant',
+                'description' => $assistant['description'] ?? '',
+                'model' => $assistant['model'] ?? 'gpt-4'
+            ];
                 }
             }
         }

@@ -161,7 +161,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                     $result = $this->translate_with_managed_assistant($content_to_translate, $step_source, $step_target, $assistant_id);
                 } else {
                     // OpenAI API Assistant (asst_xxx format)
-                    $result = $this->translate_with_openai($content_to_translate, $step_source, $step_target, $assistant_id, $openai_api_key);
+                $result = $this->translate_with_openai($content_to_translate, $step_source, $step_target, $assistant_id, $openai_api_key);
                 }
                 if (!$result['success']) {
                     // Build detailed error message with error code if available

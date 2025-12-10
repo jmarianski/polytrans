@@ -294,11 +294,11 @@
                     if (groupedAssistants.gemini && groupedAssistants.gemini.length > 0) {
                         var $geminiGroup = $('<optgroup label="Gemini Tuned Models"></optgroup>');
                         groupedAssistants.gemini.forEach(function (assistant) {
-                            var option = $('<option></option>')
-                                .attr('value', assistant.id)
-                                .text(assistant.name + ' (' + assistant.model + ')');
+                        var option = $('<option></option>')
+                            .attr('value', assistant.id)
+                            .text(assistant.name + ' (' + assistant.model + ')');
                             $geminiGroup.append(option);
-                        });
+                    });
                         $select.append($geminiGroup);
                     }
 
