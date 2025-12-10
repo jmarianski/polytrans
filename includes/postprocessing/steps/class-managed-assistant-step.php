@@ -98,19 +98,50 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
             // Get the AI output
             $ai_output = $result['output'] ?? $result['data'] ?? null;
             
+            // Parse output using schema if defined
+            $parsed_data = ['ai_response' => $ai_output];
+            $parse_warnings = [];
+            
+            if (!empty($assistant['expected_output_schema']) && $assistant['expected_format'] === 'json') {
+                $parser = new PolyTrans_JSON_Response_Parser();
+                $parse_result = $parser->parse_with_schema($ai_output, $assistant['expected_output_schema']);
+                
+                if ($parse_result['success']) {
+                    // Use parsed structured data
+                    $parsed_data = $parse_result['data'];
+                    $parse_warnings = $parse_result['warnings'] ?? [];
+                    
+                    // Log warnings if any
+                    if (!empty($parse_warnings)) {
+                        PolyTrans_Logs_Manager::log(
+                            "Assistant '{$assistant['name']}' response parsing warnings: " . implode(', ', $parse_warnings),
+                            'warning',
+                            ['assistant_id' => $assistant_id, 'step_type' => 'managed_assistant']
+                        );
+                    }
+                } else {
+                    // Parsing failed, log error but continue with raw output
+                    PolyTrans_Logs_Manager::log(
+                        "Assistant '{$assistant['name']}' response parsing failed: " . $parse_result['error'],
+                        'error',
+                        ['assistant_id' => $assistant_id, 'raw_output' => substr($ai_output, 0, 500)]
+                    );
+                    // Fallback to wrapping raw output
+                    $parsed_data = ['ai_response' => $ai_output];
+                }
+            }
+            
             // Return successful result
-            // Wrap output in 'data' array with 'ai_response' key for compatibility with output processor
             return [
                 'success' => true,
-                'data' => [
-                    'ai_response' => $ai_output  // Wrap in array so auto_detect_response_value can find it
-                ],
+                'data' => $parsed_data,  // Structured data from parser or wrapped raw output
                 'execution_time' => $execution_time,
                 'assistant_id' => $assistant_id,
                 'assistant_name' => $assistant['name'],
                 'provider' => $result['provider'] ?? 'unknown',
                 'model' => $result['model'] ?? 'unknown',
                 'usage' => $result['usage'] ?? [],
+                'parse_warnings' => $parse_warnings,  // Include parsing warnings
                 'interpolated_system_prompt' => $result['interpolated_system_prompt'] ?? null,
                 'interpolated_user_message' => $result['interpolated_user_message'] ?? null,
                 'tokens_used' => $result['usage'] ?? null,
