@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class Articles implements PolyTrans_Variable_Provider_Interface
+class Articles implements \PolyTrans_Variable_Provider_Interface
 {
     /**
      * Get the provider identifier
