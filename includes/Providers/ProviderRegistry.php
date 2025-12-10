@@ -48,8 +48,8 @@ class ProviderRegistry
         // Note: Provider classes are autoloaded
 
         // Register default providers
-        $this->register_provider(new PolyTrans_Google_Provider());
-        $this->register_provider(new PolyTrans_OpenAI_Provider());
+        $this->register_provider(new \PolyTrans_Google_Provider());
+        $this->register_provider(new \PolyTrans_OpenAI_Provider());
     }
 
     /**
