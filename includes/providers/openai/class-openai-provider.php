@@ -436,17 +436,14 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
             $parse_result = $parser->parse_with_schema($ai_output, $assistant['expected_output_schema']);
 
             if (!$parse_result['success']) {
-                // Log full response to error_log for debugging
-                error_log('[PolyTrans] Managed Assistant parsing failed (ID: ' . $numeric_id . '): ' . $parse_result['error']);
-                error_log('[PolyTrans] Full AI output: ' . $ai_output);
-                
+                // Log full response to DATABASE (background processor!)
                 PolyTrans_Logs_Manager::log(
                     "Managed Assistant response parsing failed: " . $parse_result['error'],
                     'error',
                     [
                         'assistant_id' => $numeric_id,
-                        'raw_output_length' => strlen($ai_output),
-                        'raw_output_preview' => substr($ai_output, 0, 500),
+                        'response_length' => strlen($ai_output),
+                        'full_response' => $ai_output, // FULL response in database
                         'parse_error' => $parse_result['error']
                     ]
                 );

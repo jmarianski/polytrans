@@ -314,9 +314,16 @@ class PolyTrans_Assistant_Executor {
 		$decoded = json_decode( $content, true );
 
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			// Log full response for debugging
-			error_log( '[PolyTrans] Assistant JSON parsing failed: ' . json_last_error_msg() );
-			error_log( '[PolyTrans] Full AI response: ' . $content );
+			// Log full response to database (background processor can't use error_log!)
+			PolyTrans_Logs_Manager::log(
+				'Assistant JSON parsing failed: ' . json_last_error_msg(),
+				'error',
+				array(
+					'json_error'    => json_last_error_msg(),
+					'response_length' => strlen( $content ),
+					'full_response' => $content, // FULL response in database
+				)
+			);
 			
 			return new WP_Error(
 				'invalid_json',
