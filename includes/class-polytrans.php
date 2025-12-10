@@ -113,6 +113,7 @@ class PolyTrans
         require_once $includes_dir . 'postprocessing/interface-workflow-step.php';
         require_once $includes_dir . 'postprocessing/interface-variable-provider.php';
         require_once $includes_dir . 'postprocessing/class-variable-manager.php';
+        require_once $includes_dir . 'postprocessing/class-json-response-parser.php';
         require_once $includes_dir . 'postprocessing/class-workflow-executor.php';
         require_once $includes_dir . 'postprocessing/class-workflow-output-processor.php';
         require_once $includes_dir . 'postprocessing/managers/class-workflow-storage-manager.php';

@@ -26,3 +26,6 @@ function _manually_load_plugin() {
 tests_add_filter('muplugins_loaded', '_manually_load_plugin');
 
 require $_tests_dir . '/includes/bootstrap.php';
+
+// Load the JSON Response Parser class directly for tests (after WordPress is loaded)
+require_once dirname(__DIR__) . '/includes/postprocessing/class-json-response-parser.php';
