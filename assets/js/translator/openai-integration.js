@@ -14,7 +14,7 @@
             this.bindEvents();
             this.checkInitialApiKey();
             this.initialized = true;
-        }, bindEvents: function () {
+        },         bindEvents: function () {
             // API Key validation - use event delegation since elements might not exist yet
             $(document).on('click', '#validate-openai-key', this.validateApiKey.bind(this));
             $(document).on('click', '#toggle-openai-key-visibility', this.toggleApiKeyVisibility.bind(this));
@@ -29,18 +29,27 @@
             $(document).on('click', '#toggle-openai-section', this.toggleSection.bind(this, '#openai-config-section'));
             $(document).on('click', '#toggle-basic-settings', this.toggleSection.bind(this, '#basic-settings-section'));
             $(document).on('click', '#toggle-email-settings', this.toggleSection.bind(this, '#email-settings-section'));
-        }, checkInitialApiKey: function () {
+
+            // Tab switching - load assistants when Language Pairs tab is shown
+            $(document).on('click', '#language-pairs-tab', this.onLanguagePairsTabClick.bind(this));
+        },         checkInitialApiKey: function () {
             var apiKey = $('#openai-api-key').val();
 
             // Show/hide assistant mapping section based on API key (temporary testing override)
             this.updateAssistantMappingVisibility(apiKey);
 
-            if (apiKey && apiKey.trim() !== '') {
-                this.loadAssistants();
-            }
+            // Always try to load assistants (Managed Assistants don't require API key)
+            this.loadAssistants();
 
             // Trigger initial language pair filtering
             this.updateLanguagePairVisibility();
+        },
+
+        onLanguagePairsTabClick: function () {
+            // Load assistants if not already loaded when Language Pairs tab is clicked
+            if (!this.assistantsLoaded) {
+                this.loadAssistants();
+            }
         },
 
         validateApiKey: function (e) {
@@ -135,20 +144,16 @@
             $loading.show();
             $error.hide();
 
-            var apiKey = $('#openai-api-key').val(); // Fixed ID selector - use hyphen not underscore
-            if (!apiKey) {
-                console.error('No API key provided');
-                $loading.hide();
-                $error.show().find('p').text('Please enter an API key first');
-                return;
-            }
+            // Always load assistants - Managed Assistants don't require API key
+            // OpenAI API assistants will be included if API key is provided
+            var apiKey = $('#openai-api-key').val() || '';
 
             var ajaxData = {
                 action: 'polytrans_load_openai_assistants',
                 api_key: apiKey,
                 nonce: (typeof polytrans_openai !== 'undefined' && polytrans_openai.nonce) ?
                     polytrans_openai.nonce :
-                    $('input[name="_wpnonce"]').val() // Fixed nonce fallback
+                    $('input[name="_wpnonce"]').val()
             };
 
             var ajaxUrl = (typeof polytrans_openai !== 'undefined' && polytrans_openai.ajax_url) ?
