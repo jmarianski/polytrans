@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Managed Assistants in Translation System**: Integrated Managed Assistants with system translations
+  - Grouped dropdown UI showing both Managed and OpenAI API Assistants
+  - Assistant type auto-detection (managed_xxx vs asst_xxx)
+  - Managed Assistants can now be used for language pair translations
+  - Full schema-based parsing with auto-mapping for system translations
+  - Scalable structure for future Claude/Gemini integration
+  - Example: Select "Translation EN→PL (Managed)" for PL→EN translation pair
+
+- **Complete Translation Schema Examples**: Added comprehensive examples for all SEO fields
+  - `translation-schema-full.json`: Complete schema with 14 SEO fields (RankMath + Yoast)
+  - `translation-user-message-full.twig`: Dynamic template with meta field loop
+  - `TRANSLATION_SCHEMA_GUIDE.md`: Complete setup and customization guide
+  - Minified schema for direct paste into UI
+  - Zero Output Actions needed with auto-mapping
+
 ### Fixed
 - **Workflow Test UI**: Added collapsible sections to display interpolated prompts (System Prompt & User Message) sent to AI after Twig variable interpolation
 - **Managed Assistant Output**: Fixed output structure to wrap AI response in array format (`{ 'ai_response': '...' }`) so output processor can correctly extract values for saving to meta/content
