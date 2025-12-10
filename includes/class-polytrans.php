@@ -96,6 +96,10 @@ class PolyTrans
         require_once $includes_dir . 'receiver/class-translation-coordinator.php';
         require_once $includes_dir . 'receiver/class-translation-receiver-extension.php';
 
+        // AI Assistants Management System (Phase 1)
+        require_once $includes_dir . 'assistants/class-assistant-manager.php';
+        require_once $includes_dir . 'assistants/class-assistant-executor.php';
+
         //menu
         require_once $includes_dir . 'menu/class-settings-menu.php';
         require_once $includes_dir . 'menu/class-logs-menu.php';
