@@ -185,20 +185,27 @@ class PolyTrans
 
     /**
      * Add admin menus
+     * Order matters - this determines the menu item order
      */
     public function add_admin_menus()
     {
+        // 1. Overview (main menu page)
         PolyTrans_Settings_Menu::get_instance()->add_admin_menu();
-        PolyTrans_Tag_Translation::get_instance()->add_admin_menu();
-        PolyTrans_Logs_Menu::get_instance()->add_logs_submenu();
-        PolyTrans_Postprocessing_Menu::get_instance()->add_admin_menu();
+        
+        // 2. Settings (already added by Settings Menu)
+        
+        // 3. AI Assistants
         PolyTrans_Assistants_Menu::get_instance()->add_admin_menu();
-
-        // Rename the first submenu item to Overview
-        global $submenu;
-        if (isset($submenu['polytrans'])) {
-            $submenu['polytrans'][0][0] = __('Overview', 'polytrans');
-        }
+        
+        // 4. Tag Translations
+        PolyTrans_Tag_Translation::get_instance()->add_admin_menu();
+        
+        // 5. Post-Processing (Workflows)
+        // 6. Execute Workflow (both added by Postprocessing Menu)
+        PolyTrans_Postprocessing_Menu::get_instance()->add_admin_menu();
+        
+        // 7. Logs
+        PolyTrans_Logs_Menu::get_instance()->add_logs_submenu();
     }
 
 
