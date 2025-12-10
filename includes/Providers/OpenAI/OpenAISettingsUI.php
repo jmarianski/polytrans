@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Providers\OpenAI;
+
 /**
  * OpenAI Provider Settings UI
  * Handles the settings interface for the OpenAI translation provider
@@ -9,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_OpenAI_Settings_UI
+class OpenAISettingsUI
 {
     /**
      * Render the OpenAI configuration section

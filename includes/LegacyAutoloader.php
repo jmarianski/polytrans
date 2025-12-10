@@ -26,8 +26,8 @@ class LegacyAutoloader
      * As we migrate classes, we remove them from this array.
      */
     private static $classMap = [
-        // Provider system
-        'PolyTrans_Provider_Registry' => 'providers/class-provider-registry.php',
+        // Provider system - ✅ MIGRATED TO PSR-4!
+        // 'PolyTrans_Provider_Registry' => 'providers/class-provider-registry.php', // ✅ MIGRATED
         
         // Core
         'PolyTrans_Translation_Meta_Box' => 'core/class-translation-meta-box.php',
@@ -84,11 +84,11 @@ class LegacyAutoloader
         // 'PolyTrans_Workflow_Manager' => 'postprocessing/class-workflow-manager.php', // ✅ MIGRATED
         // 'PolyTrans_Workflow_Metabox' => 'postprocessing/class-workflow-metabox.php', // ✅ MIGRATED
         
-        // Providers (OpenAI, Google, etc.)
-        'PolyTrans_Google_Provider' => 'providers/google/class-google-provider.php',
-        'PolyTrans_OpenAI_Client' => 'providers/openai/class-openai-client.php',
-        'PolyTrans_OpenAI_Provider' => 'providers/openai/class-openai-provider.php',
-        'PolyTrans_OpenAI_Settings_Provider' => 'providers/openai/class-openai-settings-provider.php',
+        // Providers - ✅ FULLY MIGRATED TO PSR-4!
+        // 'PolyTrans_Google_Provider' => 'providers/google/class-google-provider.php', // ✅ MIGRATED
+        // 'PolyTrans_OpenAI_Client' => 'providers/openai/class-openai-client.php', // ✅ MIGRATED
+        // 'PolyTrans_OpenAI_Provider' => 'providers/openai/class-openai-provider.php', // ✅ MIGRATED
+        // 'PolyTrans_OpenAI_Settings_Provider' => 'providers/openai/class-openai-settings-provider.php', // ✅ MIGRATED
     ];
 
     /**

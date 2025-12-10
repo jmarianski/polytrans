@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Providers\OpenAI;\n\nuse PolyTrans\Assistants\AssistantManager;
+
 /**
  * OpenAI Settings Provider
  * Handles settings UI and management for the OpenAI translation provider
@@ -9,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_Interface
+class OpenAISettingsProvider implements \PolyTrans_Settings_Provider_Interface
 {
     /**
      * Get the settings provider identifier
@@ -533,7 +535,7 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
      */
     private function validate_openai_api_key($api_key)
     {
-        $client = new PolyTrans_OpenAI_Client($api_key);
+        $client = new OpenAIClient($api_key);
         $models = $client->get_models();
 
         return !empty($models);
@@ -604,7 +606,7 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
         ];
 
         // 1. Load Managed Assistants from local database
-        $managed_assistants = PolyTrans_Assistant_Manager::get_all_assistants();
+        $managed_assistants = AssistantManager::get_all_assistants();
         if (!empty($managed_assistants)) {
             foreach ($managed_assistants as $assistant) {
                 $model_display = 'No model';
@@ -637,7 +639,7 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
 
         // 2. Load OpenAI API Assistants (if API key provided)
         if (!empty($api_key)) {
-            $client = new PolyTrans_OpenAI_Client($api_key);
+            $client = new OpenAIClient($api_key);
             $openai_assistants = $client->get_all_assistants();
 
             if (!empty($openai_assistants)) {

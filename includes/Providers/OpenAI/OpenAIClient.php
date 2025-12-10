@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Providers\OpenAI;
+
 /**
  * OpenAI API Client
  * 
@@ -11,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_OpenAI_Client
+class OpenAIClient
 {
     private $api_key;
     private $base_url;

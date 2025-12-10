@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Providers;
+
 /**
  * Translation Provider Registry
  * Manages registration and access to translation providers
@@ -9,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Provider_Registry
+class ProviderRegistry
 {
     private static $instance = null;
     private $providers = [];
@@ -65,9 +67,9 @@ class PolyTrans_Provider_Registry
 
     /**
      * Register a translation provider
-     * @param PolyTrans_Translation_Provider_Interface $provider
+     * @param \PolyTrans_Translation_Provider_Interface $provider
      */
-    public function register_provider(PolyTrans_Translation_Provider_Interface $provider)
+    public function register_provider(\PolyTrans_Translation_Provider_Interface $provider)
     {
         $this->providers[$provider->get_id()] = $provider;
     }
@@ -103,7 +105,7 @@ class PolyTrans_Provider_Registry
     /**
      * Get a specific provider by ID
      * @param string $provider_id
-     * @return PolyTrans_Translation_Provider_Interface|null
+     * @return \PolyTrans_Translation_Provider_Interface|null
      */
     public function get_provider($provider_id)
     {

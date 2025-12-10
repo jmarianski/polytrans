@@ -48,6 +48,16 @@ class_alias('PolyTrans\Menu\PostprocessingMenu', 'PolyTrans_Postprocessing_Menu'
 class_alias('PolyTrans\Menu\AssistantsMenu', 'PolyTrans_Assistants_Menu');
 
 // ============================================================================
+// PROVIDERS MODULE
+// ============================================================================
+class_alias('PolyTrans\Providers\ProviderRegistry', 'PolyTrans_Provider_Registry');
+class_alias('PolyTrans\Providers\Google\GoogleProvider', 'PolyTrans_Google_Provider');
+class_alias('PolyTrans\Providers\OpenAI\OpenAIClient', 'PolyTrans_OpenAI_Client');
+class_alias('PolyTrans\Providers\OpenAI\OpenAIProvider', 'PolyTrans_OpenAI_Provider');
+class_alias('PolyTrans\Providers\OpenAI\OpenAISettingsProvider', 'PolyTrans_OpenAI_Settings_Provider');
+class_alias('PolyTrans\Providers\OpenAI\OpenAISettingsUI', 'PolyTrans_OpenAI_Settings_UI');
+
+// ============================================================================
 // POSTPROCESSING MODULE
 // ============================================================================
 class_alias('PolyTrans\PostProcessing\VariableManager', 'PolyTrans_Variable_Manager');
