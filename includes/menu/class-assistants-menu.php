@@ -102,6 +102,7 @@ class PolyTrans_Assistants_Menu
         wp_localize_script('polytrans-assistants', 'polytransAssistants', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('polytrans_assistants'),
+            'models' => $this->get_model_options(),
             'strings' => [
                 'confirmDelete' => __('Are you sure you want to delete this assistant?', 'polytrans'),
                 'saveSuccess' => __('Assistant saved successfully.', 'polytrans'),
@@ -318,11 +319,25 @@ class PolyTrans_Assistants_Menu
 
                         <tr>
                             <th scope="row">
-                                <label for="assistant-model"><?php esc_html_e('Model', 'polytrans'); ?> <span class="required">*</span></label>
+                                <label for="assistant-model"><?php esc_html_e('AI Model', 'polytrans'); ?> <span class="required">*</span></label>
                             </th>
                             <td>
-                                <input type="text" id="assistant-model" name="model" class="regular-text" value="<?php echo esc_attr($assistant['model']); ?>" required>
-                                <p class="description"><?php esc_html_e('Model to use (e.g., gpt-4, claude-3-opus, gemini-pro).', 'polytrans'); ?></p>
+                                <select id="assistant-model" name="model" class="regular-text" required>
+                                    <?php
+                                    $models = $this->get_model_options();
+                                    $current_model = $assistant['model'];
+                                    
+                                    foreach ($models as $group_name => $group_models) {
+                                        echo '<optgroup label="' . esc_attr($group_name) . '">';
+                                        foreach ($group_models as $model_value => $model_label) {
+                                            $selected = ($current_model === $model_value) ? 'selected' : '';
+                                            echo '<option value="' . esc_attr($model_value) . '" ' . $selected . '>' . esc_html($model_label) . '</option>';
+                                        }
+                                        echo '</optgroup>';
+                                    }
+                                    ?>
+                                </select>
+                                <p class="description"><?php esc_html_e('Select the AI model to use for this assistant.', 'polytrans'); ?></p>
                             </td>
                         </tr>
 
@@ -604,6 +619,51 @@ class PolyTrans_Assistants_Menu
         } catch (Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Get model options for select dropdown
+     * 
+     * @return array Grouped model options
+     */
+    private function get_model_options()
+    {
+        // Check if OpenAI settings provider class exists
+        if (!class_exists('PolyTrans_OpenAI_Settings_Provider')) {
+            return $this->get_fallback_models();
+        }
+
+        try {
+            $provider = new PolyTrans_OpenAI_Settings_Provider();
+            $reflection = new ReflectionClass($provider);
+            $method = $reflection->getMethod('get_grouped_models');
+            $method->setAccessible(true);
+            return $method->invoke($provider);
+        } catch (Exception $e) {
+            return $this->get_fallback_models();
+        }
+    }
+
+    /**
+     * Get fallback model options
+     * 
+     * @return array Fallback model options
+     */
+    private function get_fallback_models()
+    {
+        return [
+            'GPT-4o Models' => [
+                'gpt-4o' => 'GPT-4o (Latest)',
+                'gpt-4o-mini' => 'GPT-4o Mini (Fast & Cost-effective)',
+            ],
+            'GPT-4 Models' => [
+                'gpt-4-turbo' => 'GPT-4 Turbo',
+                'gpt-4' => 'GPT-4',
+            ],
+            'GPT-3.5 Models' => [
+                'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
+            ]
+        ];
     }
 }
 
