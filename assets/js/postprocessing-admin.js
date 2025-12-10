@@ -956,6 +956,9 @@
                     stepData.expected_format = $(`#step-${index}-expected-format`).val();
                     stepData.output_variables = $(`#step-${index}-output-variables`).val();
                 }
+                if (currentType === 'managed_assistant' || newType === 'managed_assistant') {
+                    stepData.assistant_id = $(`#step-${index}-managed-assistant-id`).val();
+                }
 
                 // Store previous value for next change
                 $(this).data('previous-value', newType);
@@ -968,6 +971,13 @@
                 if (newType === 'predefined_assistant') {
                     setTimeout(() => {
                         populateAssistantDropdown(index, stepData.assistant_id);
+                    }, 10);
+                }
+
+                // Load assistants if switching to managed assistant
+                if (newType === 'managed_assistant') {
+                    setTimeout(() => {
+                        populateManagedAssistantDropdown(index, stepData.assistant_id);
                     }, 10);
                 }
 
@@ -1148,6 +1158,8 @@
                 if (outputVars) {
                     stepData.output_variables = outputVars.split(',').map(v => v.trim()).filter(v => v);
                 }
+            } else if (stepData.type === 'managed_assistant') {
+                stepData.assistant_id = $(`#step-${index}-managed-assistant-id`).val();
             }
 
             // Collect output actions for any step type
