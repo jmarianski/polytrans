@@ -28,7 +28,7 @@ class WorkflowExecutor
     public function __construct()
     {
         $this->register_default_steps();
-        $this->output_processor = PolyTrans_Workflow_Output_Processor::get_instance();
+        $this->output_processor = WorkflowOutputProcessor::get_instance();
     }
 
     /**
