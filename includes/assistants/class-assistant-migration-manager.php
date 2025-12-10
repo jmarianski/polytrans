@@ -173,14 +173,23 @@ class PolyTrans_Assistant_Migration_Manager
             'migration_date' => current_time('mysql')
         ];
 
-        // Create assistant data
+        // Create assistant data matching Assistant Manager structure
+        // Note: Assistant Manager expects system_prompt and api_parameters, not prompt_template and config
+        $api_parameters = [
+            'model' => $model,
+            'temperature' => $config['temperature'],
+            'max_tokens' => $config['max_tokens'],
+            'migrated_from' => $config['migrated_from']
+        ];
+        
         $assistant_data = [
             'name' => $assistant_name,
             'provider' => 'openai',
-            'model' => $model,
-            'prompt_template' => $prompt_template,
-            'response_format' => $response_format,
-            'config' => $config
+            'system_prompt' => $prompt_template, // Using prompt_template as system_prompt
+            'user_message_template' => '', // Empty for migrated assistants (prompt is combined)
+            'api_parameters' => json_encode($api_parameters),
+            'expected_format' => $response_format,
+            'output_variables' => '' // Can be added later if needed
         ];
 
         // Check if similar assistant already exists (to avoid duplicates)
