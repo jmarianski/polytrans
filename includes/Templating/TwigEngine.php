@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * Twig Template Engine for PolyTrans
  *
@@ -17,7 +20,7 @@
  * @since 1.4.0
  */
 
-declare(strict_types=1);
+namespace PolyTrans\Templating;
 
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
@@ -30,7 +33,7 @@ use Twig\Error\Error as TwigError;
  *
  * Handles template rendering using Twig with WordPress integration.
  */
-final class PolyTrans_Twig_Engine {
+final class TwigEngine {
 	/**
 	 * Twig environment instance
 	 *

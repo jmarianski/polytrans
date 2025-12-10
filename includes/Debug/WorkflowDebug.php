@@ -7,12 +7,14 @@
  * Run this from WordPress admin or CLI to check workflow conditions.
  */
 
+namespace PolyTrans\Debug;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Workflow_Debug
+class WorkflowDebug
 {
     /**
      * Debug workflow triggering for a specific post and language
@@ -29,7 +31,7 @@ class PolyTrans_Workflow_Debug
         echo "<p><strong>Target Language:</strong> {$target_language}</p>\n";
 
         // Check if workflow manager exists
-        if (!class_exists('PolyTrans_Workflow_Manager')) {
+        if (!class_exists('\PolyTrans_Workflow_Manager')) {
             echo "<div style='color: red;'><strong>ERROR:</strong> PolyTrans_Workflow_Manager class not found. Make sure the workflow system is properly loaded.</div>\n";
             return;
         }
@@ -222,7 +224,7 @@ class PolyTrans_Workflow_Debug
         echo "<h3>Simulating Workflow Trigger</h3>\n";
 
         // Log before triggering
-        PolyTrans_Logs_Manager::log("Simulating workflow trigger", 'info', [
+        \PolyTrans_Logs_Manager::log("Simulating workflow trigger", 'info', [
             'source' => 'debug',
             'original_post_id' => $original_post_id,
             'translated_post_id' => $translated_post_id,

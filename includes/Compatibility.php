@@ -25,6 +25,12 @@ if (!defined('ABSPATH')) {
  */
 
 // ============================================================================
+// TEMPLATING & DEBUG
+// ============================================================================
+class_alias('PolyTrans\Templating\TwigEngine', 'PolyTrans_Twig_Engine');
+class_alias('PolyTrans\Debug\WorkflowDebug', 'PolyTrans_Workflow_Debug');
+
+// ============================================================================
 // INTERFACES
 // ============================================================================
 class_alias('PolyTrans\Providers\TranslationProviderInterface', 'PolyTrans_Translation_Provider_Interface');

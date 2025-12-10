@@ -66,13 +66,8 @@ class PolyTrans
     {
         $includes_dir = POLYTRANS_PLUGIN_DIR . 'includes/';
 
-        // All interfaces and classes are now loaded via PSR-4 autoloader and LegacyAutoloader!
-        // This reduces this method from 48 require_once to just 4 interfaces.
-        
-        // Debug tools (only load in admin, not autoloadable due to procedural code)
-        if (is_admin()) {
-            require_once $includes_dir . 'debug/workflow-debug-page.php';
-        }
+        // All interfaces and classes are now loaded via PSR-4 autoloader!
+        // No manual require_once needed!
     }
 
     /**
@@ -93,6 +88,11 @@ class PolyTrans
         PolyTrans_Post_Autocomplete::get_instance();
         PolyTrans_Postprocessing_Menu::get_instance();
         PolyTrans_Assistants_Menu::get_instance();
+        
+        // Initialize debug menu (admin only)
+        if (is_admin()) {
+            \PolyTrans\Debug\WorkflowDebugMenu::get_instance();
+        }
 
         // Initialize the translation extension (handles incoming translation requests)
         PolyTrans_Translation_Extension::get_instance();
