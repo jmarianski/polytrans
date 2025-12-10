@@ -1955,16 +1955,22 @@ However, the integration of AI in healthcare also raises important questions abo
      * Render step inputs and prompts
      */
     function renderStepInputsAndPrompts(stepResult) {
-        if (!stepResult.inputs && !stepResult.prompts) return '';
+        // Check if we have any data to display
+        const hasInputs = stepResult.inputs || stepResult.input_variables;
+        const hasPrompts = stepResult.prompts || stepResult.interpolated_system_prompt || stepResult.interpolated_user_message;
+        
+        if (!hasInputs && !hasPrompts) return '';
 
         let html = '<div class="step-inputs"><h6>📋 Step Configuration</h6>';
 
-        if (stepResult.inputs) {
+        // Render input variables
+        const inputs = stepResult.inputs || stepResult.input_variables;
+        if (inputs) {
             html += '<div class="input-variables">';
             html += '<h6>Input Variables</h6>';
             html += '<div class="variable-list">';
 
-            Object.entries(stepResult.inputs).forEach(([key, value]) => {
+            Object.entries(inputs).forEach(([key, value]) => {
                 const displayValue = typeof value === 'string' ?
                     (value.length > 100 ? value.substring(0, 100) + '...' : value) :
                     JSON.stringify(value);
@@ -1974,24 +1980,42 @@ However, the integration of AI in healthcare also raises important questions abo
             html += '</div></div>';
         }
 
-        if (stepResult.prompts) {
-            if (stepResult.prompts.system_prompt) {
+        // Render interpolated prompts (support both old and new format)
+        const systemPrompt = stepResult.interpolated_system_prompt || (stepResult.prompts && stepResult.prompts.system_prompt);
+        const userMessage = stepResult.interpolated_user_message || (stepResult.prompts && stepResult.prompts.user_message);
+
+        if (systemPrompt || userMessage) {
+            html += '<div class="interpolated-prompts" style="margin-top: 15px;">';
+            html += '<h6>🔄 Interpolated Prompts</h6>';
+            html += '<p style="font-size: 12px; color: #666; margin: 5px 0 10px 0;">These are the actual prompts sent to the AI after variable interpolation.</p>';
+
+            if (systemPrompt) {
                 html += `
-                    <div class="system-prompt">
-                        <h6>System Prompt <span class="prompt-badge">Interpolated</span></h6>
-                        <div class="prompt-content">${escapeHtml(stepResult.prompts.system_prompt)}</div>
-                    </div>
+                    <details style="margin-bottom: 10px;">
+                        <summary style="cursor: pointer; font-weight: 600; padding: 8px; background: #f0f0f1; border-radius: 3px;">
+                            📝 System Prompt
+                        </summary>
+                        <div class="prompt-content" style="margin-top: 10px; padding: 10px; background: #fafafa; border-left: 3px solid #2271b1; font-family: monospace; white-space: pre-wrap; font-size: 12px;">
+${escapeHtml(systemPrompt)}
+                        </div>
+                    </details>
                 `;
             }
 
-            if (stepResult.prompts.user_message) {
+            if (userMessage) {
                 html += `
-                    <div class="user-prompt">
-                        <h6>User Message <span class="prompt-badge">Interpolated</span></h6>
-                        <div class="prompt-content">${escapeHtml(stepResult.prompts.user_message)}</div>
-                    </div>
+                    <details style="margin-bottom: 10px;">
+                        <summary style="cursor: pointer; font-weight: 600; padding: 8px; background: #f0f0f1; border-radius: 3px;">
+                            💬 User Message
+                        </summary>
+                        <div class="prompt-content" style="margin-top: 10px; padding: 10px; background: #fafafa; border-left: 3px solid #2271b1; font-family: monospace; white-space: pre-wrap; font-size: 12px;">
+${escapeHtml(userMessage)}
+                        </div>
+                    </details>
                 `;
             }
+
+            html += '</div>';
         }
 
         html += '</div>';
