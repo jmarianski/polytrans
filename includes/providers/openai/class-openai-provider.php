@@ -545,8 +545,8 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                 ]
             ];
 
-        } catch (Exception $e) {
-            // Catch any unexpected errors
+        } catch (Throwable $e) {
+            // Catch any unexpected errors (Exception, Error, TypeError, etc.)
             PolyTrans_Logs_Manager::log(
                 "Managed Assistant translation failed with exception: " . $e->getMessage(),
                 'error',
@@ -556,6 +556,7 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                     'exception_file' => $e->getFile(),
                     'exception_line' => $e->getLine(),
                     'trace' => $e->getTraceAsString(),
+                    'memory_at_error' => memory_get_usage(true),
                 ]
             );
 

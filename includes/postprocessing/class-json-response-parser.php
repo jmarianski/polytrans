@@ -130,32 +130,33 @@ class PolyTrans_JSON_Response_Parser
      */
     public function parse_with_schema($response, $schema = [])
     {
-        // Extract JSON
-        $json_data = $this->extract_json($response);
+        try {
+            // Extract JSON
+            $json_data = $this->extract_json($response);
 
-        if ($json_data === null) {
-            return [
-                'success' => false,
-                'error' => 'Failed to extract JSON from response',
-                'raw_response' => $response,
-                'mappings' => []
-            ];
-        }
+            if ($json_data === null) {
+                return [
+                    'success' => false,
+                    'error' => 'Failed to extract JSON from response',
+                    'raw_response' => $response,
+                    'mappings' => []
+                ];
+            }
 
-        // If no schema provided, return all data as-is
-        if (empty($schema)) {
-            return [
-                'success' => true,
-                'data' => $json_data,
-                'warnings' => [],
-                'mappings' => []
-            ];
-        }
+            // If no schema provided, return all data as-is
+            if (empty($schema)) {
+                return [
+                    'success' => true,
+                    'data' => $json_data,
+                    'warnings' => [],
+                    'mappings' => []
+                ];
+            }
 
-        // Normalize schema (supports both simple and object format)
-        $schema_info = $this->normalize_schema($schema);
-        $normalized_schema = $schema_info['normalized_schema'];
-        $mappings = $schema_info['mappings'];
+            // Normalize schema (supports both simple and object format)
+            $schema_info = $this->normalize_schema($schema);
+            $normalized_schema = $schema_info['normalized_schema'];
+            $mappings = $schema_info['mappings'];
 
         // Validate and coerce according to schema
         $result_data = [];
@@ -171,7 +172,11 @@ class PolyTrans_JSON_Response_Parser
                     // Nested schema validation
                     if (is_array($raw_value)) {
                         $nested_result = [];
+                        $nested_count = count($expected_type);
+                        $processed_count = 0;
+                        
                         foreach ($expected_type as $nested_field => $nested_type) {
+                            $processed_count++;
                             if (isset($raw_value[$nested_field])) {
                                 $nested_coerced = $this->coerce_type($raw_value[$nested_field], $nested_type);
                                 
@@ -239,19 +244,43 @@ class PolyTrans_JSON_Response_Parser
             }
         }
 
-        // Preserve extra fields not in schema (bonus data from AI)
-        foreach ($json_data as $field_name => $value) {
-            if (!isset($schema[$field_name])) {
-                $result_data[$field_name] = $value;
+            // Preserve extra fields not in schema (bonus data from AI)
+            foreach ($json_data as $field_name => $value) {
+                if (!isset($schema[$field_name])) {
+                    $result_data[$field_name] = $value;
+                }
             }
-        }
 
-        return [
-            'success' => true,
-            'data' => $result_data,
-            'warnings' => $warnings,
-            'mappings' => $mappings
-        ];
+            return [
+                'success' => true,
+                'data' => $result_data,
+                'warnings' => $warnings,
+                'mappings' => $mappings
+            ];
+            
+        } catch (Throwable $e) {
+            // Log exception with full details
+            if (class_exists('PolyTrans_Logs_Manager')) {
+                PolyTrans_Logs_Manager::log(
+                    'JSON Response Parser exception: ' . $e->getMessage(),
+                    'error',
+                    [
+                        'exception_class' => get_class($e),
+                        'exception_file' => $e->getFile(),
+                        'exception_line' => $e->getLine(),
+                        'trace' => $e->getTraceAsString(),
+                        'response_length' => strlen($response),
+                    ]
+                );
+            }
+            
+            return [
+                'success' => false,
+                'error' => 'Parser exception: ' . $e->getMessage(),
+                'exception' => get_class($e),
+                'mappings' => []
+            ];
+        }
     }
 
     /**
