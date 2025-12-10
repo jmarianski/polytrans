@@ -83,10 +83,18 @@ class PolyTrans_Assistants_Menu
             true
         );
 
+        // Enqueue postprocessing CSS for shared prompt editor styles
+        wp_enqueue_style(
+            'polytrans-postprocessing',
+            POLYTRANS_PLUGIN_URL . 'assets/css/postprocessing-admin.css',
+            [],
+            POLYTRANS_VERSION
+        );
+
         wp_enqueue_style(
             'polytrans-assistants',
             POLYTRANS_PLUGIN_URL . 'assets/css/assistants-admin.css',
-            [],
+            ['polytrans-postprocessing'],
             POLYTRANS_VERSION
         );
 
