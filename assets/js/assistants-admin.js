@@ -92,17 +92,10 @@
          * Render variable sidebar
          */
         renderVariableSidebar: function() {
-            const variables = [
-                { name: 'title', desc: 'Translated post title' },
-                { name: 'content', desc: 'Translated post content' },
-                { name: 'excerpt', desc: 'Translated post excerpt' },
-                { name: 'original.title', desc: 'Original post title' },
-                { name: 'original.content', desc: 'Original post content' },
-                { name: 'translated.title', desc: 'Current translated title' },
-                { name: 'translated.content', desc: 'Current translated content' },
-                { name: 'translated.meta.KEY', desc: 'Translated meta field' },
-                { name: 'target_language', desc: 'Target language code' }
-            ];
+            // Use variables from PolyTransPromptEditor module
+            const variables = typeof PolyTransPromptEditor !== 'undefined' 
+                ? PolyTransPromptEditor.variables 
+                : [];
 
             const pills = variables.map(v => 
                 `<span class="var-pill" data-variable="{{ ${v.name} }}" title="${v.desc}">${v.name}</span>`
