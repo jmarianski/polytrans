@@ -45,28 +45,35 @@
                 return;
             }
 
-            // Initialize system prompt editor
-            if (typeof PolyTransPromptEditor !== 'undefined') {
-                const systemContainer = document.getElementById('system-prompt-editor-container');
-                if (systemContainer) {
-                    this.systemPromptEditor = PolyTransPromptEditor.create(systemContainer, {
-                        initialValue: window.polytransAssistantData.system_prompt || '',
-                        placeholder: 'Enter system instructions here...\n\nExample: You are a content quality expert. Analyze posts for grammar, SEO, and readability.',
-                        rows: 8
-                    });
-                    this.systemPromptEditor.init();
-                }
+            // Create system prompt textarea
+            const systemContainer = document.getElementById('system-prompt-editor-container');
+            if (systemContainer) {
+                const systemTextarea = $('<textarea>')
+                    .attr('id', 'assistant-system-prompt')
+                    .attr('name', 'system_prompt')
+                    .attr('rows', 8)
+                    .attr('required', true)
+                    .addClass('large-text code')
+                    .css('width', '100%')
+                    .val(window.polytransAssistantData.system_prompt || '');
+                
+                $(systemContainer).append(systemTextarea);
+                this.systemPromptEditor = systemTextarea[0];
+            }
 
-                // Initialize user message template editor
-                const userContainer = document.getElementById('user-message-editor-container');
-                if (userContainer) {
-                    this.userMessageEditor = PolyTransPromptEditor.create(userContainer, {
-                        initialValue: window.polytransAssistantData.user_message_template || '',
-                        placeholder: 'Enter user message template here...\n\nYou can use Twig variables like {{ title }}, {{ content }}, etc.\n\nExample:\nTitle: {{ title }}\nContent: {{ content }}\n\nPlease analyze this content.',
-                        rows: 10
-                    });
-                    this.userMessageEditor.init();
-                }
+            // Create user message template textarea
+            const userContainer = document.getElementById('user-message-editor-container');
+            if (userContainer) {
+                const userTextarea = $('<textarea>')
+                    .attr('id', 'assistant-user-message')
+                    .attr('name', 'user_message_template')
+                    .attr('rows', 10)
+                    .addClass('large-text code')
+                    .css('width', '100%')
+                    .val(window.polytransAssistantData.user_message_template || '');
+                
+                $(userContainer).append(userTextarea);
+                this.userMessageEditor = userTextarea[0];
             }
         },
 
@@ -140,16 +147,16 @@
             const $form = $(e.currentTarget);
             const $submitBtn = $form.find('button[type="submit"]');
 
-            // Get system prompt from editor
+            // Get system prompt from textarea
             let systemPrompt = '';
-            if (this.systemPromptEditor && this.systemPromptEditor.getValue) {
-                systemPrompt = this.systemPromptEditor.getValue();
+            if (this.systemPromptEditor) {
+                systemPrompt = $(this.systemPromptEditor).val();
             }
 
-            // Get user message template from editor
+            // Get user message template from textarea
             let userMessage = '';
-            if (this.userMessageEditor && this.userMessageEditor.getValue) {
-                userMessage = this.userMessageEditor.getValue();
+            if (this.userMessageEditor) {
+                userMessage = $(this.userMessageEditor).val();
             }
 
             // Validate required fields
