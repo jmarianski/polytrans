@@ -358,6 +358,20 @@ class PolyTrans_Assistants_Menu
                             </td>
                         </tr>
 
+                        <tr id="expected-output-schema-row" style="display: none;">
+                            <th scope="row">
+                                <label for="assistant-expected-output-schema"><?php esc_html_e('Expected Output Schema', 'polytrans'); ?></label>
+                            </th>
+                            <td>
+                                <textarea id="assistant-expected-output-schema" name="expected_output_schema" class="large-text code" rows="8" placeholder='{"field_name": "type"}'><?php echo esc_textarea(!empty($assistant['expected_output_schema']) ? wp_json_encode($assistant['expected_output_schema'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : ''); ?></textarea>
+                                <p class="description">
+                                    <?php esc_html_e('Define the expected JSON structure for AI responses. Format: {"field": "type"}', 'polytrans'); ?><br>
+                                    <strong><?php esc_html_e('Supported types:', 'polytrans'); ?></strong> string, number, array, object, boolean<br>
+                                    <strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> {"title": "string", "content": "string", "meta": "object"}
+                                </p>
+                            </td>
+                        </tr>
+
                         <tr>
                             <th scope="row">
                                 <label for="assistant-system-prompt"><?php esc_html_e('System Instructions', 'polytrans'); ?> <span class="required">*</span></label>
@@ -447,6 +461,7 @@ class PolyTrans_Assistants_Menu
         $system_prompt = isset($_POST['system_prompt']) ? wp_unslash($_POST['system_prompt']) : '';
         $user_message_template = isset($_POST['user_message_template']) ? wp_unslash($_POST['user_message_template']) : '';
         $response_format = isset($_POST['response_format']) ? sanitize_text_field(wp_unslash($_POST['response_format'])) : 'text';
+        $expected_output_schema = isset($_POST['expected_output_schema']) ? wp_unslash($_POST['expected_output_schema']) : null;
         $config = isset($_POST['config']) ? wp_unslash($_POST['config']) : [];
 
         // Validate required fields
@@ -469,6 +484,7 @@ class PolyTrans_Assistants_Menu
             'user_message_template' => $user_message_template,
             'api_parameters' => json_encode($api_parameters),
             'expected_format' => $response_format,
+            'expected_output_schema' => $expected_output_schema,
             'output_variables' => null
         ];
 

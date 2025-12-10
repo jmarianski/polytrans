@@ -33,6 +33,9 @@
             // Provider change - update model suggestions
             $('#assistant-provider').on('change', this.handleProviderChange.bind(this));
 
+            // Response format change - show/hide schema field
+            $('#assistant-response-format').on('change', this.handleResponseFormatChange.bind(this));
+
             // Migrate workflows
             $('#migrate-workflows-btn').on('click', this.handleMigration.bind(this));
         },
@@ -44,6 +47,9 @@
             if (!window.polytransAssistantData) {
                 return;
             }
+
+            // Initialize schema field visibility based on response format
+            this.handleResponseFormatChange();
 
             // Create system prompt textarea with variable sidebar
             const systemContainer = document.getElementById('system-prompt-editor-container');
@@ -154,6 +160,20 @@
         },
 
         /**
+         * Handle response format change - show/hide schema field
+         */
+        handleResponseFormatChange: function() {
+            const format = $('#assistant-response-format').val();
+            const $schemaRow = $('#expected-output-schema-row');
+            
+            if (format === 'json') {
+                $schemaRow.show();
+            } else {
+                $schemaRow.hide();
+            }
+        },
+
+        /**
          * Handle delete assistant
          */
         handleDelete: function(e) {
@@ -227,6 +247,22 @@
 
             $submitBtn.prop('disabled', true).text(polytransAssistants.strings.loading);
 
+            // Get expected output schema if format is JSON
+            let expectedOutputSchema = null;
+            const responseFormat = $('#assistant-response-format').val();
+            if (responseFormat === 'json') {
+                const schemaText = $('#assistant-expected-output-schema').val().trim();
+                if (schemaText) {
+                    try {
+                        expectedOutputSchema = JSON.parse(schemaText);
+                    } catch (e) {
+                        this.showNotice('Invalid JSON in Expected Output Schema: ' + e.message, 'error');
+                        $submitBtn.prop('disabled', false).text(polytransAssistants.strings.save);
+                        return;
+                    }
+                }
+            }
+
             // Prepare form data
             const formData = {
                 action: 'polytrans_save_assistant',
@@ -237,7 +273,8 @@
                 model: $('#assistant-model').val(),
                 system_prompt: systemPrompt,
                 user_message_template: userMessage,
-                response_format: $('#assistant-response-format').val(),
+                response_format: responseFormat,
+                expected_output_schema: expectedOutputSchema ? JSON.stringify(expectedOutputSchema) : null,
                 config: {
                     temperature: parseFloat($('#assistant-temperature').val()) || 0.7,
                     max_tokens: parseInt($('#assistant-max-tokens').val()) || 2000
