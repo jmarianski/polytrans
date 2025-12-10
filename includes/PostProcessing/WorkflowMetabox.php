@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\PostProcessing;\n\nuse PolyTrans\PostProcessing\Managers\WorkflowStorageManager;
+
 /**
  * Workflow Meta Box for Post Editor
  * Displays available workflows and execution status in the post editor
@@ -9,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Workflow_Metabox
+class WorkflowMetabox
 {
     private static $instance = null;
     private $storage_manager;
@@ -30,7 +32,7 @@ class PolyTrans_Workflow_Metabox
      */
     private function __construct()
     {
-        $this->storage_manager = new PolyTrans_Workflow_Storage_Manager();
+        $this->storage_manager = new WorkflowStorageManager();
 
         // Add meta box to post editor
         add_action('add_meta_boxes', [$this, 'add_meta_box']);
@@ -332,7 +334,7 @@ class PolyTrans_Workflow_Metabox
         }
 
         // Delegate to workflow manager
-        $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
         
         // Prepare execution data
         $_POST['translated_post_id'] = $post_id;

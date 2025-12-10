@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\PostProcessing\Managers;
+
 /**
  * Workflow Storage Manager
  * 
@@ -11,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Workflow_Storage_Manager
+class WorkflowStorageManager
 {
     const TABLE_NAME = 'polytrans_workflows';
     const LEGACY_OPTION_NAME = 'polytrans_workflows';

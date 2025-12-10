@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\PostProcessing;
+
 /**
  * Variable Manager
  * 
@@ -11,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Variable_Manager
+class VariableManager
 {
     /**
      * Lazy load Twig Engine (requires Composer autoloader)

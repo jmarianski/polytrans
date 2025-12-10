@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\PostProcessing\Providers;
+
 /**
  * Articles Data Provider
  * 
@@ -11,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Articles_Data_Provider implements PolyTrans_Variable_Provider_Interface
+class Articles implements PolyTrans_Variable_Provider_Interface
 {
     /**
      * Get the provider identifier

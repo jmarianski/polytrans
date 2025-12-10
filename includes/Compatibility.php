@@ -48,6 +48,21 @@ class_alias('PolyTrans\Menu\PostprocessingMenu', 'PolyTrans_Postprocessing_Menu'
 class_alias('PolyTrans\Menu\AssistantsMenu', 'PolyTrans_Assistants_Menu');
 
 // ============================================================================
+// POSTPROCESSING MODULE
+// ============================================================================
+class_alias('PolyTrans\PostProcessing\VariableManager', 'PolyTrans_Variable_Manager');
+class_alias('PolyTrans\PostProcessing\JsonResponseParser', 'PolyTrans_JSON_Response_Parser');
+class_alias('PolyTrans\PostProcessing\WorkflowExecutor', 'PolyTrans_Workflow_Executor');
+class_alias('PolyTrans\PostProcessing\WorkflowManager', 'PolyTrans_Workflow_Manager');
+class_alias('PolyTrans\PostProcessing\WorkflowMetabox', 'PolyTrans_Workflow_Metabox');
+class_alias('PolyTrans\PostProcessing\WorkflowOutputProcessor', 'PolyTrans_Workflow_Output_Processor');
+class_alias('PolyTrans\PostProcessing\Managers\WorkflowStorageManager', 'PolyTrans_Workflow_Storage_Manager');
+class_alias('PolyTrans\PostProcessing\Providers\PostDataProvider', 'PolyTrans_Post_Data_Provider');
+class_alias('PolyTrans\PostProcessing\Providers\MetaDataProvider', 'PolyTrans_Meta_Data_Provider');
+class_alias('PolyTrans\PostProcessing\Providers\ContextDataProvider', 'PolyTrans_Context_Data_Provider');
+class_alias('PolyTrans\PostProcessing\Providers\ArticlesDataProvider', 'PolyTrans_Articles_Data_Provider');
+
+// ============================================================================
 // CORE MODULE
 // ============================================================================
 // class_alias('PolyTrans\Core\Settings\SettingsManager', 'PolyTrans_Translation_Settings');

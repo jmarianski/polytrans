@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\PostProcessing\Providers;
+
 /**
  * Meta Data Provider
  * 
@@ -10,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Meta_Data_Provider implements PolyTrans_Variable_Provider_Interface
+class Meta implements PolyTrans_Variable_Provider_Interface
 {
     /**
      * Get the provider identifier

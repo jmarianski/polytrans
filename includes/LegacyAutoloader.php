@@ -68,21 +68,21 @@ class LegacyAutoloader
         // 'PolyTrans_Postprocessing_Menu' => 'menu/class-postprocessing-menu.php', // ✅ MIGRATED
         // 'PolyTrans_Assistants_Menu' => 'menu/class-assistants-menu.php', // ✅ MIGRATED
         
-        // Post-processing
-        'PolyTrans_Variable_Manager' => 'postprocessing/class-variable-manager.php',
-        'PolyTrans_JSON_Response_Parser' => 'postprocessing/class-json-response-parser.php',
-        'PolyTrans_Workflow_Executor' => 'postprocessing/class-workflow-executor.php',
-        'PolyTrans_Workflow_Output_Processor' => 'postprocessing/class-workflow-output-processor.php',
-        'PolyTrans_Workflow_Storage_Manager' => 'postprocessing/managers/class-workflow-storage-manager.php',
-        'PolyTrans_Post_Data_Provider' => 'postprocessing/providers/class-post-data-provider.php',
-        'PolyTrans_Meta_Data_Provider' => 'postprocessing/providers/class-meta-data-provider.php',
-        'PolyTrans_Context_Data_Provider' => 'postprocessing/providers/class-context-data-provider.php',
-        'PolyTrans_Articles_Data_Provider' => 'postprocessing/providers/class-articles-data-provider.php',
+        // Post-processing - ✅ FULLY MIGRATED TO PSR-4!
+        // 'PolyTrans_Variable_Manager' => 'postprocessing/class-variable-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_JSON_Response_Parser' => 'postprocessing/class-json-response-parser.php', // ✅ MIGRATED
+        // 'PolyTrans_Workflow_Executor' => 'postprocessing/class-workflow-executor.php', // ✅ MIGRATED
+        // 'PolyTrans_Workflow_Output_Processor' => 'postprocessing/class-workflow-output-processor.php', // ✅ MIGRATED
+        // 'PolyTrans_Workflow_Storage_Manager' => 'postprocessing/managers/class-workflow-storage-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_Post_Data_Provider' => 'postprocessing/providers/class-post-data-provider.php', // ✅ MIGRATED
+        // 'PolyTrans_Meta_Data_Provider' => 'postprocessing/providers/class-meta-data-provider.php', // ✅ MIGRATED
+        // 'PolyTrans_Context_Data_Provider' => 'postprocessing/providers/class-context-data-provider.php', // ✅ MIGRATED
+        // 'PolyTrans_Articles_Data_Provider' => 'postprocessing/providers/class-articles-data-provider.php', // ✅ MIGRATED
         // 'PolyTrans_AI_Assistant_Step' => 'postprocessing/steps/class-ai-assistant-step.php', // ✅ MIGRATED
         // 'PolyTrans_Predefined_Assistant_Step' => 'postprocessing/steps/class-predefined-assistant-step.php', // ✅ MIGRATED
         // 'PolyTrans_Managed_Assistant_Step' => 'postprocessing/steps/class-managed-assistant-step.php', // ✅ MIGRATED
-        'PolyTrans_Workflow_Manager' => 'postprocessing/class-workflow-manager.php',
-        'PolyTrans_Workflow_Metabox' => 'postprocessing/class-workflow-metabox.php',
+        // 'PolyTrans_Workflow_Manager' => 'postprocessing/class-workflow-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_Workflow_Metabox' => 'postprocessing/class-workflow-metabox.php', // ✅ MIGRATED
         
         // Providers (OpenAI, Google, etc.)
         'PolyTrans_Google_Provider' => 'providers/google/class-google-provider.php',

@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\PostProcessing;\n\nuse PolyTrans\PostProcessing\Providers\PostDataProvider;
+
 /**
  * Workflow Output Processor
  * 
@@ -10,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Workflow_Output_Processor
+class WorkflowOutputProcessor
 {
     private static $instance = null;
 
@@ -67,7 +69,7 @@ class PolyTrans_Workflow_Output_Processor
                 $attribution_user = get_user_by('id', $attribution_user_id);
                 if ($attribution_user) {
                     wp_set_current_user($attribution_user_id);
-                    PolyTrans_Logs_Manager::log("Setting current user to {$attribution_user_id} ({$attribution_user->display_name}) for workflow changes", 'info', [
+                    \PolyTrans_Logs_Manager::log("Setting current user to {$attribution_user_id} ({$attribution_user->display_name}) for workflow changes", 'info', [
                         'source' => 'workflow_output_processor',
                         'original_user' => $original_user_id,
                         'attribution_user' => $attribution_user_id,
@@ -75,7 +77,7 @@ class PolyTrans_Workflow_Output_Processor
                         'workflow_name' => $workflow['name'] ?? 'Unknown'
                     ]);
                 } else {
-                    PolyTrans_Logs_Manager::log("Attribution user {$attribution_user_id} not found, using original user {$original_user_id}", 'warning', [
+                    \PolyTrans_Logs_Manager::log("Attribution user {$attribution_user_id} not found, using original user {$original_user_id}", 'warning', [
                         'source' => 'workflow_output_processor',
                         'original_user' => $original_user_id,
                         'invalid_attribution_user' => $attribution_user_id,
@@ -115,7 +117,7 @@ class PolyTrans_Workflow_Output_Processor
         // Restore original user if we changed it
         if (!$test_mode && $attribution_user_id && $attribution_user_id !== $original_user_id) {
             wp_set_current_user($original_user_id);
-            PolyTrans_Logs_Manager::log("Restored current user to {$original_user_id} after workflow changes", 'info', [
+            \PolyTrans_Logs_Manager::log("Restored current user to {$original_user_id} after workflow changes", 'info', [
                 'source' => 'workflow_output_processor',
                 'original_user' => $original_user_id,
                 'attribution_user' => $attribution_user_id
@@ -559,7 +561,7 @@ class PolyTrans_Workflow_Output_Processor
             ];
         }
 
-        PolyTrans_Logs_Manager::log("Updated post status to '{$status}' for post ID {$post_id}", 'info', [
+        \PolyTrans_Logs_Manager::log("Updated post status to '{$status}' for post ID {$post_id}", 'info', [
             'source' => 'workflow_output_processor',
             'post_id' => $post_id,
             'old_status' => get_post_field('post_status', $post_id),
@@ -608,7 +610,7 @@ class PolyTrans_Workflow_Output_Processor
             ];
         }
 
-        PolyTrans_Logs_Manager::log("Updated post date to '{$parsed_date}' for post ID {$post_id}", 'info', [
+        \PolyTrans_Logs_Manager::log("Updated post date to '{$parsed_date}' for post ID {$post_id}", 'info', [
             'source' => 'workflow_output_processor',
             'post_id' => $post_id,
             'new_date' => $parsed_date,
@@ -1028,7 +1030,7 @@ class PolyTrans_Workflow_Output_Processor
 
         // Use Post Data Provider to rebuild complete context
         // Note: Provider classes are autoloaded
-        $post_data_provider = new PolyTrans_Post_Data_Provider();
+        $post_data_provider = new PostDataProvider();
 
         // Create a temporary context with the post ID
         $temp_context = [
