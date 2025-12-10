@@ -110,7 +110,7 @@ class PolyTrans
         PolyTrans_Workflow_Metabox::get_instance();
 
         // Initialize the advanced receiver extension
-        $receiver_extension = new PolyTrans_Translation_Receiver_Extension();
+        $receiver_extension = new \PolyTrans_Translation_Receiver_Extension();
         $receiver_extension->register();
 
         // Initialize provider-specific AJAX handlers

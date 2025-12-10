@@ -477,8 +477,8 @@ class WorkflowManager
         ];
 
         // Use existing logging system
-        if (class_exists('PolyTrans_Logs_Manager')) {
-            $logs_manager = new PolyTrans_Logs_Manager();
+        if (class_exists('\PolyTrans_Logs_Manager')) {
+            $logs_manager = new \PolyTrans_Logs_Manager();
             $logs_manager->log('info', 'Post-processing workflow executed', $log_data);
         }
     }

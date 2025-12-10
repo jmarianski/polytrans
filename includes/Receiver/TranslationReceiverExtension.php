@@ -20,7 +20,7 @@ class TranslationReceiverExtension
     public function __construct()
     {
         $this->coordinator = new TranslationCoordinator();
-        $this->security_manager = new PolyTrans_Translation_Security_Manager();
+        $this->security_manager = new Managers\SecurityManager();
     }
 
     /**
