@@ -55,8 +55,8 @@ Return the translated content in the same JSON structure.',
     -- Expected Format
     'json',
     
-    -- Expected Output Schema (JSON string)
-    '{"title":"string","content":"string","excerpt":"string","meta":"object"}',
+    -- Expected Output Schema (JSON string) - with nested meta fields
+    '{"title":"string","content":"string","excerpt":"string","meta":{"seo_title":"string","seo_description":"string","focus_keyword":"string"}}',
     
     -- Output Variables (null for now)
     NULL,

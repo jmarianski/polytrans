@@ -281,6 +281,11 @@ class PolyTrans_Assistants_Menu
             if (!$assistant) {
                 wp_die(__('Assistant not found.', 'polytrans'));
             }
+            
+            // Map expected_format to response_format for UI consistency
+            if (!isset($assistant['response_format']) && isset($assistant['expected_format'])) {
+                $assistant['response_format'] = $assistant['expected_format'];
+            }
         }
 
         ?>

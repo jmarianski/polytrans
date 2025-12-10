@@ -264,6 +264,127 @@ test('sets impossible type coercion to null', function () {
         ->and($result['warnings'])->toHaveCount(1);
 });
 
+test('validates nested schema with specific fields', function () {
+    $response = <<<JSON
+{
+  "title": "Test Post",
+  "content": "Post content here",
+  "meta": {
+    "seo_title": "SEO Title",
+    "seo_description": "SEO Description",
+    "focus_keyword": "keyword"
+  }
+}
+JSON;
+
+    $schema = [
+        'title' => 'string',
+        'content' => 'string',
+        'meta' => [
+            'seo_title' => 'string',
+            'seo_description' => 'string',
+            'focus_keyword' => 'string'
+        ]
+    ];
+
+    $result = $this->parser->parse_with_schema($response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['data']['title'])->toBe('Test Post')
+        ->and($result['data']['meta'])->toBeArray()
+        ->and($result['data']['meta']['seo_title'])->toBe('SEO Title')
+        ->and($result['data']['meta']['seo_description'])->toBe('SEO Description')
+        ->and($result['data']['meta']['focus_keyword'])->toBe('keyword')
+        ->and($result['warnings'])->toBeEmpty();
+});
+
+test('handles missing nested fields', function () {
+    $response = <<<JSON
+{
+  "title": "Test Post",
+  "meta": {
+    "seo_title": "SEO Title"
+  }
+}
+JSON;
+
+    $schema = [
+        'title' => 'string',
+        'meta' => [
+            'seo_title' => 'string',
+            'seo_description' => 'string',
+            'focus_keyword' => 'string'
+        ]
+    ];
+
+    $result = $this->parser->parse_with_schema($response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['data']['title'])->toBe('Test Post')
+        ->and($result['data']['meta']['seo_title'])->toBe('SEO Title')
+        ->and($result['data']['meta']['seo_description'])->toBeNull()
+        ->and($result['data']['meta']['focus_keyword'])->toBeNull()
+        ->and($result['warnings'])->toHaveCount(2) // 2 missing nested fields
+        ->and($result['warnings'][0])->toContain('Missing nested field: meta.seo_description')
+        ->and($result['warnings'][1])->toContain('Missing nested field: meta.focus_keyword');
+});
+
+test('preserves extra nested fields not in schema', function () {
+    $response = <<<JSON
+{
+  "title": "Test Post",
+  "meta": {
+    "seo_title": "SEO Title",
+    "custom_field": "Custom Value",
+    "another_field": 123
+  }
+}
+JSON;
+
+    $schema = [
+        'title' => 'string',
+        'meta' => [
+            'seo_title' => 'string'
+        ]
+    ];
+
+    $result = $this->parser->parse_with_schema($response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['data']['meta']['seo_title'])->toBe('SEO Title')
+        ->and($result['data']['meta']['custom_field'])->toBe('Custom Value')
+        ->and($result['data']['meta']['another_field'])->toBe(123);
+});
+
+test('coerces nested field types', function () {
+    $response = <<<JSON
+{
+  "title": "Test Post",
+  "meta": {
+    "reading_time": "5",
+    "word_count": "1234"
+  }
+}
+JSON;
+
+    $schema = [
+        'title' => 'string',
+        'meta' => [
+            'reading_time' => 'number',
+            'word_count' => 'number'
+        ]
+    ];
+
+    $result = $this->parser->parse_with_schema($response, $schema);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['data']['meta']['reading_time'])->toBe(5)
+        ->and($result['data']['meta']['word_count'])->toBe(1234)
+        ->and($result['warnings'])->toHaveCount(2) // 2 type coercions
+        ->and($result['warnings'][0])->toContain('Type coercion: meta.reading_time')
+        ->and($result['warnings'][1])->toContain('Type coercion: meta.word_count');
+});
+
 // ============================================================================
 // Real-World Use Cases
 // ============================================================================

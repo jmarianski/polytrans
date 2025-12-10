@@ -111,28 +111,73 @@ class PolyTrans_JSON_Response_Parser
         foreach ($schema as $field_name => $expected_type) {
             if (isset($json_data[$field_name])) {
                 $raw_value = $json_data[$field_name];
-                $coerced_value = $this->coerce_type($raw_value, $expected_type);
-
-                // Check if type coercion happened or failed
-                if ($this->get_type($raw_value) !== $expected_type) {
-                    if ($coerced_value !== null) {
-                        $warnings[] = sprintf(
-                            'Type coercion: %s (%s → %s)',
-                            $field_name,
-                            $this->get_type($raw_value),
-                            $expected_type
-                        );
+                
+                // Check if this is a nested schema (array with field definitions)
+                if (is_array($expected_type) && !empty($expected_type)) {
+                    // Nested schema validation
+                    if (is_array($raw_value)) {
+                        $nested_result = [];
+                        foreach ($expected_type as $nested_field => $nested_type) {
+                            if (isset($raw_value[$nested_field])) {
+                                $nested_coerced = $this->coerce_type($raw_value[$nested_field], $nested_type);
+                                
+                                // Check nested type coercion
+                                if ($this->get_type($raw_value[$nested_field]) !== $nested_type && $nested_coerced !== null) {
+                                    $warnings[] = sprintf(
+                                        'Type coercion: %s.%s (%s → %s)',
+                                        $field_name,
+                                        $nested_field,
+                                        $this->get_type($raw_value[$nested_field]),
+                                        $nested_type
+                                    );
+                                }
+                                
+                                $nested_result[$nested_field] = $nested_coerced;
+                            } else {
+                                // Nested field missing
+                                $nested_result[$nested_field] = null;
+                                $warnings[] = sprintf('Missing nested field: %s.%s', $field_name, $nested_field);
+                            }
+                        }
+                        
+                        // Preserve extra nested fields not in schema
+                        foreach ($raw_value as $nested_field => $nested_value) {
+                            if (!isset($expected_type[$nested_field])) {
+                                $nested_result[$nested_field] = $nested_value;
+                            }
+                        }
+                        
+                        $result_data[$field_name] = $nested_result;
                     } else {
-                        $warnings[] = sprintf(
-                            'Type coercion failed: %s (cannot convert %s to %s)',
-                            $field_name,
-                            $this->get_type($raw_value),
-                            $expected_type
-                        );
+                        // Expected nested object but got something else
+                        $warnings[] = sprintf('Type mismatch: %s (expected object with nested schema, got %s)', $field_name, $this->get_type($raw_value));
+                        $result_data[$field_name] = null;
                     }
-                }
+                } else {
+                    // Simple type validation
+                    $coerced_value = $this->coerce_type($raw_value, $expected_type);
 
-                $result_data[$field_name] = $coerced_value;
+                    // Check if type coercion happened or failed
+                    if ($this->get_type($raw_value) !== $expected_type) {
+                        if ($coerced_value !== null) {
+                            $warnings[] = sprintf(
+                                'Type coercion: %s (%s → %s)',
+                                $field_name,
+                                $this->get_type($raw_value),
+                                $expected_type
+                            );
+                        } else {
+                            $warnings[] = sprintf(
+                                'Type coercion failed: %s (cannot convert %s to %s)',
+                                $field_name,
+                                $this->get_type($raw_value),
+                                $expected_type
+                            );
+                        }
+                    }
+
+                    $result_data[$field_name] = $coerced_value;
+                }
             } else {
                 // Field missing from response
                 $result_data[$field_name] = null;
