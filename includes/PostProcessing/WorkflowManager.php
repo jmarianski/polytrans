@@ -598,8 +598,8 @@ class WorkflowManager
         ];
 
         // Spawn background process
-        if (class_exists('PolyTrans_Background_Processor')) {
-            $spawned = PolyTrans_Background_Processor::spawn($bg_args, 'workflow-test');
+        if (class_exists('\PolyTrans_Background_Processor')) {
+            $spawned = \PolyTrans_Background_Processor::spawn($bg_args, 'workflow-test');
 
             if ($spawned) {
                 wp_send_json_success([
@@ -752,8 +752,8 @@ class WorkflowManager
         ];
 
         // Spawn background process
-        if (class_exists('PolyTrans_Background_Processor')) {
-            $spawned = PolyTrans_Background_Processor::spawn($bg_args, 'workflow-execute');
+        if (class_exists('\PolyTrans_Background_Processor')) {
+            $spawned = \PolyTrans_Background_Processor::spawn($bg_args, 'workflow-execute');
 
             if ($spawned) {
                 wp_send_json_success([

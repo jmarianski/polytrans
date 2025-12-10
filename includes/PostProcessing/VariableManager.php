@@ -23,7 +23,7 @@ class VariableManager
      * @return void
      */
     private function load_twig_engine() {
-        if (!class_exists('PolyTrans_Twig_Engine')) {
+        if (!class_exists('\PolyTrans_Twig_Engine')) {
             $twig_engine_path = dirname(__DIR__) . '/templating/class-twig-template-engine.php';
             if (file_exists($twig_engine_path)) {
                 require_once $twig_engine_path;
@@ -86,7 +86,7 @@ class VariableManager
         $this->load_twig_engine();
 
         // Use Twig Engine if available
-        if (class_exists('PolyTrans_Twig_Engine')) {
+        if (class_exists('\PolyTrans_Twig_Engine')) {
             try {
                 return PolyTrans_Twig_Engine::render($template, $context);
             } catch (Exception $e) {

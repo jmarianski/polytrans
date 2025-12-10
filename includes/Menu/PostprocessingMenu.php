@@ -1062,7 +1062,7 @@ class PostprocessingMenu
     private function get_openai_assistants()
     {
         // Check if OpenAI settings provider class exists
-        if (!class_exists('PolyTrans_OpenAI_Settings_Provider')) {
+        if (!class_exists('\PolyTrans_OpenAI_Settings_Provider')) {
             return [];
         }
 
@@ -1083,7 +1083,7 @@ class PostprocessingMenu
     private function get_openai_models()
     {
         // Check if OpenAI settings provider class exists
-        if (!class_exists('PolyTrans_OpenAI_Settings_Provider')) {
+        if (!class_exists('\PolyTrans_OpenAI_Settings_Provider')) {
             return [];
         }
 

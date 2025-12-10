@@ -117,7 +117,7 @@ class BackgroundProcessor
             \$action = \$data['action'];
             
             // Call the processing function
-            if (class_exists('PolyTrans_Background_Processor')) {
+            if (class_exists('\PolyTrans_Background_Processor')) {
                 PolyTrans_Background_Processor::process_task(\$args, \$action);
             }
             

@@ -310,7 +310,7 @@ class TranslationHandler
 
         // Get recent articles in target language for context
         $context_articles = [];
-        if (class_exists('PolyTrans_Articles_Data_Provider')) {
+        if (class_exists('\PolyTrans_Articles_Data_Provider')) {
             $articles_provider = new ArticlesDataProvider();
 
             // Prepare context for the articles provider
