@@ -190,8 +190,8 @@ Advanced post-processing workflow engine:
 - **Implementation**: User autocomplete field with backend validation
 - **Benefits**: Clean revision logs, proper change attribution
 - **Files Modified**: 
-  - `includes/menu/class-postprocessing-menu.php`
-  - `includes/postprocessing/class-workflow-output-processor.php`
+  - `includes/Menu/PostprocessingMenu.php` (PSR-4: `PolyTrans\Menu\PostprocessingMenu`)
+  - `includes/PostProcessing/WorkflowOutputProcessor.php` (PSR-4: `PolyTrans\PostProcessing\WorkflowOutputProcessor`)
   - `assets/js/postprocessing-admin.js`
   - `assets/js/core/user-autocomplete.js`
 
@@ -201,8 +201,8 @@ Advanced post-processing workflow engine:
 - **Solution**: Modified `PolyTrans_Translation_Post_Creator::create_post()` to include original author
 - **Benefits**: Proper author attribution from post creation, cleaner revision history
 - **Files Modified**: 
-  - `includes/receiver/managers/class-translation-post-creator.php`
-  - `includes/receiver/managers/class-translation-metadata-manager.php`
+  - `includes/Receiver/Managers/PostCreator.php` (PSR-4: `PolyTrans\Receiver\Managers\PostCreator`)
+  - `includes/Receiver/Managers/MetadataManager.php` (PSR-4: `PolyTrans\Receiver\Managers\MetadataManager`)
 
 ### 2. Workflow Engine Enhancements
 
@@ -212,8 +212,8 @@ Advanced post-processing workflow engine:
 - **Solution**: Updated context in both test and production modes, added database refresh
 - **Benefits**: Proper data flow between workflow steps, correct step execution
 - **Files Modified**: 
-  - `includes/postprocessing/class-workflow-executor.php`
-  - `includes/postprocessing/class-workflow-output-processor.php`
+  - `includes/PostProcessing/WorkflowExecutor.php` (PSR-4: `PolyTrans\PostProcessing\WorkflowExecutor`)
+  - `includes/PostProcessing/WorkflowOutputProcessor.php` (PSR-4: `PolyTrans\PostProcessing\WorkflowOutputProcessor`)
 
 #### Action Counting Fix
 - **Issue**: "Actions processed: 0" consistently shown in logs
@@ -221,7 +221,7 @@ Advanced post-processing workflow engine:
 - **Solution**: Fixed executor to treat `processed_actions` as integer, not array
 - **Benefits**: Accurate action counting, better debugging capability
 - **Files Modified**: 
-  - `includes/postprocessing/class-workflow-executor.php`
+  - `includes/PostProcessing/WorkflowExecutor.php` (PSR-4: `PolyTrans\PostProcessing\WorkflowExecutor`)
 
 ### 3. Performance & Reliability
 - **Consolidated Logging**: Unified logging system across all components
@@ -252,7 +252,7 @@ Advanced post-processing workflow engine:
 - **Seasonal Content**: AI schedules content based on relevance and timing analysis
 
 #### Implementation Details
-- **Files Modified**: `includes/postprocessing/class-workflow-output-processor.php`
+- **Files Modified**: `includes/PostProcessing/WorkflowOutputProcessor.php` (PSR-4: `PolyTrans\PostProcessing\WorkflowOutputProcessor`)
 - **New Methods**: `update_post_status()`, `update_post_date()`, `parse_post_status()`, `parse_post_date()`
 - **Error Handling**: Comprehensive validation with helpful error messages and format examples
 - **Logging**: Full audit trail of all status and date changes with original AI responses
