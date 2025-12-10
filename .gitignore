@@ -39,3 +39,4 @@ wp-content/uploads/
 # Plugin specific
 .env
 .env.local
+cache/twig/*
