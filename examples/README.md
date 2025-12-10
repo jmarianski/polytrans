@@ -76,15 +76,19 @@ After creating an assistant, use it in your workflows:
 4. Select your translation assistant
 5. Configure trigger (e.g., "When post is published")
 
-### Step 2: Configure Output Actions
-The assistant returns structured data based on its schema:
+### Step 2: Configure Output Actions (Optional!)
 
-**For EN→PL assistant (full post structure):**
+**With Auto-Mapping (EN→PL assistant):**
+✓ **No Output Actions needed!** The schema automatically maps fields:
+- `post.title` → Updates post title
+- `post.content` → Updates post content
+- `meta.seo_title` → Updates SEO title meta
+
+**Without Auto-Mapping (manual configuration):**
 ```
 Output Actions:
 - update_post_field: title = {{ step_1_output.title }}
 - update_post_field: content = {{ step_1_output.content }}
-- update_post_field: excerpt = {{ step_1_output.excerpt }}
 - update_post_meta: seo_title = {{ step_1_output.meta.seo_title }}
 ```
 
@@ -94,6 +98,8 @@ Output Actions:
 - update_post_meta: translated_text = {{ step_1_output.text }}
 - update_post_meta: translation_key = {{ step_1_output.KEY }}
 ```
+
+**Pro Tip:** Use auto-mapping for standard WordPress fields, and add custom Output Actions only for special logic!
 
 ---
 
@@ -122,16 +128,57 @@ Edit the `system_prompt` field and add your terminology:
 
 ---
 
-## Schema-Based Parsing
+## Schema-Based Parsing with Auto-Mapping
 
-All assistants use **Expected Output Schema** for robust JSON parsing:
+All assistants use **Expected Output Schema** for robust JSON parsing and **automatic field mapping**:
+
+### Two Schema Formats:
+
+**Simple Format** (manual Output Actions):
+```json
+{
+  "title": "string",
+  "content": "string"
+}
+```
+You configure Output Actions manually.
+
+**Object Format** (auto-mapping - RECOMMENDED):
+```json
+{
+  "title": {
+    "type": "string",
+    "target": "post.title",
+    "required": true
+  },
+  "content": {
+    "type": "string",
+    "target": "post.content"
+  },
+  "meta": {
+    "seo_title": {
+      "type": "string",
+      "target": "meta.seo_title"
+    }
+  }
+}
+```
+**Zero Output Actions needed!** Fields are automatically mapped.
 
 ### Benefits:
 ✓ **Handles AI quirks** - Extracts JSON from commentary, code blocks, etc.
 ✓ **Type coercion** - Converts `"8"` → `8`, `"yes"` → `true`
 ✓ **Missing fields** - Sets to `null` with warnings
 ✓ **Validation** - Ensures correct structure
-✓ **Structured data** - Direct access via `{{ step_output.field }}`
+✓ **Auto-mapping** - No manual Output Actions configuration
+✓ **Required fields** - Enforces presence of critical fields
+
+### Supported Targets:
+- `post.title` → Updates post title
+- `post.content` → Updates post content
+- `post.excerpt` → Updates post excerpt
+- `meta.KEY` → Updates post meta field
+- `taxonomy.TAXONOMY.TERM` → Assigns taxonomy term
 
 ### Example:
 AI responds:
@@ -143,14 +190,11 @@ Sure! Here's the translation:
 Hope this helps!
 ```
 
-Parser extracts:
-```json
-{"title": "Translated Title", "content": "Translated Content"}
-```
+Parser extracts and **automatically applies**:
+- Post title = "Translated Title"
+- Post content = "Translated Content"
 
-Workflow context gets:
-- `{{ step_1_output.title }}` = "Translated Title"
-- `{{ step_1_output.content }}` = "Translated Content"
+No Output Actions configuration needed!
 
 ---
 

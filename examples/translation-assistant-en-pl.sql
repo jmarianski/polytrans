@@ -55,8 +55,13 @@ Return the translated content in the same JSON structure.',
     -- Expected Format
     'json',
     
-    -- Expected Output Schema (JSON string) - with nested meta fields
-    '{"title":"string","content":"string","excerpt":"string","meta":{"seo_title":"string","seo_description":"string","focus_keyword":"string"}}',
+    -- Expected Output Schema (JSON string) - with auto-mapping targets
+    -- This schema automatically maps AI response fields to WordPress post fields
+    -- No manual Output Actions needed! The system will:
+    --   - Update post.title, post.content, post.excerpt automatically
+    --   - Update meta.seo_title, meta.seo_description, meta.focus_keyword automatically
+    -- Format: {"field": {"type": "string", "target": "post.field", "required": true}}
+    '{"title":{"type":"string","target":"post.title","required":true},"content":{"type":"string","target":"post.content","required":true},"excerpt":{"type":"string","target":"post.excerpt"},"meta":{"seo_title":{"type":"string","target":"meta.seo_title"},"seo_description":{"type":"string","target":"meta.seo_description"},"focus_keyword":{"type":"string","target":"meta.focus_keyword"}}}',
     
     -- Output Variables (null for now)
     NULL,
