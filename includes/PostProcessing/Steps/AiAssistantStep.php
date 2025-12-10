@@ -6,11 +6,13 @@
  * Handles communication with AI assistants (like OpenAI) for post-processing tasks.
  */
 
+namespace PolyTrans\PostProcessing\Steps;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
+class AiAssistantStep implements \PolyTrans_Workflow_Step_Interface
 {
     /**
      * Get the step type identifier
@@ -63,7 +65,7 @@ class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
             }
 
             // Interpolate variables in both prompts
-            $variable_manager = new PolyTrans_Variable_Manager();
+            $variable_manager = new \PolyTrans_Variable_Manager();
             $interpolated_system_prompt = $variable_manager->interpolate_template($system_prompt, $context);
             $interpolated_user_message = $variable_manager->interpolate_template($user_message, $context);
 
@@ -398,7 +400,7 @@ class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
     private function process_ai_response($response_text, $expected_format)
     {
         if ($expected_format === 'json') {
-            $variable_manager = new PolyTrans_Variable_Manager();
+            $variable_manager = new \PolyTrans_Variable_Manager();
             $parsed_json = $variable_manager->parse_json_response($response_text);
 
             if (!empty($parsed_json)) {
@@ -424,7 +426,7 @@ class PolyTrans_AI_Assistant_Step implements PolyTrans_Workflow_Step_Interface
     private function get_all_available_models()
     {
         // Get the OpenAI settings provider to ensure we use the same model list
-        $provider = new PolyTrans_OpenAI_Settings_Provider();
+        $provider = new \PolyTrans_OpenAI_Settings_Provider();
         $reflection = new ReflectionClass($provider);
         $method = $reflection->getMethod('get_grouped_models');
         $method->setAccessible(true);

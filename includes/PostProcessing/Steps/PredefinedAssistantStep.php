@@ -6,11 +6,13 @@
  * Handles communication with predefined OpenAI assistants configured in settings.
  */
 
+namespace PolyTrans\PostProcessing\Steps;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Interface
+class PredefinedAssistantStep implements \PolyTrans_Workflow_Step_Interface
 {
     /**
      * Get the step type identifier
@@ -63,7 +65,7 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
             }
 
             // Interpolate variables in user message
-            $variable_manager = new PolyTrans_Variable_Manager();
+            $variable_manager = new \PolyTrans_Variable_Manager();
             $interpolated_user_message = $variable_manager->interpolate_template($user_message, $context);
 
             // Get AI provider settings
@@ -216,7 +218,7 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
         }
 
         // Create OpenAI client from settings
-        $client = PolyTrans_OpenAI_Client::from_settings();
+        $client = \PolyTrans_OpenAI_Client::from_settings();
         if (!$client) {
             return [];
         }
@@ -288,7 +290,7 @@ class PolyTrans_Predefined_Assistant_Step implements PolyTrans_Workflow_Step_Int
     {
         try {
             // Create OpenAI client
-            $client = new PolyTrans_OpenAI_Client(
+            $client = new \PolyTrans_OpenAI_Client(
                 $provider_settings['api_key'],
                 $provider_settings['base_url']
             );

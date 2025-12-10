@@ -78,8 +78,8 @@ class LegacyAutoloader
         'PolyTrans_Meta_Data_Provider' => 'postprocessing/providers/class-meta-data-provider.php',
         'PolyTrans_Context_Data_Provider' => 'postprocessing/providers/class-context-data-provider.php',
         'PolyTrans_Articles_Data_Provider' => 'postprocessing/providers/class-articles-data-provider.php',
-        'PolyTrans_AI_Assistant_Step' => 'postprocessing/steps/class-ai-assistant-step.php',
-        'PolyTrans_Predefined_Assistant_Step' => 'postprocessing/steps/class-predefined-assistant-step.php',
+        // 'PolyTrans_AI_Assistant_Step' => 'postprocessing/steps/class-ai-assistant-step.php', // ✅ MIGRATED
+        // 'PolyTrans_Predefined_Assistant_Step' => 'postprocessing/steps/class-predefined-assistant-step.php', // ✅ MIGRATED
         // 'PolyTrans_Managed_Assistant_Step' => 'postprocessing/steps/class-managed-assistant-step.php', // ✅ MIGRATED
         'PolyTrans_Workflow_Manager' => 'postprocessing/class-workflow-manager.php',
         'PolyTrans_Workflow_Metabox' => 'postprocessing/class-workflow-metabox.php',
