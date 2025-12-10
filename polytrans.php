@@ -20,17 +20,16 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('POLYTRANS_VERSION', '1.3.5');
+define('POLYTRANS_VERSION', '1.4.0');
 define('POLYTRANS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('POLYTRANS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('POLYTRANS_PLUGIN_FILE', __FILE__);
 
-// Load Composer dependencies (Twig, etc.)
-if (file_exists(POLYTRANS_PLUGIN_DIR . 'vendor/autoload.php')) {
-    require_once POLYTRANS_PLUGIN_DIR . 'vendor/autoload.php';
-}
+// Initialize Bootstrap (handles autoloading and compatibility)
+require_once POLYTRANS_PLUGIN_DIR . 'includes/Bootstrap.php';
+\PolyTrans\Bootstrap::init();
 
-// Include the main plugin class
+// Include the main plugin class (still needed until we migrate it)
 require_once POLYTRANS_PLUGIN_DIR . 'includes/class-polytrans.php';
 
 // Include background processor
