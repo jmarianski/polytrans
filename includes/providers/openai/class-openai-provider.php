@@ -320,26 +320,44 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
 
         $response_text = $message_result['content'];
 
-        // Extract JSON from the response
-        if (preg_match('/```json\s*(.*?)\s*```/s', $response_text, $matches)) {
-            $json_text = $matches[1];
-        } elseif (preg_match('/\{.*\}/s', $response_text, $matches)) {
-            $json_text = $matches[0];
-        } else {
-            $json_text = $response_text;
-        }
+        // Use JSON Response Parser for robust extraction and validation
+        $parser = new PolyTrans_JSON_Response_Parser();
+        
+        // Define expected schema for translation response
+        $schema = [
+            'title' => 'string',
+            'content' => 'string',
+            'excerpt' => 'string',
+            'meta' => 'object',
+            'featured_image' => 'string' // Optional, can be null
+        ];
 
-        $translated_content = json_decode($json_text, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
+        $parse_result = $parser->parse_with_schema($response_text, $schema);
+
+        if (!$parse_result['success']) {
+            PolyTrans_Logs_Manager::log(
+                "Failed to parse translation response: " . $parse_result['error'],
+                "error",
+                ['raw_response' => substr($response_text, 0, 500)]
+            );
             return [
                 'success' => false,
-                'error' => 'Failed to parse OpenAI response as JSON: ' . json_last_error_msg() . '. Response: ' . $response_text
+                'error' => 'Failed to parse OpenAI response: ' . $parse_result['error']
             ];
+        }
+
+        // Log warnings if any (missing fields, type coercion, etc.)
+        if (!empty($parse_result['warnings'])) {
+            PolyTrans_Logs_Manager::log(
+                "Translation response parsing warnings: " . implode(', ', $parse_result['warnings']),
+                "warning",
+                ['source_lang' => $source_lang, 'target_lang' => $target_lang]
+            );
         }
 
         return [
             'success' => true,
-            'translated_content' => $translated_content
+            'translated_content' => $parse_result['data']
         ];
     }
 }
