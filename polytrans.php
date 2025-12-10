@@ -104,6 +104,14 @@ function polytrans_check_workflows_table()
     require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-manager.php';
     require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-executor.php';
     PolyTrans_Assistant_Manager::create_table();
+    
+    // Add expected_output_schema column if it doesn't exist
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'polytrans_assistants';
+    $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$table_name} LIKE 'expected_output_schema'");
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE {$table_name} ADD COLUMN expected_output_schema text AFTER expected_format");
+    }
 }
 add_action('admin_init', 'polytrans_check_workflows_table');
 

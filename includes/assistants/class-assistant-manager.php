@@ -66,6 +66,7 @@ class PolyTrans_Assistant_Manager {
 
 			api_parameters text NOT NULL,
 			expected_format varchar(20) DEFAULT 'text',
+			expected_output_schema text,
 			output_variables text,
 
 			created_at datetime NOT NULL,
@@ -138,6 +139,18 @@ class PolyTrans_Assistant_Manager {
 			}
 		}
 
+		// Optional: expected_output_schema (validate JSON if present and not null)
+		if ( isset( $data['expected_output_schema'] ) && ! is_null( $data['expected_output_schema'] ) ) {
+			if ( is_string( $data['expected_output_schema'] ) ) {
+				$decoded = json_decode( $data['expected_output_schema'], true );
+				if ( json_last_error() !== JSON_ERROR_NONE ) {
+					$errors['expected_output_schema'] = __( 'Invalid JSON in expected_output_schema', 'polytrans' );
+				} elseif ( ! is_array( $decoded ) ) {
+					$errors['expected_output_schema'] = __( 'Expected output schema must be a JSON object', 'polytrans' );
+				}
+			}
+		}
+
 		return array(
 			'valid'  => empty( $errors ),
 			'errors' => $errors,
@@ -172,6 +185,7 @@ class PolyTrans_Assistant_Manager {
 			'user_message_template' => $sanitized['user_message_template'],
 			'api_parameters'        => wp_json_encode( $sanitized['api_parameters'] ),
 			'expected_format'       => $sanitized['expected_format'],
+			'expected_output_schema' => ! empty( $sanitized['expected_output_schema'] ) ? wp_json_encode( $sanitized['expected_output_schema'] ) : null,
 			'output_variables'      => ! empty( $sanitized['output_variables'] ) ? wp_json_encode( $sanitized['output_variables'] ) : null,
 			'created_at'            => current_time( 'mysql' ),
 			'updated_at'            => current_time( 'mysql' ),
@@ -208,8 +222,9 @@ class PolyTrans_Assistant_Manager {
 		}
 
 		// Decode JSON fields
-		$assistant['api_parameters']   = json_decode( $assistant['api_parameters'], true );
-		$assistant['output_variables'] = ! empty( $assistant['output_variables'] ) ? json_decode( $assistant['output_variables'], true ) : null;
+		$assistant['api_parameters']        = json_decode( $assistant['api_parameters'], true );
+		$assistant['expected_output_schema'] = ! empty( $assistant['expected_output_schema'] ) ? json_decode( $assistant['expected_output_schema'], true ) : null;
+		$assistant['output_variables']      = ! empty( $assistant['output_variables'] ) ? json_decode( $assistant['output_variables'], true ) : null;
 
 		return $assistant;
 	}
@@ -249,6 +264,7 @@ class PolyTrans_Assistant_Manager {
 			'user_message_template' => $sanitized['user_message_template'],
 			'api_parameters'        => wp_json_encode( $sanitized['api_parameters'] ),
 			'expected_format'       => $sanitized['expected_format'],
+			'expected_output_schema' => ! empty( $sanitized['expected_output_schema'] ) ? wp_json_encode( $sanitized['expected_output_schema'] ) : null,
 			'output_variables'      => ! empty( $sanitized['output_variables'] ) ? wp_json_encode( $sanitized['output_variables'] ) : null,
 			'updated_at'            => current_time( 'mysql' ),
 		);
@@ -455,6 +471,17 @@ class PolyTrans_Assistant_Manager {
 
 		// Expected format
 		$sanitized['expected_format'] = isset( $data['expected_format'] ) ? sanitize_text_field( $data['expected_format'] ) : 'text';
+
+		// Expected output schema (decode if string)
+		if ( isset( $data['expected_output_schema'] ) && ! is_null( $data['expected_output_schema'] ) ) {
+			if ( is_string( $data['expected_output_schema'] ) ) {
+				$sanitized['expected_output_schema'] = json_decode( $data['expected_output_schema'], true );
+			} else {
+				$sanitized['expected_output_schema'] = $data['expected_output_schema'];
+			}
+		} else {
+			$sanitized['expected_output_schema'] = null;
+		}
 
 		// Output variables (decode if string)
 		if ( isset( $data['output_variables'] ) && ! is_null( $data['output_variables'] ) ) {
