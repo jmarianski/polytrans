@@ -33,28 +33,42 @@ class PolyTrans_Assistant_Migration_Manager
             'errors' => []
         ];
 
+        PolyTrans_Logs_Manager::log("Starting workflow migration to managed assistants", 'info');
+
         try {
             // Get all workflows
             $storage_manager = new PolyTrans_Workflow_Storage_Manager();
             $workflows = $storage_manager->get_all_workflows();
+            
+            PolyTrans_Logs_Manager::log("Found " . count($workflows) . " workflows to check", 'info');
 
             if (empty($workflows)) {
+                PolyTrans_Logs_Manager::log("No workflows found, migration skipped", 'info');
                 return $stats;
             }
 
             foreach ($workflows as $workflow) {
                 $workflow_modified = false;
                 $stats['workflows_processed']++;
+                
+                PolyTrans_Logs_Manager::log("Checking workflow: {$workflow['name']} (ID: {$workflow['id']})", 'debug');
 
                 if (empty($workflow['steps']) || !is_array($workflow['steps'])) {
+                    PolyTrans_Logs_Manager::log("Workflow {$workflow['name']} has no steps, skipping", 'debug');
                     continue;
                 }
 
                 foreach ($workflow['steps'] as $step_index => &$step) {
+                    $step_type = $step['type'] ?? 'unknown';
+                    PolyTrans_Logs_Manager::log("Step {$step_index}: {$step['name']} (type: {$step_type})", 'debug');
+                    
                     // Only migrate ai_assistant steps
-                    if (($step['type'] ?? '') !== 'ai_assistant') {
+                    if ($step_type !== 'ai_assistant') {
+                        PolyTrans_Logs_Manager::log("Step {$step_index} is not ai_assistant, skipping", 'debug');
                         continue;
                     }
+                    
+                    PolyTrans_Logs_Manager::log("Migrating step {$step_index}: {$step['name']}", 'info');
 
                     try {
                         // Create managed assistant from ai_assistant config
