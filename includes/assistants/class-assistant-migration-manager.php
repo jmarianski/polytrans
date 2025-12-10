@@ -207,18 +207,22 @@ class PolyTrans_Assistant_Migration_Manager
         PolyTrans_Logs_Manager::log("Creating new assistant: {$assistant_name}", 'debug');
         PolyTrans_Logs_Manager::log("Assistant data: " . json_encode($assistant_data), 'debug');
         
-        try {
-            $assistant_id = PolyTrans_Assistant_Manager::create_assistant($assistant_data);
-            PolyTrans_Logs_Manager::log("Assistant created successfully with ID: {$assistant_id}", 'info');
-            return $assistant_id;
-        } catch (Exception $e) {
+        $result = PolyTrans_Assistant_Manager::create_assistant($assistant_data);
+        
+        // Check if result is WP_Error
+        if (is_wp_error($result)) {
+            $error_message = $result->get_error_message();
+            $error_data = $result->get_error_data();
             PolyTrans_Logs_Manager::log(
-                "Failed to create assistant '{$assistant_name}': {$e->getMessage()}",
-                'error'
+                "Failed to create assistant '{$assistant_name}': {$error_message}",
+                'error',
+                ['error_data' => $error_data]
             );
-            PolyTrans_Logs_Manager::log("Exception trace: " . $e->getTraceAsString(), 'error');
             return false;
         }
+        
+        PolyTrans_Logs_Manager::log("Assistant created successfully with ID: {$result}", 'info');
+        return $result;
     }
 
     /**
