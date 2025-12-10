@@ -55,10 +55,10 @@ class LegacyAutoloader
         'PolyTrans_Translation_Coordinator' => 'receiver/class-translation-coordinator.php',
         'PolyTrans_Translation_Receiver_Extension' => 'receiver/class-translation-receiver-extension.php',
         
-        // Assistants
-        'PolyTrans_Assistant_Manager' => 'assistants/class-assistant-manager.php',
-        'PolyTrans_Assistant_Executor' => 'assistants/class-assistant-executor.php',
-        'PolyTrans_Assistant_Migration_Manager' => 'assistants/class-assistant-migration-manager.php',
+        // Assistants - ✅ FULLY MIGRATED TO PSR-4!
+        // 'PolyTrans_Assistant_Manager' => 'assistants/class-assistant-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_Assistant_Executor' => 'assistants/class-assistant-executor.php', // ✅ MIGRATED
+        // 'PolyTrans_Assistant_Migration_Manager' => 'assistants/class-assistant-migration-manager.php', // ✅ MIGRATED
         
         // Menu
         'PolyTrans_Settings_Menu' => 'menu/class-settings-menu.php',

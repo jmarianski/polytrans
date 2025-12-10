@@ -27,10 +27,9 @@ if (!defined('ABSPATH')) {
 // ============================================================================
 // ASSISTANTS MODULE
 // ============================================================================
-// Will be added as we migrate:
-// class_alias('PolyTrans\Assistants\AssistantManager', 'PolyTrans_Assistant_Manager');
-// class_alias('PolyTrans\Assistants\AssistantExecutor', 'PolyTrans_Assistant_Executor');
-// class_alias('PolyTrans\Assistants\AssistantMigration', 'PolyTrans_Assistant_Migration_Manager');
+class_alias('PolyTrans\Assistants\AssistantManager', 'PolyTrans_Assistant_Manager');
+class_alias('PolyTrans\Assistants\AssistantExecutor', 'PolyTrans_Assistant_Executor');
+class_alias('PolyTrans\Assistants\AssistantMigration', 'PolyTrans_Assistant_Migration_Manager');
 
 // ============================================================================
 // CORE MODULE
