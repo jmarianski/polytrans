@@ -41,5 +41,39 @@ describe('Bootstrap', function () {
         
         expect(true)->toBeTrue();
     });
+
+    test('Compatibility file exists and is loaded', function () {
+        $compatibilityFile = POLYTRANS_PLUGIN_DIR . 'includes/Compatibility.php';
+        
+        expect(file_exists($compatibilityFile))->toBeTrue('Compatibility.php should exist');
+    });
+
+    test('PSR-4 autoloader is configured in composer.json', function () {
+        $composerFile = POLYTRANS_PLUGIN_DIR . 'composer.json';
+        
+        expect(file_exists($composerFile))->toBeTrue();
+        
+        $composer = json_decode(file_get_contents($composerFile), true);
+        
+        expect($composer)->toHaveKey('autoload');
+        expect($composer['autoload'])->toHaveKey('psr-4');
+        expect($composer['autoload']['psr-4'])->toHaveKey('PolyTrans\\');
+        expect($composer['autoload']['psr-4']['PolyTrans\\'])->toBe('includes/');
+    });
+
+    test('Bootstrap class is in correct namespace', function () {
+        $reflection = new ReflectionClass('PolyTrans\Bootstrap');
+        
+        expect($reflection->getNamespaceName())->toBe('PolyTrans');
+        expect($reflection->getShortName())->toBe('Bootstrap');
+    });
+
+    test('Bootstrap has expected public methods', function () {
+        $methods = get_class_methods('PolyTrans\Bootstrap');
+        
+        expect($methods)->toContain('init');
+        expect($methods)->toContain('getVersion');
+        expect($methods)->toContain('isInitialized');
+    });
 });
 
