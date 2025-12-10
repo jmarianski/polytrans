@@ -37,6 +37,7 @@ class LegacyAutoloader
         'PolyTrans_Logs_Manager' => 'core/class-logs-manager.php',
         'PolyTrans_Translation_Extension' => 'core/class-translation-extension.php',
         'PolyTrans_Translation_Settings' => 'core/class-translation-settings.php',
+        'polytrans_settings' => 'core/class-translation-settings.php', // lowercase class name
         
         // Scheduler
         'PolyTrans_Translation_Scheduler' => 'scheduler/class-translation-scheduler.php',
@@ -105,11 +106,6 @@ class LegacyAutoloader
      */
     public static function autoload($className)
     {
-        // Only handle PolyTrans classes
-        if (strpos($className, 'PolyTrans_') !== 0) {
-            return;
-        }
-
         // Check if we have a mapping for this class
         if (!isset(self::$classMap[$className])) {
             return;
