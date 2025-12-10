@@ -84,17 +84,37 @@ class PolyTrans_Assistant_Executor {
 			return $processed;
 		}
 
-		// Return standardized result
-		return array(
+		PolyTrans_Logs_Manager::log(
+			'Building final result array',
+			'debug',
+			array(
+				'has_output' => isset( $processed['output'] ),
+				'has_usage' => isset( $api_response['usage'] ),
+				'memory_usage' => memory_get_usage( true ),
+			)
+		);
+
+		// Return standardized result (without raw_response to avoid memory issues)
+		$result = array(
 			'success'                   => true,
 			'output'                    => $processed['output'],
 			'provider'                  => $config['provider'] ?? 'openai',
 			'model'                     => $config['api_parameters']['model'] ?? 'unknown',
 			'usage'                     => $api_response['usage'] ?? array(),
-			'raw_response'              => $api_response,
+			// raw_response removed - can be 50KB+ and cause memory issues
 			'interpolated_system_prompt' => $prompts['system_prompt'] ?? null,
 			'interpolated_user_message'  => $prompts['user_message'] ?? null,
 		);
+
+		PolyTrans_Logs_Manager::log(
+			'execute_with_config completed successfully',
+			'debug',
+			array(
+				'result_keys' => array_keys( $result ),
+			)
+		);
+
+		return $result;
 	}
 
 	/**
@@ -301,7 +321,18 @@ class PolyTrans_Assistant_Executor {
 				return array( 'output' => $content );
 
 			case 'json':
-				return self::process_json_response( $content, $config );
+				$result = self::process_json_response( $content, $config );
+				
+				PolyTrans_Logs_Manager::log(
+					'process_json_response returned',
+					'debug',
+					array(
+						'is_error' => is_wp_error( $result ),
+						'has_output' => isset( $result['output'] ),
+					)
+				);
+				
+				return $result;
 
 			default:
 				return array( 'output' => $content );
