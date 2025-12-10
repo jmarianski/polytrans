@@ -112,7 +112,7 @@ class AssistantExecutor {
 			// Note: PolyTrans_Variable_Manager is autoloaded
 		}
 
-		$variable_manager = new PolyTrans_Variable_Manager();
+		$variable_manager = new \PolyTrans_Variable_Manager();
 
 		try {
 			// Interpolate system prompt (required)
