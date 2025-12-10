@@ -189,7 +189,7 @@ class PolyTrans_Assistant_Migration_Manager
             'user_message_template' => '', // Empty for migrated assistants (prompt is combined)
             'api_parameters' => json_encode($api_parameters),
             'expected_format' => $response_format,
-            'output_variables' => '' // Can be added later if needed
+            'output_variables' => null // null instead of empty string for validation
         ];
 
         // Check if similar assistant already exists (to avoid duplicates)
