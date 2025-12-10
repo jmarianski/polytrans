@@ -146,9 +146,16 @@
 
                 assistants.forEach(function (assistant) {
                     const isSelected = String(assistant.id) === String(selectedAssistantId) ? 'selected' : '';
-                    const label = `${assistant.name} (${assistant.provider} - ${assistant.model})`;
+                    // Get model from api_parameters if not directly available
+                    const model = assistant.model || (assistant.api_parameters && assistant.api_parameters.model) || 'default';
+                    const label = `${assistant.name} (${assistant.provider} - ${model})`;
                     $select.append(`<option value="${assistant.id}" ${isSelected}>${label}</option>`);
                 });
+
+                // Set selected value explicitly if provided
+                if (selectedAssistantId) {
+                    $select.val(String(selectedAssistantId));
+                }
 
                 $select.prop('disabled', false);
             } else {
