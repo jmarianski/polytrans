@@ -38,6 +38,7 @@ class PolyTrans_Assistants_Menu
         add_action('wp_ajax_polytrans_delete_assistant', [$this, 'ajax_delete_assistant']);
         add_action('wp_ajax_polytrans_get_assistant', [$this, 'ajax_get_assistant']);
         add_action('wp_ajax_polytrans_test_assistant', [$this, 'ajax_test_assistant']);
+        add_action('wp_ajax_polytrans_migrate_workflows', [$this, 'ajax_migrate_workflows']);
     }
 
     /**
@@ -152,6 +153,7 @@ class PolyTrans_Assistants_Menu
     private function render_assistant_list()
     {
         $assistants = PolyTrans_Assistant_Manager::get_all_assistants();
+        $migration_status = PolyTrans_Assistant_Migration_Manager::get_migration_status();
 
         ?>
         <div class="wrap">
@@ -164,6 +166,26 @@ class PolyTrans_Assistants_Menu
             <p class="description">
                 <?php esc_html_e('Manage AI assistants for content processing, translation enhancement, and workflow automation.', 'polytrans'); ?>
             </p>
+
+            <?php if ($migration_status['migration_needed']) : ?>
+                <div class="notice notice-warning">
+                    <p>
+                        <strong><?php esc_html_e('Migration Available:', 'polytrans'); ?></strong>
+                        <?php 
+                        printf(
+                            esc_html__('Found %d legacy workflow steps that can be migrated to managed assistants.', 'polytrans'),
+                            $migration_status['ai_assistant_steps']
+                        ); 
+                        ?>
+                    </p>
+                    <p>
+                        <button type="button" id="migrate-workflows-btn" class="button button-primary">
+                            <?php esc_html_e('Migrate Workflows Now', 'polytrans'); ?>
+                        </button>
+                        <span class="spinner" style="float: none; margin: 0 10px;"></span>
+                    </p>
+                </div>
+            <?php endif; ?>
 
             <?php if (empty($assistants)) : ?>
                 <div class="notice notice-info">
@@ -514,6 +536,40 @@ class PolyTrans_Assistants_Menu
                 wp_send_json_error([
                     'message' => __('Test failed.', 'polytrans'),
                     'error' => $result['error']
+                ]);
+            }
+        } catch (Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * AJAX: Migrate workflows to managed assistants
+     */
+    public function ajax_migrate_workflows()
+    {
+        check_ajax_referer('polytrans_assistants', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Permission denied.', 'polytrans')]);
+        }
+
+        try {
+            $stats = PolyTrans_Assistant_Migration_Manager::migrate_workflows_to_managed_assistants();
+
+            if (!empty($stats['errors'])) {
+                wp_send_json_error([
+                    'message' => __('Migration completed with errors.', 'polytrans'),
+                    'stats' => $stats
+                ]);
+            } else {
+                wp_send_json_success([
+                    'message' => sprintf(
+                        __('Migration completed successfully! Migrated %d steps and created %d assistants.', 'polytrans'),
+                        $stats['steps_migrated'],
+                        $stats['assistants_created']
+                    ),
+                    'stats' => $stats
                 ]);
             }
         } catch (Exception $e) {

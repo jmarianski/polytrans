@@ -32,6 +32,9 @@
 
             // Provider change - update model suggestions
             $('#assistant-provider').on('change', this.handleProviderChange.bind(this));
+
+            // Migrate workflows
+            $('#migrate-workflows-btn').on('click', this.handleMigration.bind(this));
         },
 
         /**
@@ -270,6 +273,52 @@
                     $(this).remove();
                 });
             }, 5000);
+        },
+
+        /**
+         * Handle workflow migration
+         */
+        handleMigration: function(e) {
+            e.preventDefault();
+
+            if (!confirm('This will migrate all legacy workflow steps to managed assistants. This action cannot be undone. Continue?')) {
+                return;
+            }
+
+            const $button = $(e.currentTarget);
+            const $spinner = $button.next('.spinner');
+
+            $button.prop('disabled', true);
+            $spinner.addClass('is-active');
+
+            $.ajax({
+                url: polytransAssistants.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'polytrans_migrate_workflows',
+                    nonce: polytransAssistants.nonce
+                },
+                success: function(response) {
+                    $button.prop('disabled', false);
+                    $spinner.removeClass('is-active');
+
+                    if (response.success) {
+                        AssistantsAdmin.showNotice(response.data.message, 'success');
+                        
+                        // Reload page after short delay to show updated list
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        AssistantsAdmin.showNotice(response.data.message, 'error');
+                    }
+                },
+                error: function() {
+                    $button.prop('disabled', false);
+                    $spinner.removeClass('is-active');
+                    AssistantsAdmin.showNotice('Migration failed. Please check logs.', 'error');
+                }
+            });
         },
 
         /**

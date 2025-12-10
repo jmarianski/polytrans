@@ -159,7 +159,13 @@ function polytrans_activate()
     // Initialize assistants table (Phase 1)
     require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-manager.php';
     require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-executor.php';
+    require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-migration-manager.php';
     PolyTrans_Assistant_Manager::create_table();
+    
+    // Run migration from ai_assistant to managed_assistant (one-time)
+    if (PolyTrans_Assistant_Migration_Manager::is_migration_needed()) {
+        PolyTrans_Assistant_Migration_Manager::migrate_workflows_to_managed_assistants();
+    }
 
     // Check the logs table structure for debugging
     if (class_exists('PolyTrans_Background_Processor')) {
