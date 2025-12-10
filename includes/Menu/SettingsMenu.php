@@ -149,8 +149,8 @@ class SettingsMenu
      */
     public function render_settings()
     {
-        // Note: polytrans_settings class is autoloaded
-        $settings = new polytrans_settings();
+        // Note: polytrans_settings class is autoloaded (aliased to TranslationSettings)
+        $settings = new \polytrans_settings();
         $settings->render();
     }
 }
