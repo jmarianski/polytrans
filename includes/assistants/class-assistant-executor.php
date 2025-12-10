@@ -287,7 +287,23 @@ class PolyTrans_Assistant_Executor {
 	private static function extract_content_from_response( $response, $provider ) {
 		switch ( $provider ) {
 			case 'openai':
-				return $response['choices'][0]['message']['content'] ?? null;
+				$content = $response['choices'][0]['message']['content'] ?? null;
+				$finish_reason = $response['choices'][0]['finish_reason'] ?? 'unknown';
+				
+				// Log if response was truncated due to max_tokens
+				if ( $finish_reason === 'length' ) {
+					PolyTrans_Logs_Manager::log(
+						'OpenAI response truncated due to max_tokens limit',
+						'warning',
+						array(
+							'finish_reason' => $finish_reason,
+							'content_length' => strlen( $content ),
+							'usage' => $response['usage'] ?? null,
+						)
+					);
+				}
+				
+				return $content;
 
 			case 'claude':
 				// Claude format: content[0].text
