@@ -319,13 +319,17 @@ class PolyTrans_Assistants_Menu
 
                         <tr>
                             <th scope="row">
-                                <label for="assistant-model"><?php esc_html_e('AI Model', 'polytrans'); ?> <span class="required">*</span></label>
+                                <label for="assistant-model"><?php esc_html_e('AI Model', 'polytrans'); ?></label>
                             </th>
                             <td>
-                                <select id="assistant-model" name="model" class="regular-text" required>
+                                <select id="assistant-model" name="model" class="regular-text">
                                     <?php
                                     $models = $this->get_model_options();
                                     $current_model = $assistant['model'];
+                                    
+                                    // Add "Use Global Setting" option
+                                    $selected = empty($current_model) ? 'selected' : '';
+                                    echo '<option value="" ' . $selected . '>' . esc_html__('Use Global Setting', 'polytrans') . '</option>';
                                     
                                     foreach ($models as $group_name => $group_models) {
                                         echo '<optgroup label="' . esc_attr($group_name) . '">';
@@ -337,7 +341,7 @@ class PolyTrans_Assistants_Menu
                                     }
                                     ?>
                                 </select>
-                                <p class="description"><?php esc_html_e('Select the AI model to use for this assistant.', 'polytrans'); ?></p>
+                                <p class="description"><?php esc_html_e('Select the AI model to use for this assistant. "Use Global Setting" will use the default model from plugin settings.', 'polytrans'); ?></p>
                             </td>
                         </tr>
 
