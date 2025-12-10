@@ -347,6 +347,28 @@ class PolyTrans_Assistants_Menu
 
                         <tr>
                             <th scope="row">
+                                <label for="assistant-system-prompt"><?php esc_html_e('System Instructions', 'polytrans'); ?> <span class="required">*</span></label>
+                            </th>
+                            <td class="workflow-field-with-variables">
+                                <div id="system-prompt-editor-container"></div>
+                                <p class="description"><?php esc_html_e('Instructions that define how the assistant should behave. This is static and doesn\'t change between requests.', 'polytrans'); ?></p>
+                                <p class="description"><strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> "You are a content quality expert. Analyze posts for grammar, SEO, and readability. Always respond in JSON format."</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th scope="row">
+                                <label for="assistant-user-message"><?php esc_html_e('User Message Template', 'polytrans'); ?></label>
+                            </th>
+                            <td class="workflow-field-with-variables">
+                                <div id="user-message-editor-container"></div>
+                                <p class="description"><?php esc_html_e('Template for the user message with dynamic data. Use Twig syntax for variables: {{ variable_name }}', 'polytrans'); ?></p>
+                                <p class="description"><strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> "Title: {{ title }}\nContent: {{ content }}\n\nPlease analyze this content."</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th scope="row">
                                 <label for="assistant-response-format"><?php esc_html_e('Response Format', 'polytrans'); ?></label>
                             </th>
                             <td>
@@ -369,28 +391,6 @@ class PolyTrans_Assistants_Menu
                                     <strong><?php esc_html_e('Supported types:', 'polytrans'); ?></strong> string, number, array, object, boolean<br>
                                     <strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> {"title": "string", "content": "string", "meta": "object"}
                                 </p>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">
-                                <label for="assistant-system-prompt"><?php esc_html_e('System Instructions', 'polytrans'); ?> <span class="required">*</span></label>
-                            </th>
-                            <td class="workflow-field-with-variables">
-                                <div id="system-prompt-editor-container"></div>
-                                <p class="description"><?php esc_html_e('Instructions that define how the assistant should behave. This is static and doesn\'t change between requests.', 'polytrans'); ?></p>
-                                <p class="description"><strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> "You are a content quality expert. Analyze posts for grammar, SEO, and readability. Always respond in JSON format."</p>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">
-                                <label for="assistant-user-message"><?php esc_html_e('User Message Template', 'polytrans'); ?></label>
-                            </th>
-                            <td class="workflow-field-with-variables">
-                                <div id="user-message-editor-container"></div>
-                                <p class="description"><?php esc_html_e('Template for the user message with dynamic data. Use Twig syntax for variables: {{ variable_name }}', 'polytrans'); ?></p>
-                                <p class="description"><strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> "Title: {{ title }}\nContent: {{ content }}\n\nPlease analyze this content."</p>
                             </td>
                         </tr>
 
