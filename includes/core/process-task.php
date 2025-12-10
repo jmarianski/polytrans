@@ -44,6 +44,11 @@ if (!defined('ABSPATH') && isset($argv) && count($argv) > 1) {
         exit("Error: Could not load WordPress\n");
     }
 
+    // Ensure PolyTrans plugin is loaded (WordPress loads plugins automatically)
+    if (!defined('POLYTRANS_VERSION')) {
+        exit("Error: PolyTrans plugin not loaded\n");
+    }
+
     // Get the stored process data
     $process_data = get_transient('polytrans_bg_' . $token);
 
