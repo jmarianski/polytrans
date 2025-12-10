@@ -51,8 +51,8 @@ Always respond with valid JSON containing the translated content.',
 Return the translated content in the same JSON structure.',
     
     -- API Parameters (JSON string)
-    -- gpt-4o for best quality, temperature 0.3 for consistency
-    '{"model":"gpt-4o","temperature":0.3,"max_tokens":4000}',
+    -- gpt-4o for best quality, temperature 0.3 for consistency, 10000 tokens for long posts
+    '{"model":"gpt-4o","temperature":0.3,"max_tokens":10000}',
     
     -- Expected Format
     'json',

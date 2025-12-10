@@ -50,7 +50,7 @@ Always respond with valid JSON containing the translated content.',
 Return the translated content in the same JSON structure.',
     
     -- API Parameters (JSON string)
-    '{"model":"gpt-4o","temperature":0.3,"max_tokens":4000}',
+    '{"model":"gpt-4o","temperature":0.3,"max_tokens":10000}',
     
     -- Expected Format
     'json',

@@ -56,7 +56,7 @@ INSERT INTO wp_polytrans_assistants (
     '{{ translated.content }} KEY: {{ translated.meta.translation_key|default("1") }}',
     
     -- API Parameters (JSON string)
-    '{"model":"gpt-4o","temperature":0.3,"max_tokens":2000}',
+    '{"model":"gpt-4o","temperature":0.3,"max_tokens":10000}',
     
     -- Expected Format
     'json',
