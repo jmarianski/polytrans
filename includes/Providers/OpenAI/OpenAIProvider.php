@@ -1,6 +1,10 @@
 <?php
 
-namespace PolyTrans\Providers\OpenAI;\n\nuse PolyTrans\PostProcessing\JsonResponseParser;\nuse PolyTrans\Assistants\AssistantManager;\nuse PolyTrans\Assistants\AssistantExecutor;
+namespace PolyTrans\Providers\OpenAI;
+
+use PolyTrans\PostProcessing\JsonResponseParser;
+use PolyTrans\Assistants\AssistantManager;
+use PolyTrans\Assistants\AssistantExecutor;
 
 /**
  * OpenAI Provider

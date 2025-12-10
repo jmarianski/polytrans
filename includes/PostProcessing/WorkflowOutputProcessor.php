@@ -1,6 +1,8 @@
 <?php
 
-namespace PolyTrans\PostProcessing;\n\nuse PolyTrans\PostProcessing\Providers\PostDataProvider;
+namespace PolyTrans\PostProcessing;
+
+use PolyTrans\PostProcessing\Providers\PostDataProvider;
 
 /**
  * Workflow Output Processor

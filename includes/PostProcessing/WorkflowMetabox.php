@@ -1,6 +1,8 @@
 <?php
 
-namespace PolyTrans\PostProcessing;\n\nuse PolyTrans\PostProcessing\Managers\WorkflowStorageManager;
+namespace PolyTrans\PostProcessing;
+
+use PolyTrans\PostProcessing\Managers\WorkflowStorageManager;
 
 /**
  * Workflow Meta Box for Post Editor

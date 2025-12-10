@@ -1,6 +1,10 @@
 <?php
 
-namespace PolyTrans\PostProcessing;\n\nuse PolyTrans\PostProcessing\Steps\AiAssistantStep;\nuse PolyTrans\PostProcessing\Steps\PredefinedAssistantStep;\nuse PolyTrans\PostProcessing\Steps\ManagedAssistantStep;
+namespace PolyTrans\PostProcessing;
+
+use PolyTrans\PostProcessing\Steps\AiAssistantStep;
+use PolyTrans\PostProcessing\Steps\PredefinedAssistantStep;
+use PolyTrans\PostProcessing\Steps\ManagedAssistantStep;
 
 /**
  * Workflow Executor

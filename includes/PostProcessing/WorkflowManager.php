@@ -1,6 +1,15 @@
 <?php
 
-namespace PolyTrans\PostProcessing;\n\nuse PolyTrans\PostProcessing\Managers\WorkflowStorageManager;\nuse PolyTrans\PostProcessing\Providers\PostDataProvider;\nuse PolyTrans\PostProcessing\Providers\MetaDataProvider;\nuse PolyTrans\PostProcessing\Providers\ContextDataProvider;\nuse PolyTrans\PostProcessing\Providers\ArticlesDataProvider;\nuse PolyTrans\PostProcessing\Steps\AiAssistantStep;\nuse PolyTrans\PostProcessing\Steps\PredefinedAssistantStep;\nuse PolyTrans\PostProcessing\Steps\ManagedAssistantStep;
+namespace PolyTrans\PostProcessing;
+
+use PolyTrans\PostProcessing\Managers\WorkflowStorageManager;
+use PolyTrans\PostProcessing\Providers\PostDataProvider;
+use PolyTrans\PostProcessing\Providers\MetaDataProvider;
+use PolyTrans\PostProcessing\Providers\ContextDataProvider;
+use PolyTrans\PostProcessing\Providers\ArticlesDataProvider;
+use PolyTrans\PostProcessing\Steps\AiAssistantStep;
+use PolyTrans\PostProcessing\Steps\PredefinedAssistantStep;
+use PolyTrans\PostProcessing\Steps\ManagedAssistantStep;
 
 /**
  * Workflow Manager

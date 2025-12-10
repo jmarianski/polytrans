@@ -1,6 +1,8 @@
 <?php
 
-namespace PolyTrans\Scheduler;\n\nuse PolyTrans\PostProcessing\Providers\ArticlesDataProvider;
+namespace PolyTrans\Scheduler;
+
+use PolyTrans\PostProcessing\Providers\ArticlesDataProvider;
 
 /**
  * Translation Handler Class

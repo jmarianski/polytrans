@@ -1,6 +1,8 @@
 <?php
 
-namespace PolyTrans\Providers\OpenAI;\n\nuse PolyTrans\Assistants\AssistantManager;
+namespace PolyTrans\Providers\OpenAI;
+
+use PolyTrans\Assistants\AssistantManager;
 
 /**
  * OpenAI Settings Provider
