@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Makes debugging translation failures much faster (instantly see if it's rate limiting, insufficient funds, timeout, etc.)
   - See: `docs/ERROR_LOGGING_IMPROVEMENTS.md` for full details and error code reference
 
+### Added (Phase 1 - Partial)
+- **AI Assistants Management System**: Backend infrastructure (Admin UI pending)
+  - `wp_polytrans_assistants` table for centralized assistant configurations
+  - `PolyTrans_Assistant_Manager`: Full CRUD operations (26 unit tests ✅)
+  - `PolyTrans_Assistant_Executor`: Execute assistants with Twig variable interpolation (27 unit tests ✅)
+  - Support for OpenAI Chat Completions API (Claude and Gemini placeholders)
+  - Text and JSON response formats with validation
+  - Comprehensive error handling (rate limiting, timeouts, API errors)
+  - **Note**: Admin UI and Workflow/Translation integration coming in next release
+
 ## [1.3.5] - 2025-12-10
 
 ### Added

@@ -93,12 +93,17 @@ function polytrans_init()
 add_action('plugins_loaded', 'polytrans_init');
 
 /**
- * Check workflows table on admin_init (in case activation hook didn't run)
+ * Check database tables on admin_init (in case activation hook didn't run)
  */
 function polytrans_check_workflows_table()
 {
     require_once POLYTRANS_PLUGIN_DIR . 'includes/postprocessing/managers/class-workflow-storage-manager.php';
     PolyTrans_Workflow_Storage_Manager::initialize();
+
+    // Check assistants table (Phase 1)
+    require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-manager.php';
+    require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-executor.php';
+    PolyTrans_Assistant_Manager::create_table();
 }
 add_action('admin_init', 'polytrans_check_workflows_table');
 
@@ -150,6 +155,11 @@ function polytrans_activate()
     // Initialize workflows table (will migrate if needed)
     require_once POLYTRANS_PLUGIN_DIR . 'includes/postprocessing/managers/class-workflow-storage-manager.php';
     PolyTrans_Workflow_Storage_Manager::initialize();
+
+    // Initialize assistants table (Phase 1)
+    require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-manager.php';
+    require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-executor.php';
+    PolyTrans_Assistant_Manager::create_table();
 
     // Check the logs table structure for debugging
     if (class_exists('PolyTrans_Background_Processor')) {
