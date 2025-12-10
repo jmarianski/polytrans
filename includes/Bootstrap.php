@@ -27,6 +27,9 @@ class Bootstrap
         // Register Composer autoloader (includes Twig and our PSR-4 classes)
         self::registerComposerAutoloader();
         
+        // Register legacy autoloader (temporary, until all classes are migrated)
+        self::registerLegacyAutoloader();
+        
         // Register backward compatibility aliases
         self::registerCompatibilityAliases();
     }
@@ -46,6 +49,18 @@ class Bootstrap
                 error_log('PolyTrans: Composer autoloader not found. Run "composer install".');
             }
         }
+    }
+
+    /**
+     * Register legacy autoloader for WordPress-style class names
+     * 
+     * Temporary solution until all classes are migrated to PSR-4.
+     * This autoloader will be removed once migration is complete.
+     */
+    private static function registerLegacyAutoloader()
+    {
+        require_once __DIR__ . '/LegacyAutoloader.php';
+        LegacyAutoloader::register();
     }
 
     /**

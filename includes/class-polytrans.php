@@ -55,79 +55,27 @@ class PolyTrans
 
     /**
      * Load plugin dependencies
+     * 
+     * NOTE: Classes are now loaded via LegacyAutoloader (see includes/LegacyAutoloader.php).
+     * Only interfaces need to be loaded manually as they're required before class definitions.
+     * 
+     * As we migrate classes to PSR-4 namespaces, they'll be removed from LegacyAutoloader
+     * and loaded via Composer's PSR-4 autoloader instead.
      */
     private function load_dependencies()
     {
         $includes_dir = POLYTRANS_PLUGIN_DIR . 'includes/';
 
-        // Provider system - load interfaces first
+        // Load interfaces (needed before classes that implement them)
         require_once $includes_dir . 'providers/interface-translation-provider.php';
         require_once $includes_dir . 'providers/interface-settings-provider.php';
-        require_once $includes_dir . 'providers/class-provider-registry.php';
-
-        // Core WordPress integration classes
-        require_once $includes_dir . 'core/class-translation-meta-box.php';
-        require_once $includes_dir . 'core/class-translation-notifications.php';
-        require_once $includes_dir . 'core/class-user-autocomplete.php';
-        require_once $includes_dir . 'core/class-post-autocomplete.php';
-        require_once $includes_dir . '/core/class-logs-manager.php';
-
-
-        // Translation scheduler
-        require_once $includes_dir . 'scheduler/class-translation-scheduler.php';
-        require_once $includes_dir . 'scheduler/class-translation-handler.php';
-
-        // Translation extension (handles incoming translation requests)
-        require_once $includes_dir . 'core/class-translation-extension.php';
-
-        // Settings and admin interface
-        require_once $includes_dir . 'core/class-translation-settings.php';
-
-        // Receiver architecture
-        require_once $includes_dir . 'receiver/managers/class-translation-request-validator.php';
-        require_once $includes_dir . 'receiver/managers/class-translation-post-creator.php';
-        require_once $includes_dir . 'receiver/managers/class-translation-metadata-manager.php';
-        require_once $includes_dir . 'receiver/managers/class-translation-media-manager.php';
-        require_once $includes_dir . 'receiver/managers/class-translation-taxonomy-manager.php';
-        require_once $includes_dir . 'receiver/managers/class-translation-language-manager.php';
-        require_once $includes_dir . 'receiver/managers/class-translation-notification-manager.php';
-        require_once $includes_dir . 'receiver/managers/class-translation-status-manager.php';
-        require_once $includes_dir . 'receiver/managers/class-translation-security-manager.php';
-        require_once $includes_dir . 'receiver/class-translation-coordinator.php';
-        require_once $includes_dir . 'receiver/class-translation-receiver-extension.php';
-
-        // AI Assistants Management System (Phase 1)
-        require_once $includes_dir . 'assistants/class-assistant-manager.php';
-        require_once $includes_dir . 'assistants/class-assistant-executor.php';
-        require_once $includes_dir . 'assistants/class-assistant-migration-manager.php';
-
-        //menu
-        require_once $includes_dir . 'menu/class-settings-menu.php';
-        require_once $includes_dir . 'menu/class-logs-menu.php';
-        require_once $includes_dir . 'menu/class-tag-translation.php';
-        require_once $includes_dir . 'menu/class-postprocessing-menu.php';
-        require_once $includes_dir . 'menu/class-assistants-menu.php';
-
-        // Post-processing system
-        // NOTE: Twig Engine uses Composer autoloader (Twig namespace), loaded lazily in Variable Manager
         require_once $includes_dir . 'postprocessing/interface-workflow-step.php';
         require_once $includes_dir . 'postprocessing/interface-variable-provider.php';
-        require_once $includes_dir . 'postprocessing/class-variable-manager.php';
-        require_once $includes_dir . 'postprocessing/class-json-response-parser.php';
-        require_once $includes_dir . 'postprocessing/class-workflow-executor.php';
-        require_once $includes_dir . 'postprocessing/class-workflow-output-processor.php';
-        require_once $includes_dir . 'postprocessing/managers/class-workflow-storage-manager.php';
-        require_once $includes_dir . 'postprocessing/providers/class-post-data-provider.php';
-        require_once $includes_dir . 'postprocessing/providers/class-meta-data-provider.php';
-        require_once $includes_dir . 'postprocessing/providers/class-context-data-provider.php';
-        require_once $includes_dir . 'postprocessing/providers/class-articles-data-provider.php';
-        require_once $includes_dir . 'postprocessing/steps/class-ai-assistant-step.php';
-        require_once $includes_dir . 'postprocessing/steps/class-predefined-assistant-step.php';
-        require_once $includes_dir . 'postprocessing/steps/class-managed-assistant-step.php';
-        require_once $includes_dir . 'postprocessing/class-workflow-manager.php';
-        require_once $includes_dir . 'postprocessing/class-workflow-metabox.php';
 
-        // Debug tools (only load in admin)
+        // All classes are now loaded via LegacyAutoloader!
+        // This reduces this method from 48 require_once to just 4 interfaces.
+        
+        // Debug tools (only load in admin, not autoloadable due to procedural code)
         if (is_admin()) {
             require_once $includes_dir . 'debug/workflow-debug-page.php';
         }
