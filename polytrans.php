@@ -96,12 +96,10 @@ add_action('plugins_loaded', 'polytrans_init');
  */
 function polytrans_check_workflows_table()
 {
-    require_once POLYTRANS_PLUGIN_DIR . 'includes/postprocessing/managers/class-workflow-storage-manager.php';
+    // Note: Classes are autoloaded
     PolyTrans_Workflow_Storage_Manager::initialize();
 
     // Check assistants table (Phase 1)
-    require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-manager.php';
-    require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-executor.php';
     PolyTrans_Assistant_Manager::create_table();
     
     // Add expected_output_schema column if it doesn't exist
@@ -160,13 +158,10 @@ function polytrans_activate()
     }
 
     // Initialize workflows table (will migrate if needed)
-    require_once POLYTRANS_PLUGIN_DIR . 'includes/postprocessing/managers/class-workflow-storage-manager.php';
+    // Note: Classes are autoloaded
     PolyTrans_Workflow_Storage_Manager::initialize();
 
     // Initialize assistants table (Phase 1)
-    require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-manager.php';
-    require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-executor.php';
-    require_once POLYTRANS_PLUGIN_DIR . 'includes/assistants/class-assistant-migration-manager.php';
     PolyTrans_Assistant_Manager::create_table();
     
     // Run migration from ai_assistant to managed_assistant (one-time)
