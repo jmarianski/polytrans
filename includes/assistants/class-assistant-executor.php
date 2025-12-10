@@ -172,6 +172,12 @@ class PolyTrans_Assistant_Executor {
 			return new WP_Error( 'missing_api_key', __( 'OpenAI API key not configured', 'polytrans' ) );
 		}
 
+		// Get model - use assistant's model or fall back to global setting
+		$model = $config['api_parameters']['model'] ?? '';
+		if ( empty( $model ) ) {
+			$model = $settings['openai_model'] ?? 'gpt-4o-mini';
+		}
+
 		// Build messages array
 		$messages = array(
 			array(
@@ -190,15 +196,14 @@ class PolyTrans_Assistant_Executor {
 		// Build API request body
 		$body = array_merge(
 			array(
-				'model'    => $config['api_parameters']['model'] ?? 'gpt-4o-mini',
+				'model'    => $model,
 				'messages' => $messages,
 			),
 			$config['api_parameters']
 		);
 
-		// Remove 'model' from api_parameters merge (already set above)
-		unset( $body['model'] );
-		$body['model'] = $config['api_parameters']['model'] ?? 'gpt-4o-mini';
+		// Ensure model is set correctly (api_parameters might override)
+		$body['model'] = $model;
 
 		// Make API request
 		$response = wp_remote_post(
