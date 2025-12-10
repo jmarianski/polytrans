@@ -17,7 +17,7 @@ class PolyTrans_Post_Data_Provider implements PolyTrans_Variable_Provider_Interf
      * 
      * @return string Provider ID
      */
-    public function get_provider_id(): string
+    public function get_provider_id()
     {
         return 'post_data';
     }
@@ -27,7 +27,7 @@ class PolyTrans_Post_Data_Provider implements PolyTrans_Variable_Provider_Interf
      * 
      * @return string Localized provider name
      */
-    public function get_provider_name(): string
+    public function get_provider_name()
     {
         return __('Post Data Provider', 'polytrans');
     }
@@ -40,10 +40,10 @@ class PolyTrans_Post_Data_Provider implements PolyTrans_Variable_Provider_Interf
      * - original, translated (aliases)
      * - title, content, excerpt (top-level aliases)
      * 
-     * @param array<string, mixed> $context Workflow execution context
-     * @return array<string, mixed> Variables to add to context
+     * @param array $context Workflow execution context
+     * @return array Variables to add to context
      */
-    public function get_variables(array $context): array
+    public function get_variables($context)
     {
         $variables = [];
 
@@ -94,9 +94,9 @@ class PolyTrans_Post_Data_Provider implements PolyTrans_Variable_Provider_Interf
     /**
      * Get list of variable names this provider can supply
      * 
-     * @return array<int, string> List of available variable names
+     * @return array List of available variable names
      */
-    public function get_available_variables(): array
+    public function get_available_variables()
     {
         return [
             // Top-level convenience aliases (most common)
