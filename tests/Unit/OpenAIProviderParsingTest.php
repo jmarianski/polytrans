@@ -7,13 +7,8 @@
  * for robust translation response handling.
  */
 
-// Load the parser class if not already loaded
-if (!class_exists('PolyTrans_JSON_Response_Parser')) {
-    if (!defined('ABSPATH')) {
-        define('ABSPATH', dirname(__DIR__, 2) . '/');
-    }
-    require_once dirname(__DIR__, 2) . '/includes/postprocessing/class-json-response-parser.php';
-}
+// Class is now autoloaded via PSR-4 (PolyTrans\PostProcessing\JsonResponseParser)
+// with backward-compatible alias (PolyTrans_JSON_Response_Parser)
 
 beforeEach(function () {
     $this->parser = new PolyTrans_JSON_Response_Parser();
