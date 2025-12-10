@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Receiver\Managers;
+
 /**
  * Handles creation of translated WordPress posts.
  */
@@ -41,14 +43,14 @@ class PolyTrans_Translation_Post_Creator
         $new_post_id = wp_insert_post($postarr);
 
         if (is_wp_error($new_post_id)) {
-            PolyTrans_Logs_Manager::log('[polytrans] Failed to create translated post: ' . $new_post_id->get_error_message(), "error");
+            \PolyTrans_Logs_Manager::log('[polytrans] Failed to create translated post: ' . $new_post_id->get_error_message(), "error");
             return $new_post_id;
         }
 
         // Log the author attribution for audit purposes
         $original_author = get_user_by('id', $original_post->post_author);
         $author_name = $original_author ? $original_author->display_name : 'Unknown';
-        PolyTrans_Logs_Manager::log("Created translated post {$new_post_id} with preserved author attribution", "info", [
+        \PolyTrans_Logs_Manager::log("Created translated post {$new_post_id} with preserved author attribution", "info", [
             'source' => 'translation_post_creator',
             'original_post_id' => $original_post_id,
             'translated_post_id' => $new_post_id,
@@ -96,7 +98,7 @@ class PolyTrans_Translation_Post_Creator
         wp_set_current_user($original_user_id);
         
         if ($revision_id && !is_wp_error($revision_id)) {
-            PolyTrans_Logs_Manager::log("Created initial revision {$revision_id} for post {$post_id} with author {$author_id}", "debug", [
+            \PolyTrans_Logs_Manager::log("Created initial revision {$revision_id} for post {$post_id} with author {$author_id}", "debug", [
                 'source' => 'translation_post_creator',
                 'post_id' => $post_id,
                 'revision_id' => $revision_id,
@@ -104,7 +106,7 @@ class PolyTrans_Translation_Post_Creator
                 'method' => 'wp_save_post_revision'
             ]);
         } else {
-            PolyTrans_Logs_Manager::log("Failed to create initial revision for post {$post_id} or no revision needed", "debug", [
+            \PolyTrans_Logs_Manager::log("Failed to create initial revision for post {$post_id} or no revision needed", "debug", [
                 'source' => 'translation_post_creator',
                 'post_id' => $post_id,
                 'author_id' => $author_id,

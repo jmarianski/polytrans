@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Receiver\Managers;
+
 /**
  * Handles metadata setup for translated posts.
  */
@@ -80,7 +82,7 @@ class PolyTrans_Translation_Metadata_Manager
         $original_post = get_post($original_post_id);
 
         if (!$original_post) {
-            PolyTrans_Logs_Manager::log("Could not find original post with ID $original_post_id for author attribution", "warning", [
+            \PolyTrans_Logs_Manager::log("Could not find original post with ID $original_post_id for author attribution", "warning", [
                 'source' => 'translation_metadata_manager',
                 'original_post_id' => $original_post_id,
                 'translated_post_id' => $new_post_id
@@ -89,7 +91,7 @@ class PolyTrans_Translation_Metadata_Manager
         }
 
         if (!isset($original_post->post_author) || empty($original_post->post_author)) {
-            PolyTrans_Logs_Manager::log("Original post $original_post_id has no author or empty author", "warning", [
+            \PolyTrans_Logs_Manager::log("Original post $original_post_id has no author or empty author", "warning", [
                 'source' => 'translation_metadata_manager',
                 'original_post_id' => $original_post_id,
                 'translated_post_id' => $new_post_id
@@ -100,7 +102,7 @@ class PolyTrans_Translation_Metadata_Manager
         // Check if the author is already correctly set to avoid unnecessary update
         $current_post = get_post($new_post_id);
         if ($current_post && $current_post->post_author == $original_post->post_author) {
-            PolyTrans_Logs_Manager::log("Author already correctly set for translated post $new_post_id", "debug", [
+            \PolyTrans_Logs_Manager::log("Author already correctly set for translated post $new_post_id", "debug", [
                 'source' => 'translation_metadata_manager',
                 'original_post_id' => $original_post_id,
                 'translated_post_id' => $new_post_id,
@@ -115,7 +117,7 @@ class PolyTrans_Translation_Metadata_Manager
         ]);
 
         if (is_wp_error($update_result)) {
-            PolyTrans_Logs_Manager::log("Failed to update post $new_post_id author", "error", [
+            \PolyTrans_Logs_Manager::log("Failed to update post $new_post_id author", "error", [
                 'source' => 'translation_metadata_manager',
                 'original_post_id' => $original_post_id,
                 'translated_post_id' => $new_post_id,
@@ -125,7 +127,7 @@ class PolyTrans_Translation_Metadata_Manager
         } else {
             $original_author = get_user_by('id', $original_post->post_author);
             $author_name = $original_author ? $original_author->display_name : 'Unknown';
-            PolyTrans_Logs_Manager::log("Successfully updated author for translated post $new_post_id", "info", [
+            \PolyTrans_Logs_Manager::log("Successfully updated author for translated post $new_post_id", "info", [
                 'source' => 'translation_metadata_manager',
                 'original_post_id' => $original_post_id,
                 'translated_post_id' => $new_post_id,

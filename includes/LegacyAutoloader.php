@@ -43,18 +43,18 @@ class LegacyAutoloader
         // 'PolyTrans_Translation_Scheduler' => 'scheduler/class-translation-scheduler.php', // ✅ MIGRATED
         // 'PolyTrans_Translation_Handler' => 'scheduler/class-translation-handler.php', // ✅ MIGRATED
         
-        // Receiver
-        'PolyTrans_Translation_Request_Validator' => 'receiver/managers/class-translation-request-validator.php',
-        'PolyTrans_Translation_Post_Creator' => 'receiver/managers/class-translation-post-creator.php',
-        'PolyTrans_Translation_Metadata_Manager' => 'receiver/managers/class-translation-metadata-manager.php',
-        'PolyTrans_Translation_Media_Manager' => 'receiver/managers/class-translation-media-manager.php',
-        'PolyTrans_Translation_Taxonomy_Manager' => 'receiver/managers/class-translation-taxonomy-manager.php',
-        'PolyTrans_Translation_Language_Manager' => 'receiver/managers/class-translation-language-manager.php',
-        'PolyTrans_Translation_Notification_Manager' => 'receiver/managers/class-translation-notification-manager.php',
-        'PolyTrans_Translation_Status_Manager' => 'receiver/managers/class-translation-status-manager.php',
-        'PolyTrans_Translation_Security_Manager' => 'receiver/managers/class-translation-security-manager.php',
-        'PolyTrans_Translation_Coordinator' => 'receiver/class-translation-coordinator.php',
-        'PolyTrans_Translation_Receiver_Extension' => 'receiver/class-translation-receiver-extension.php',
+        // Receiver - ✅ FULLY MIGRATED TO PSR-4!
+        // 'PolyTrans_Translation_Request_Validator' => 'receiver/managers/class-translation-request-validator.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Post_Creator' => 'receiver/managers/class-translation-post-creator.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Metadata_Manager' => 'receiver/managers/class-translation-metadata-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Media_Manager' => 'receiver/managers/class-translation-media-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Taxonomy_Manager' => 'receiver/managers/class-translation-taxonomy-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Language_Manager' => 'receiver/managers/class-translation-language-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Notification_Manager' => 'receiver/managers/class-translation-notification-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Status_Manager' => 'receiver/managers/class-translation-status-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Security_Manager' => 'receiver/managers/class-translation-security-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Coordinator' => 'receiver/class-translation-coordinator.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Receiver_Extension' => 'receiver/class-translation-receiver-extension.php', // ✅ MIGRATED
         
         // Assistants - ✅ FULLY MIGRATED TO PSR-4!
         // 'PolyTrans_Assistant_Manager' => 'assistants/class-assistant-manager.php', // ✅ MIGRATED

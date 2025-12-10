@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Receiver\Managers;
+
 /**
  * Handles featured image translation and media attachment management.
  * Creates translated versions of featured images with proper Polylang relationships.
@@ -24,7 +26,7 @@ class PolyTrans_Translation_Media_Manager
     {
         // If no featured image data, nothing to do
         if (!$translated_image_data || !isset($translated_image_data['id'])) {
-            PolyTrans_Logs_Manager::log("No featured image data to process", "debug", [
+            \PolyTrans_Logs_Manager::log("No featured image data to process", "debug", [
                 'source' => 'translation_media_manager',
                 'original_post_id' => $original_post_id,
                 'translated_post_id' => $new_post_id
@@ -36,7 +38,7 @@ class PolyTrans_Translation_Media_Manager
 
         // Check if original attachment exists
         if (!get_post($original_attachment_id)) {
-            PolyTrans_Logs_Manager::log("Original attachment not found", "warning", [
+            \PolyTrans_Logs_Manager::log("Original attachment not found", "warning", [
                 'source' => 'translation_media_manager',
                 'attachment_id' => $original_attachment_id,
                 'translated_post_id' => $new_post_id
@@ -44,7 +46,7 @@ class PolyTrans_Translation_Media_Manager
             return;
         }
 
-        PolyTrans_Logs_Manager::log("Processing featured image translation", "info", [
+        \PolyTrans_Logs_Manager::log("Processing featured image translation", "info", [
             'source' => 'translation_media_manager',
             'original_attachment_id' => $original_attachment_id,
             'original_post_id' => $original_post_id,
@@ -60,7 +62,7 @@ class PolyTrans_Translation_Media_Manager
         );
 
         if (!$translated_attachment_id) {
-            PolyTrans_Logs_Manager::log("Failed to create/get translated attachment", "error", [
+            \PolyTrans_Logs_Manager::log("Failed to create/get translated attachment", "error", [
                 'source' => 'translation_media_manager',
                 'original_attachment_id' => $original_attachment_id,
                 'target_language' => $target_language
@@ -71,7 +73,7 @@ class PolyTrans_Translation_Media_Manager
         // Set the translated attachment as the featured image for the translated post
         set_post_thumbnail($new_post_id, $translated_attachment_id);
 
-        PolyTrans_Logs_Manager::log("Featured image translation completed successfully", "info", [
+        \PolyTrans_Logs_Manager::log("Featured image translation completed successfully", "info", [
             'source' => 'translation_media_manager',
             'original_attachment_id' => $original_attachment_id,
             'translated_attachment_id' => $translated_attachment_id,
@@ -91,7 +93,7 @@ class PolyTrans_Translation_Media_Manager
     {
         // Check if Polylang is available
         if (!function_exists('pll_get_post')) {
-            PolyTrans_Logs_Manager::log("Polylang not available, cannot create media translation", "warning", [
+            \PolyTrans_Logs_Manager::log("Polylang not available, cannot create media translation", "warning", [
                 'source' => 'translation_media_manager'
             ]);
             // Fallback: just use the original attachment
@@ -102,7 +104,7 @@ class PolyTrans_Translation_Media_Manager
         $existing_translation = pll_get_post($original_attachment_id, $target_language);
 
         if ($existing_translation) {
-            PolyTrans_Logs_Manager::log("Found existing attachment translation", "info", [
+            \PolyTrans_Logs_Manager::log("Found existing attachment translation", "info", [
                 'source' => 'translation_media_manager',
                 'original_attachment_id' => $original_attachment_id,
                 'existing_translation_id' => $existing_translation,
@@ -138,7 +140,7 @@ class PolyTrans_Translation_Media_Manager
         $original_file = get_attached_file($original_attachment_id);
 
         if (!$original_file || !file_exists($original_file)) {
-            PolyTrans_Logs_Manager::log("Original attachment file not found", "error", [
+            \PolyTrans_Logs_Manager::log("Original attachment file not found", "error", [
                 'source' => 'translation_media_manager',
                 'attachment_id' => $original_attachment_id,
                 'file_path' => $original_file
@@ -157,7 +159,7 @@ class PolyTrans_Translation_Media_Manager
         // Copy the file (only if it doesn't already exist)
         if (!file_exists($new_file)) {
             if (!copy($original_file, $new_file)) {
-                PolyTrans_Logs_Manager::log("Failed to copy attachment file", "error", [
+                \PolyTrans_Logs_Manager::log("Failed to copy attachment file", "error", [
                     'source' => 'translation_media_manager',
                     'original_file' => $original_file,
                     'new_file' => $new_file
@@ -180,7 +182,7 @@ class PolyTrans_Translation_Media_Manager
         $new_attachment_id = wp_insert_attachment($attachment_data, $new_file);
 
         if (is_wp_error($new_attachment_id)) {
-            PolyTrans_Logs_Manager::log("Failed to insert attachment", "error", [
+            \PolyTrans_Logs_Manager::log("Failed to insert attachment", "error", [
                 'source' => 'translation_media_manager',
                 'error' => $new_attachment_id->get_error_message()
             ]);
@@ -211,7 +213,7 @@ class PolyTrans_Translation_Media_Manager
             pll_save_post_translations($translations);
         }
 
-        PolyTrans_Logs_Manager::log("Created new translated attachment", "info", [
+        \PolyTrans_Logs_Manager::log("Created new translated attachment", "info", [
             'source' => 'translation_media_manager',
             'original_attachment_id' => $original_attachment_id,
             'new_attachment_id' => $new_attachment_id,
@@ -257,7 +259,7 @@ class PolyTrans_Translation_Media_Manager
             update_post_meta($attachment_id, '_wp_attachment_image_alt', $translated_data['alt']);
         }
 
-        PolyTrans_Logs_Manager::log("Updated translated attachment metadata", "info", [
+        \PolyTrans_Logs_Manager::log("Updated translated attachment metadata", "info", [
             'source' => 'translation_media_manager',
             'attachment_id' => $attachment_id,
             'updated_fields' => array_keys($translated_data)

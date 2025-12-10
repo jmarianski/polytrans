@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Receiver\Managers;
+
 /**
  * Handles email notifications for translated posts.
  */
@@ -69,11 +71,11 @@ class PolyTrans_Translation_Notification_Manager
             if (!$edit_link) {
                 // If get_edit_post_link fails (background context), construct manually
                 $edit_link = admin_url('post.php?post=' . $post_id . '&action=edit');
-                PolyTrans_Logs_Manager::log("get_edit_post_link failed, using admin_url fallback: $edit_link", "info", [
+                \PolyTrans_Logs_Manager::log("get_edit_post_link failed, using admin_url fallback: $edit_link", "info", [
                     'post_id' => $post_id
                 ]);
             } else {
-                PolyTrans_Logs_Manager::log("Using WordPress generated edit link: $edit_link", "info", [
+                \PolyTrans_Logs_Manager::log("Using WordPress generated edit link: $edit_link", "info", [
                     'post_id' => $post_id
                 ]);
             }
@@ -92,13 +94,13 @@ class PolyTrans_Translation_Notification_Manager
     {
         $reviewer = get_user_by('id', $reviewer_user_id);
         if (!$reviewer) {
-            PolyTrans_Logs_Manager::log("Reviewer not found: $reviewer_user_id", "info");
+            \PolyTrans_Logs_Manager::log("Reviewer not found: $reviewer_user_id", "info");
             return;
         }
 
         $post = get_post($new_post_id);
         if (!$post) {
-            PolyTrans_Logs_Manager::log("Post not found for notification: $new_post_id", "info");
+            \PolyTrans_Logs_Manager::log("Post not found for notification: $new_post_id", "info");
             return;
         }
 
@@ -123,9 +125,9 @@ class PolyTrans_Translation_Notification_Manager
         );
 
         if ($sent) {
-            PolyTrans_Logs_Manager::log("Sent reviewer notification to {$reviewer->user_email} for post $new_post_id", "info");
+            \PolyTrans_Logs_Manager::log("Sent reviewer notification to {$reviewer->user_email} for post $new_post_id", "info");
         } else {
-            PolyTrans_Logs_Manager::log("Failed to send reviewer notification for post $new_post_id", "warning", [
+            \PolyTrans_Logs_Manager::log("Failed to send reviewer notification for post $new_post_id", "warning", [
                 'post_id' => $new_post_id,
                 'reviewer_email' => $reviewer->user_email,
                 'error' => isset($GLOBALS['phpmailer']) && $GLOBALS['phpmailer']->ErrorInfo ? $GLOBALS['phpmailer']->ErrorInfo : 'Unknown error'

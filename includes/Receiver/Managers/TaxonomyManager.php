@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Receiver\Managers;
+
 /**
  * Handles taxonomy (categories and tags) setup for translated posts.
  */
@@ -54,7 +56,7 @@ class PolyTrans_Translation_Taxonomy_Manager
             wp_set_post_categories($new_post_id, $translated_cat_ids);
         }
         if (!empty($categories_not_found)) {
-            PolyTrans_Logs_Manager::log(
+            \PolyTrans_Logs_Manager::log(
                 "[polytrans] Categories not found for post $new_post_id: " . implode(',', $categories_not_found) . "; Found: " . implode(',', $categories_found),
                 "info"
             );

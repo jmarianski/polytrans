@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Receiver;
+
 /**
  * Coordinates the translation process by orchestrating all translation managers.
  */
@@ -8,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Coordinator
+class TranslationCoordinator
 {
     private $validator;
     private $post_creator;
@@ -79,7 +81,7 @@ class PolyTrans_Translation_Coordinator
             // Update translation status
             $this->status_manager->update_status($original_post_id, $target_language, $new_post_id);
 
-            PolyTrans_Logs_Manager::log("Translation processing completed successfully for post $new_post_id", "info");
+            \PolyTrans_Logs_Manager::log("Translation processing completed successfully for post $new_post_id", "info");
 
             return [
                 'success' => true,
@@ -88,7 +90,7 @@ class PolyTrans_Translation_Coordinator
             ];
         } catch (Exception $e) {
             $error_message = 'Translation processing failed: ' . $e->getMessage();
-            PolyTrans_Logs_Manager::log("$error_message", "info");
+            \PolyTrans_Logs_Manager::log("$error_message", "info");
 
             if (isset($original_post_id) && isset($target_language)) {
                 $this->status_manager->mark_as_failed($original_post_id, $target_language, $error_message);
@@ -136,7 +138,7 @@ class PolyTrans_Translation_Coordinator
                 $featured_image_data
             );
         } else {
-            PolyTrans_Logs_Manager::log("No featured image data provided for post $new_post_id", "info", $translated);
+            \PolyTrans_Logs_Manager::log("No featured image data provided for post $new_post_id", "info", $translated);
         }
     }
 

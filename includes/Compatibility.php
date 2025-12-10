@@ -77,6 +77,21 @@ class_alias('PolyTrans\Core\UserAutocomplete', 'PolyTrans_User_Autocomplete');
 class_alias('PolyTrans\Core\PostAutocomplete', 'PolyTrans_Post_Autocomplete');
 
 // ============================================================================
+// RECEIVER MODULE
+// ============================================================================
+class_alias('PolyTrans\Receiver\TranslationCoordinator', 'PolyTrans_Translation_Coordinator');
+class_alias('PolyTrans\Receiver\TranslationReceiverExtension', 'PolyTrans_Translation_Receiver_Extension');
+class_alias('PolyTrans\Receiver\Managers\LanguageManager', 'PolyTrans_Translation_Language_Manager');
+class_alias('PolyTrans\Receiver\Managers\MediaManager', 'PolyTrans_Translation_Media_Manager');
+class_alias('PolyTrans\Receiver\Managers\MetadataManager', 'PolyTrans_Translation_Metadata_Manager');
+class_alias('PolyTrans\Receiver\Managers\NotificationManager', 'PolyTrans_Translation_Notification_Manager');
+class_alias('PolyTrans\Receiver\Managers\PostCreator', 'PolyTrans_Translation_Post_Creator');
+class_alias('PolyTrans\Receiver\Managers\RequestValidator', 'PolyTrans_Translation_Request_Validator');
+class_alias('PolyTrans\Receiver\Managers\SecurityManager', 'PolyTrans_Translation_Security_Manager');
+class_alias('PolyTrans\Receiver\Managers\StatusManager', 'PolyTrans_Translation_Status_Manager');
+class_alias('PolyTrans\Receiver\Managers\TaxonomyManager', 'PolyTrans_Translation_Taxonomy_Manager');
+
+// ============================================================================
 // POSTPROCESSING MODULE
 // ============================================================================
 class_alias('PolyTrans\PostProcessing\VariableManager', 'PolyTrans_Variable_Manager');

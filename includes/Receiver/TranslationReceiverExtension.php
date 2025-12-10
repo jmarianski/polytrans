@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Receiver;
+
 /**
  * Extension that handles receiving translated posts from external translation services.
  * This class acts as a REST API endpoint and delegates the actual translation processing
@@ -10,14 +12,14 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Receiver_Extension
+class TranslationReceiverExtension
 {
     private $coordinator;
     private $security_manager;
 
     public function __construct()
     {
-        $this->coordinator = new PolyTrans_Translation_Coordinator();
+        $this->coordinator = new TranslationCoordinator();
         $this->security_manager = new PolyTrans_Translation_Security_Manager();
     }
 
