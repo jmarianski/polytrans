@@ -205,8 +205,15 @@
         },
 
         populateAssistantSelects: function () {
-            var assistants = this.assistants || [];
-            console.log('populateAssistantSelects called with', assistants.length, 'assistants');
+            var groupedAssistants = this.assistants || {};
+            console.log('populateAssistantSelects called with grouped assistants:', groupedAssistants);
+
+            // Count total assistants
+            var totalCount = 0;
+            if (groupedAssistants.managed) totalCount += groupedAssistants.managed.length;
+            if (groupedAssistants.openai) totalCount += groupedAssistants.openai.length;
+            if (groupedAssistants.claude) totalCount += groupedAssistants.claude.length;
+            if (groupedAssistants.gemini) totalCount += groupedAssistants.gemini.length;
 
             // Use a slight delay to ensure DOM is ready
             setTimeout(function () {
@@ -247,13 +254,53 @@
                         .attr('value', '')
                         .text('No assistant selected'));
 
-                    // Add assistant options
-                    assistants.forEach(function (assistant) {
-                        var option = $('<option></option>')
-                            .attr('value', assistant.id)
-                            .text(assistant.name + ' (' + assistant.model + ')');
-                        $select.append(option);
-                    });
+                    // Add Managed Assistants group
+                    if (groupedAssistants.managed && groupedAssistants.managed.length > 0) {
+                        var $managedGroup = $('<optgroup label="Managed Assistants"></optgroup>');
+                        groupedAssistants.managed.forEach(function (assistant) {
+                            var option = $('<option></option>')
+                                .attr('value', assistant.id)
+                                .text(assistant.name + ' (' + assistant.model + ')');
+                            $managedGroup.append(option);
+                        });
+                        $select.append($managedGroup);
+                    }
+
+                    // Add OpenAI API Assistants group
+                    if (groupedAssistants.openai && groupedAssistants.openai.length > 0) {
+                        var $openaiGroup = $('<optgroup label="OpenAI API Assistants"></optgroup>');
+                        groupedAssistants.openai.forEach(function (assistant) {
+                            var option = $('<option></option>')
+                                .attr('value', assistant.id)
+                                .text(assistant.name + ' (' + assistant.model + ')');
+                            $openaiGroup.append(option);
+                        });
+                        $select.append($openaiGroup);
+                    }
+
+                    // Add Claude Projects group (future)
+                    if (groupedAssistants.claude && groupedAssistants.claude.length > 0) {
+                        var $claudeGroup = $('<optgroup label="Claude Projects"></optgroup>');
+                        groupedAssistants.claude.forEach(function (assistant) {
+                            var option = $('<option></option>')
+                                .attr('value', assistant.id)
+                                .text(assistant.name + ' (' + assistant.model + ')');
+                            $claudeGroup.append(option);
+                        });
+                        $select.append($claudeGroup);
+                    }
+
+                    // Add Gemini Tuned Models group (future)
+                    if (groupedAssistants.gemini && groupedAssistants.gemini.length > 0) {
+                        var $geminiGroup = $('<optgroup label="Gemini Tuned Models"></optgroup>');
+                        groupedAssistants.gemini.forEach(function (assistant) {
+                            var option = $('<option></option>')
+                                .attr('value', assistant.id)
+                                .text(assistant.name + ' (' + assistant.model + ')');
+                            $geminiGroup.append(option);
+                        });
+                        $select.append($geminiGroup);
+                    }
 
                     // Set the selected value to match the hidden input
                     $select.val(currentValue);
@@ -266,11 +313,19 @@
                 });
 
                 // Show success message when assistants are loaded
-                if (assistants.length > 0) {
+                if (totalCount > 0) {
                     var $section = $('#openai-assistants-section');
                     var $loadingMsg = $section.find('.assistants-loading-message');
                     if ($loadingMsg.length === 0) {
-                        $section.prepend('<div class="assistants-loading-message" style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:8px 12px;border-radius:4px;margin-bottom:15px;font-size:13px;">✓ Loaded ' + assistants.length + ' assistants from your OpenAI account</div>');
+                        var managedCount = groupedAssistants.managed ? groupedAssistants.managed.length : 0;
+                        var openaiCount = groupedAssistants.openai ? groupedAssistants.openai.length : 0;
+                        var message = '✓ Loaded ' + totalCount + ' assistant(s): ';
+                        var parts = [];
+                        if (managedCount > 0) parts.push(managedCount + ' Managed');
+                        if (openaiCount > 0) parts.push(openaiCount + ' OpenAI API');
+                        message += parts.join(', ');
+                        
+                        $section.prepend('<div class="assistants-loading-message" style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:8px 12px;border-radius:4px;margin-bottom:15px;font-size:13px;">' + message + '</div>');
                     }
                     setTimeout(function () {
                         $section.find('.assistants-loading-message').fadeOut();

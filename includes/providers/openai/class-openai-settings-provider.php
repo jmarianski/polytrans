@@ -621,7 +621,7 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
     }
 
     /**
-     * AJAX handler for loading OpenAI assistants
+     * AJAX handler for loading OpenAI assistants (both Managed and OpenAI API)
      */
     public function ajax_load_openai_assistants()
     {
@@ -641,31 +641,54 @@ class PolyTrans_OpenAI_Settings_Provider implements PolyTrans_Settings_Provider_
 
         $api_key = sanitize_text_field($_POST['api_key'] ?? '');
 
-        if (empty($api_key)) {
-            wp_send_json_error(__('API key is required.', 'polytrans'));
+        // Prepare grouped assistants structure
+        $grouped_assistants = [
+            'managed' => [],
+            'openai' => [],
+            'claude' => [], // Future: Claude Projects
+            'gemini' => []  // Future: Gemini Tuned Models
+        ];
+
+        // 1. Load Managed Assistants from local database
+        $managed_assistants = PolyTrans_Assistant_Manager::get_all_assistants();
+        if (!empty($managed_assistants)) {
+            foreach ($managed_assistants as $assistant) {
+                $model_display = 'Unknown';
+                if (!empty($assistant['api_parameters'])) {
+                    $api_params = is_string($assistant['api_parameters']) 
+                        ? json_decode($assistant['api_parameters'], true) 
+                        : $assistant['api_parameters'];
+                    $model_display = $api_params['model'] ?? 'Unknown';
+                }
+
+                $grouped_assistants['managed'][] = [
+                    'id' => 'managed_' . $assistant['id'], // Prefix to distinguish from OpenAI IDs
+                    'name' => $assistant['name'],
+                    'description' => $assistant['description'] ?? '',
+                    'model' => $model_display,
+                    'provider' => $assistant['provider'] ?? 'openai'
+                ];
+            }
         }
 
-        // Create OpenAI client with the provided API key
-        $client = new PolyTrans_OpenAI_Client($api_key);
+        // 2. Load OpenAI API Assistants (if API key provided)
+        if (!empty($api_key)) {
+            $client = new PolyTrans_OpenAI_Client($api_key);
+            $openai_assistants = $client->get_all_assistants();
 
-        // Load all assistants using the client
-        $all_assistants = $client->get_all_assistants();
-
-        if (empty($all_assistants)) {
-            wp_send_json_error(__('No assistants found.', 'polytrans'));
-            return;
+            if (!empty($openai_assistants)) {
+                foreach ($openai_assistants as $assistant) {
+                    $grouped_assistants['openai'][] = [
+                        'id' => $assistant['id'], // Keep original asst_xxx format
+                        'name' => $assistant['name'] ?? 'Unnamed Assistant',
+                        'description' => $assistant['description'] ?? '',
+                        'model' => $assistant['model'] ?? 'gpt-4'
+                    ];
+                }
+            }
         }
 
-        // Transform assistants data
-        $assistants = array_map(function ($assistant) {
-            return [
-                'id' => $assistant['id'],
-                'name' => $assistant['name'] ?? 'Unnamed Assistant',
-                'description' => $assistant['description'] ?? '',
-                'model' => $assistant['model'] ?? 'gpt-4'
-            ];
-        }, $all_assistants);
-
-        wp_send_json_success($assistants);
+        // Return grouped structure
+        wp_send_json_success($grouped_assistants);
     }
 }
