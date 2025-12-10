@@ -279,7 +279,7 @@ class ManagedAssistantStep implements \PolyTrans_Workflow_Step_Interface
             $errors[] = 'Assistant ID is required (field is empty)';
         } else {
             // Verify assistant exists
-            $assistant = PolyTrans_Assistant_Manager::get_assistant($step_config['assistant_id']);
+            $assistant = AssistantManager::get_assistant($step_config['assistant_id']);
             if (!$assistant) {
                 $errors[] = 'Selected assistant does not exist (ID: ' . $step_config['assistant_id'] . ')';
             }
@@ -354,7 +354,7 @@ class ManagedAssistantStep implements \PolyTrans_Workflow_Step_Interface
             return __('No assistant selected', 'polytrans');
         }
 
-        $assistant = PolyTrans_Assistant_Manager::get_assistant($assistant_id);
+        $assistant = AssistantManager::get_assistant($assistant_id);
         if (!$assistant) {
             return __('Assistant not found', 'polytrans');
         }

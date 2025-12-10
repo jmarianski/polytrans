@@ -30,8 +30,25 @@ class Bootstrap
         // Register legacy autoloader (temporary, until all classes are migrated)
         self::registerLegacyAutoloader();
         
+        // Load interfaces BEFORE aliases (aliases might need them)
+        self::loadInterfaces();
+        
         // Register backward compatibility aliases
         self::registerCompatibilityAliases();
+    }
+
+    /**
+     * Load interfaces that need to be available before class definitions
+     */
+    private static function loadInterfaces()
+    {
+        $includes_dir = POLYTRANS_PLUGIN_DIR . 'includes/';
+        
+        // Load interfaces
+        require_once $includes_dir . 'providers/interface-translation-provider.php';
+        require_once $includes_dir . 'providers/interface-settings-provider.php';
+        require_once $includes_dir . 'postprocessing/interface-workflow-step.php';
+        require_once $includes_dir . 'postprocessing/interface-variable-provider.php';
     }
 
     /**
