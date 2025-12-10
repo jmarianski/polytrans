@@ -1217,6 +1217,15 @@ class PolyTrans_Postprocessing_Menu
                         $sanitized_step['output_actions'] = $this->sanitize_output_actions($step['output_actions']);
                     }
                     break;
+
+                case 'managed_assistant':
+                    $sanitized_step['assistant_id'] = intval($step['assistant_id'] ?? 0);
+
+                    // Handle output actions
+                    if (isset($step['output_actions']) && is_array($step['output_actions'])) {
+                        $sanitized_step['output_actions'] = $this->sanitize_output_actions($step['output_actions']);
+                    }
+                    break;
             }
 
             $sanitized_steps[] = $sanitized_step;

@@ -1167,6 +1167,7 @@
                 }
             } else if (stepData.type === 'managed_assistant') {
                 stepData.assistant_id = $(`#step-${index}-managed-assistant-id`).val();
+                console.log(`Step ${index} managed_assistant - assistant_id:`, stepData.assistant_id);
             }
 
             // Collect output actions for any step type
