@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class Meta implements \PolyTrans_Variable_Provider_Interface
+class MetaDataProvider implements \PolyTrans_Variable_Provider_Interface
 {
     /**
      * Get the provider identifier

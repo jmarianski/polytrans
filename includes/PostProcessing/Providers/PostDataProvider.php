@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class Post implements \PolyTrans_Variable_Provider_Interface
+class PostDataProvider implements \PolyTrans_Variable_Provider_Interface
 {
     /**
      * Get the provider identifier

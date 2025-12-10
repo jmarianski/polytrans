@@ -32,8 +32,8 @@ require_once POLYTRANS_PLUGIN_DIR . 'includes/Bootstrap.php';
 // Include the main plugin class (still needed until we migrate it)
 require_once POLYTRANS_PLUGIN_DIR . 'includes/class-polytrans.php';
 
-// Include background processor
-require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-background-processor.php';
+// Background processor is now autoloaded via PSR-4
+// (PolyTrans\Core\BackgroundProcessor)
 
 /**
  * Handle background process requests
