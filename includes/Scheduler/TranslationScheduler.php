@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Scheduler;
+
 /**
  * Translation Scheduler Class
  */
@@ -8,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Scheduler
+class TranslationScheduler
 {
 
     private static $instance = null;

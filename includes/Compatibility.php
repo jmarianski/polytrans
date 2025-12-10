@@ -58,6 +58,12 @@ class_alias('PolyTrans\Providers\OpenAI\OpenAISettingsProvider', 'PolyTrans_Open
 class_alias('PolyTrans\Providers\OpenAI\OpenAISettingsUI', 'PolyTrans_OpenAI_Settings_UI');
 
 // ============================================================================
+// SCHEDULER MODULE
+// ============================================================================
+class_alias('PolyTrans\Scheduler\TranslationScheduler', 'PolyTrans_Translation_Scheduler');
+class_alias('PolyTrans\Scheduler\TranslationHandler', 'PolyTrans_Translation_Handler');
+
+// ============================================================================
 // POSTPROCESSING MODULE
 // ============================================================================
 class_alias('PolyTrans\PostProcessing\VariableManager', 'PolyTrans_Variable_Manager');

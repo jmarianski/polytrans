@@ -39,9 +39,9 @@ class LegacyAutoloader
         'PolyTrans_Translation_Settings' => 'core/class-translation-settings.php',
         'polytrans_settings' => 'core/class-translation-settings.php', // lowercase class name
         
-        // Scheduler
-        'PolyTrans_Translation_Scheduler' => 'scheduler/class-translation-scheduler.php',
-        'PolyTrans_Translation_Handler' => 'scheduler/class-translation-handler.php',
+        // Scheduler - ✅ FULLY MIGRATED TO PSR-4!
+        // 'PolyTrans_Translation_Scheduler' => 'scheduler/class-translation-scheduler.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Handler' => 'scheduler/class-translation-handler.php', // ✅ MIGRATED
         
         // Receiver
         'PolyTrans_Translation_Request_Validator' => 'receiver/managers/class-translation-request-validator.php',
