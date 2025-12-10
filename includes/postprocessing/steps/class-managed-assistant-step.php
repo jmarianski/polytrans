@@ -74,6 +74,17 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
 
             $execution_time = microtime(true) - $start_time;
 
+            // Check if result is WP_Error
+            if (is_wp_error($result)) {
+                return [
+                    'success' => false,
+                    'error' => $result->get_error_message(),
+                    'execution_time' => $execution_time,
+                    'assistant_id' => $assistant_id,
+                    'assistant_name' => $assistant['name']
+                ];
+            }
+
             if (!$result['success']) {
                 return [
                     'success' => false,
@@ -87,11 +98,13 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
             // Return successful result
             return [
                 'success' => true,
-                'data' => $result['data'],
+                'data' => $result['output'] ?? $result['data'] ?? null,
                 'execution_time' => $execution_time,
                 'assistant_id' => $assistant_id,
                 'assistant_name' => $assistant['name'],
-                'metadata' => $result['metadata'] ?? []
+                'provider' => $result['provider'] ?? 'unknown',
+                'model' => $result['model'] ?? 'unknown',
+                'usage' => $result['usage'] ?? []
             ];
         } catch (Exception $e) {
             return [
