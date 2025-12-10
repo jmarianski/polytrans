@@ -45,7 +45,7 @@
                 return;
             }
 
-            // Create system prompt textarea
+            // Create system prompt textarea with variable sidebar
             const systemContainer = document.getElementById('system-prompt-editor-container');
             if (systemContainer) {
                 const systemTextarea = $('<textarea>')
@@ -53,28 +53,92 @@
                     .attr('name', 'system_prompt')
                     .attr('rows', 8)
                     .attr('required', true)
-                    .addClass('large-text code')
+                    .addClass('large-text code prompt-editor-textarea')
                     .css('width', '100%')
                     .val(window.polytransAssistantData.system_prompt || '');
                 
-                $(systemContainer).append(systemTextarea);
+                const wrapper = $('<div>').addClass('field-wrapper');
+                wrapper.append(systemTextarea);
+                wrapper.append(this.renderVariableSidebar());
+                $(systemContainer).append(wrapper);
+                
                 this.systemPromptEditor = systemTextarea[0];
             }
 
-            // Create user message template textarea
+            // Create user message template textarea with variable sidebar
             const userContainer = document.getElementById('user-message-editor-container');
             if (userContainer) {
                 const userTextarea = $('<textarea>')
                     .attr('id', 'assistant-user-message')
                     .attr('name', 'user_message_template')
                     .attr('rows', 10)
-                    .addClass('large-text code')
+                    .addClass('large-text code prompt-editor-textarea')
                     .css('width', '100%')
                     .val(window.polytransAssistantData.user_message_template || '');
                 
-                $(userContainer).append(userTextarea);
+                const wrapper = $('<div>').addClass('field-wrapper');
+                wrapper.append(userTextarea);
+                wrapper.append(this.renderVariableSidebar());
+                $(userContainer).append(wrapper);
+                
                 this.userMessageEditor = userTextarea[0];
             }
+            
+            // Initialize variable pill click handlers
+            this.initVariablePills();
+        },
+
+        /**
+         * Render variable sidebar
+         */
+        renderVariableSidebar: function() {
+            const variables = [
+                { name: 'title', desc: 'Translated post title' },
+                { name: 'content', desc: 'Translated post content' },
+                { name: 'excerpt', desc: 'Translated post excerpt' },
+                { name: 'original.title', desc: 'Original post title' },
+                { name: 'original.content', desc: 'Original post content' },
+                { name: 'translated.title', desc: 'Current translated title' },
+                { name: 'translated.content', desc: 'Current translated content' },
+                { name: 'translated.meta.KEY', desc: 'Translated meta field' },
+                { name: 'target_language', desc: 'Target language code' }
+            ];
+
+            const pills = variables.map(v => 
+                `<span class="var-pill" data-variable="{{ ${v.name} }}" title="${v.desc}">${v.name}</span>`
+            ).join('');
+
+            return $('<div>').addClass('variable-sidebar').html(pills);
+        },
+
+        /**
+         * Initialize variable pill click handlers
+         */
+        initVariablePills: function() {
+            let lastFocusedTextarea = null;
+
+            // Track last focused textarea
+            $(document).on('focus', '.prompt-editor-textarea', function() {
+                lastFocusedTextarea = this;
+            });
+
+            // Handle variable pill clicks
+            $(document).on('click', '.var-pill', function() {
+                const variable = $(this).data('variable');
+                const textarea = lastFocusedTextarea || $(this).closest('.field-wrapper').find('textarea')[0];
+
+                if (textarea) {
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const text = textarea.value;
+                    const before = text.substring(0, start);
+                    const after = text.substring(end, text.length);
+
+                    textarea.value = before + variable + after;
+                    textarea.selectionStart = textarea.selectionEnd = start + variable.length;
+                    textarea.focus();
+                }
+            });
         },
 
         /**

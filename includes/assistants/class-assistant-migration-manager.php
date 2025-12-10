@@ -127,9 +127,13 @@ class PolyTrans_Assistant_Migration_Manager
         $system_prompt = $step['system_prompt'] ?? '';
         $user_message = $step['user_message'] ?? '';
         
-        // Combine system prompt and user message into single prompt template
-        // Using Twig syntax for better variable handling
-        $prompt_template = self::build_prompt_template($system_prompt, $user_message);
+        // Convert legacy {variable} syntax to Twig {{ variable }} if needed
+        if (strpos($system_prompt, '{{') === false && strpos($system_prompt, '{%') === false) {
+            $system_prompt = preg_replace('/\{([a-zA-Z0-9_\.]+)\}/', '{{ $1 }}', $system_prompt);
+        }
+        if (strpos($user_message, '{{') === false && strpos($user_message, '{%') === false) {
+            $user_message = preg_replace('/\{([a-zA-Z0-9_\.]+)\}/', '{{ $1 }}', $user_message);
+        }
 
         // Extract model (default to gpt-4o-mini if not specified)
         $model = !empty($step['model']) ? $step['model'] : 'gpt-4o-mini';
@@ -152,7 +156,7 @@ class PolyTrans_Assistant_Migration_Manager
         ];
 
         // Create assistant data matching Assistant Manager structure
-        // Note: Assistant Manager expects system_prompt and api_parameters, not prompt_template and config
+        // Note: Assistant Manager expects system_prompt and api_parameters
         $api_parameters = [
             'model' => $model,
             'temperature' => $config['temperature'],
@@ -163,15 +167,15 @@ class PolyTrans_Assistant_Migration_Manager
         $assistant_data = [
             'name' => $assistant_name,
             'provider' => 'openai',
-            'system_prompt' => $prompt_template, // Using prompt_template as system_prompt
-            'user_message_template' => '', // Empty for migrated assistants (prompt is combined)
+            'system_prompt' => $system_prompt, // Keep system prompt separate
+            'user_message_template' => $user_message, // Keep user message separate
             'api_parameters' => json_encode($api_parameters),
             'expected_format' => $response_format,
-            'output_variables' => null // null instead of empty string for validation
+            'output_variables' => null
         ];
 
         // Check if similar assistant already exists (to avoid duplicates)
-        $existing_assistant = self::find_existing_assistant($assistant_name, $prompt_template);
+        $existing_assistant = self::find_existing_assistant($assistant_name, $system_prompt, $user_message);
         if ($existing_assistant) {
             return $existing_assistant['id'];
         }
@@ -263,19 +267,22 @@ class PolyTrans_Assistant_Migration_Manager
     }
 
     /**
-     * Find existing assistant with same name and prompt
+     * Find existing assistant with same name and prompts
      * 
      * @param string $name Assistant name
-     * @param string $prompt_template Prompt template
+     * @param string $system_prompt System prompt
+     * @param string $user_message User message template
      * @return array|null Existing assistant or null
      */
-    private static function find_existing_assistant($name, $prompt_template)
+    private static function find_existing_assistant($name, $system_prompt, $user_message)
     {
         $all_assistants = PolyTrans_Assistant_Manager::get_all_assistants();
 
         foreach ($all_assistants as $assistant) {
-            // Match by name and prompt template
-            if ($assistant['name'] === $name && $assistant['prompt_template'] === $prompt_template) {
+            // Match by name, system prompt and user message
+            if ($assistant['name'] === $name 
+                && $assistant['system_prompt'] === $system_prompt
+                && $assistant['user_message_template'] === $user_message) {
                 return $assistant;
             }
         }
