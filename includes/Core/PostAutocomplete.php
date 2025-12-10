@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Core;
+
 /**
  * Post Autocomplete Class
  * Handles post search functionality for workflow testing
@@ -9,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Post_Autocomplete
+class PostAutocomplete
 {
     private static $instance = null;
 

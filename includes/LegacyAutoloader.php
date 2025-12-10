@@ -29,15 +29,15 @@ class LegacyAutoloader
         // Provider system - ✅ MIGRATED TO PSR-4!
         // 'PolyTrans_Provider_Registry' => 'providers/class-provider-registry.php', // ✅ MIGRATED
         
-        // Core
-        'PolyTrans_Translation_Meta_Box' => 'core/class-translation-meta-box.php',
-        'PolyTrans_Translation_Notifications' => 'core/class-translation-notifications.php',
-        'PolyTrans_User_Autocomplete' => 'core/class-user-autocomplete.php',
-        'PolyTrans_Post_Autocomplete' => 'core/class-post-autocomplete.php',
-        'PolyTrans_Logs_Manager' => 'core/class-logs-manager.php',
-        'PolyTrans_Translation_Extension' => 'core/class-translation-extension.php',
-        'PolyTrans_Translation_Settings' => 'core/class-translation-settings.php',
-        'polytrans_settings' => 'core/class-translation-settings.php', // lowercase class name
+        // Core - ✅ FULLY MIGRATED TO PSR-4!
+        // 'PolyTrans_Translation_Meta_Box' => 'core/class-translation-meta-box.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Notifications' => 'core/class-translation-notifications.php', // ✅ MIGRATED
+        // 'PolyTrans_User_Autocomplete' => 'core/class-user-autocomplete.php', // ✅ MIGRATED
+        // 'PolyTrans_Post_Autocomplete' => 'core/class-post-autocomplete.php', // ✅ MIGRATED
+        // 'PolyTrans_Logs_Manager' => 'core/class-logs-manager.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Extension' => 'core/class-translation-extension.php', // ✅ MIGRATED
+        // 'PolyTrans_Translation_Settings' => 'core/class-translation-settings.php', // ✅ MIGRATED
+        // 'polytrans_settings' => 'core/class-translation-settings.php', // ✅ MIGRATED (lowercase class name)
         
         // Scheduler - ✅ FULLY MIGRATED TO PSR-4!
         // 'PolyTrans_Translation_Scheduler' => 'scheduler/class-translation-scheduler.php', // ✅ MIGRATED

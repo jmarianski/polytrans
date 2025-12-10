@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Core;
+
 /**
  * Background Process Handler
  * Handles running tasks in background processes
@@ -9,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Background_Processor
+class BackgroundProcessor
 {
 
     /**
@@ -475,7 +477,7 @@ class PolyTrans_Background_Processor
 
             // Process the translation using the coordinator
             // Note: PolyTrans_Translation_Coordinator is autoloaded
-            $coordinator = new PolyTrans_Translation_Coordinator();
+            $coordinator = new \PolyTrans_Translation_Coordinator();
 
             // Prepare the request data for processing
             $request_data = [
@@ -592,7 +594,7 @@ class PolyTrans_Background_Processor
             // Get workflow manager instance
             // Note: PolyTrans_Workflow_Manager is autoloaded
 
-            $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+            $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
 
             // Create test workflow
             $workflow = [
@@ -672,7 +674,7 @@ class PolyTrans_Background_Processor
             // Get workflow manager instance
             // Note: PolyTrans_Workflow_Manager is autoloaded
 
-            $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
+            $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
 
             // Get workflow
             $workflow = $workflow_manager->get_storage_manager()->get_workflow($workflow_id);
@@ -750,7 +752,7 @@ class PolyTrans_Background_Processor
         $target_lang = isset($context['target_lang']) ? $context['target_lang'] : '';
 
         // Use the logs manager to log (it will handle both error_log and DB)
-        PolyTrans_Logs_Manager::log($message, $level, $context);
+        \PolyTrans_Logs_Manager::log($message, $level, $context);
 
         // Also log to post meta for this specific translation if we have a post ID
         if ($post_id && $target_lang) {

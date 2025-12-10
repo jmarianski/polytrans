@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Core;
+
 /**
  * Translation Extension Class
  * Handles incoming translation requests from other servers and sends back translated content
@@ -10,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Extension
+class TranslationExtension
 {
     private static $instance = null;
     private $providers = [];
@@ -42,7 +44,7 @@ class PolyTrans_Translation_Extension
     {
         // Get all registered providers from the registry
         // Note: Provider registry is now autoloaded via LegacyAutoloader
-        $registry = PolyTrans_Provider_Registry::get_instance();
+        $registry = \PolyTrans_Provider_Registry::get_instance();
         $this->providers = $registry->get_providers();
     }
 
@@ -77,7 +79,7 @@ class PolyTrans_Translation_Extension
      */
     public function handle_translate($request)
     {
-        PolyTrans_Logs_Manager::log("handleTranslate called", "info");
+        \PolyTrans_Logs_Manager::log("handleTranslate called", "info");
 
         $params = $request->get_json_params();
         $source_lang = $params['source_language'] ?? 'auto';
@@ -87,7 +89,7 @@ class PolyTrans_Translation_Extension
         $target_endpoint = $params['target_endpoint'] ?? null;
 
         if (!$target_endpoint) {
-            PolyTrans_Logs_Manager::log("handleTranslate error: target_endpoint required", "info");
+            \PolyTrans_Logs_Manager::log("handleTranslate error: target_endpoint required", "info");
             return new WP_REST_Response(['error' => 'target_endpoint required'], 400);
         }
 
@@ -112,14 +114,14 @@ class PolyTrans_Translation_Extension
             ];
             update_post_meta($original_post_id, $log_key, $log);
 
-            PolyTrans_Logs_Manager::log("External translation process started for post $original_post_id from $source_lang to $target_lang", "info");
+            \PolyTrans_Logs_Manager::log("External translation process started for post $original_post_id from $source_lang to $target_lang", "info");
         }
 
         // Get settings and determine provider
         $settings = get_option('polytrans_settings', []);
         $translation_provider = $settings['translation_provider'] ?? 'google';
 
-        PolyTrans_Logs_Manager::log("Using translation provider: $translation_provider", "info");
+        \PolyTrans_Logs_Manager::log("Using translation provider: $translation_provider", "info");
 
         // Get the provider
         $provider = $this->get_provider($translation_provider);
@@ -129,7 +131,7 @@ class PolyTrans_Translation_Extension
                 $this->update_translation_failure($original_post_id, $target_lang, "Unknown translation provider: $translation_provider");
             }
 
-            PolyTrans_Logs_Manager::log("Unknown translation provider: $translation_provider", "info");
+            \PolyTrans_Logs_Manager::log("Unknown translation provider: $translation_provider", "info");
             return new WP_REST_Response(['error' => "Unknown translation provider: $translation_provider"], 400);
         }
 
@@ -140,7 +142,7 @@ class PolyTrans_Translation_Extension
                 $this->update_translation_failure($original_post_id, $target_lang, "Translation provider $translation_provider is not properly configured");
             }
 
-            PolyTrans_Logs_Manager::log("Translation provider $translation_provider is not properly configured", "info");
+            \PolyTrans_Logs_Manager::log("Translation provider $translation_provider is not properly configured", "info");
             return new WP_REST_Response(['error' => "Translation provider $translation_provider is not properly configured"], 400);
         }
 
@@ -181,7 +183,7 @@ class PolyTrans_Translation_Extension
             $this->update_translation_failure($original_post_id, $target_lang, "Failed to deliver translation: " . $response->get_error_message());
         }
 
-        PolyTrans_Logs_Manager::log("Translation finished for $source_lang->$target_lang using $translation_provider", "info");
+        \PolyTrans_Logs_Manager::log("Translation finished for $source_lang->$target_lang using $translation_provider", "info");
         return new WP_REST_Response(['status' => 'sent', 'result' => $payload]);
     }
 
@@ -210,7 +212,7 @@ class PolyTrans_Translation_Extension
         ];
 
         update_post_meta($post_id, $log_key, $log);
-        PolyTrans_Logs_Manager::log("External translation failed for post $post_id: $error_message", "info");
+        \PolyTrans_Logs_Manager::log("External translation failed for post $post_id: $error_message", "info");
     }
 
     /**
@@ -314,7 +316,7 @@ class PolyTrans_Translation_Extension
                         // Fire action for post-processing workflows
                         do_action('polytrans_translation_completed', $original_post_id, $created_post_id, $target_language);
 
-                        PolyTrans_Logs_Manager::log("External translation completed successfully for post $original_post_id -> $created_post_id", "info");
+                        \PolyTrans_Logs_Manager::log("External translation completed successfully for post $original_post_id -> $created_post_id", "info");
                     }
                 } catch (Exception $e) {
                     error_log("[polytrans] Error processing translation response: " . $e->getMessage());
@@ -366,7 +368,7 @@ class PolyTrans_Translation_Extension
         }
 
         if (!$received_secret || $received_secret !== $expected_secret) {
-            PolyTrans_Logs_Manager::log("Invalid or missing translation receiver secret (permission callback)", "info");
+            \PolyTrans_Logs_Manager::log("Invalid or missing translation receiver secret (permission callback)", "info");
             return false;
         }
 

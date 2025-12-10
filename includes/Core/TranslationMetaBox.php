@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Core;
+
 /**
  * Translation Meta Box Class
  */
@@ -8,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Meta_Box
+class TranslationMetaBox
 {
 
     private static $instance = null;

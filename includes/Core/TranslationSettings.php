@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Core;
+
 /**
  * Translation Settings Admin Page
  */
@@ -8,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class polytrans_settings
+class TranslationSettings
 {
 
     private $langs;
@@ -54,7 +56,7 @@ class polytrans_settings
             wp_die(esc_html__('Security check failed.', 'polytrans'));
         }
 
-        $registry = PolyTrans_Provider_Registry::get_instance();
+        $registry = \PolyTrans_Provider_Registry::get_instance();
 
         $settings['translation_provider'] = sanitize_text_field(wp_unslash($_POST['translation_provider'] ?? 'google'));
         $settings['translation_transport_mode'] = sanitize_text_field(wp_unslash($_POST['translation_transport_mode'] ?? 'external'));
@@ -102,7 +104,7 @@ class polytrans_settings
      */
     private function output_page($settings)
     {
-        $registry = PolyTrans_Provider_Registry::get_instance();
+        $registry = \PolyTrans_Provider_Registry::get_instance();
         $translation_provider = $settings['translation_provider'] ?? 'google';
         $translation_endpoint = $settings['translation_endpoint'] ?? '';
         $translation_receiver_endpoint = $settings['translation_receiver_endpoint'] ?? '';

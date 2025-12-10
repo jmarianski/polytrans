@@ -64,6 +64,19 @@ class_alias('PolyTrans\Scheduler\TranslationScheduler', 'PolyTrans_Translation_S
 class_alias('PolyTrans\Scheduler\TranslationHandler', 'PolyTrans_Translation_Handler');
 
 // ============================================================================
+// CORE MODULE
+// ============================================================================
+class_alias('PolyTrans\Core\LogsManager', 'PolyTrans_Logs_Manager');
+class_alias('PolyTrans\Core\BackgroundProcessor', 'PolyTrans_Background_Processor');
+class_alias('PolyTrans\Core\TranslationSettings', 'polytrans_settings'); // lowercase!
+class_alias('PolyTrans\Core\TranslationSettings', 'PolyTrans_Translation_Settings');
+class_alias('PolyTrans\Core\TranslationExtension', 'PolyTrans_Translation_Extension');
+class_alias('PolyTrans\Core\TranslationMetaBox', 'PolyTrans_Translation_Meta_Box');
+class_alias('PolyTrans\Core\TranslationNotifications', 'PolyTrans_Translation_Notifications');
+class_alias('PolyTrans\Core\UserAutocomplete', 'PolyTrans_User_Autocomplete');
+class_alias('PolyTrans\Core\PostAutocomplete', 'PolyTrans_Post_Autocomplete');
+
+// ============================================================================
 // POSTPROCESSING MODULE
 // ============================================================================
 class_alias('PolyTrans\PostProcessing\VariableManager', 'PolyTrans_Variable_Manager');

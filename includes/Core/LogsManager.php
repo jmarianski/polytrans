@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Core;
+
 /**
  * PolyTrans Logs Manager
  * Handles logs database table creation and management
@@ -9,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Logs_Manager
+class LogsManager
 {
     /**
      * Create the logs database table

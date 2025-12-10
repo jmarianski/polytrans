@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Core;
+
 /**
  * Translation Notifications Class
  * Handles email notifications for translation workflow
@@ -9,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Translation_Notifications
+class TranslationNotifications
 {
 
     private static $instance = null;
@@ -53,7 +55,7 @@ class PolyTrans_Translation_Notifications
             return;
         }
 
-        PolyTrans_Logs_Manager::log("transition_post_status: post {$post->ID} from $old_status to $new_status", "info");
+        \PolyTrans_Logs_Manager::log("transition_post_status: post {$post->ID} from $old_status to $new_status", "info");
 
         // Only when moving from pending/pending_review to publish or draft
         if (!in_array($old_status, ['pending', 'draft']) || !in_array($new_status, ['publish', 'draft', 'future'])) {
@@ -70,7 +72,7 @@ class PolyTrans_Translation_Notifications
 
         // Only notify if current user is reviewer
         if (get_current_user_id() !== $reviewer_id && !isset($reviewer_id)) {
-            PolyTrans_Logs_Manager::log("Not notifying, current user is not the reviewer for post {$post->ID}", "info");
+            \PolyTrans_Logs_Manager::log("Not notifying, current user is not the reviewer for post {$post->ID}", "info");
             return;
         }
 
@@ -79,7 +81,7 @@ class PolyTrans_Translation_Notifications
         $author_id = get_post_field('post_author', $original_post_id);
         $author = get_user_by('id', $author_id);
         if (!$author) {
-            PolyTrans_Logs_Manager::log("No author found for original post $original_post_id (translation {$post->ID})", "info");
+            \PolyTrans_Logs_Manager::log("No author found for original post $original_post_id (translation {$post->ID})", "info");
             return;
         }
 
@@ -92,7 +94,7 @@ class PolyTrans_Translation_Notifications
         $email_subject = str_replace(array_keys($placeholders), array_values($placeholders), $subject);
         $email_body = str_replace(array_keys($placeholders), array_values($placeholders), $body);
 
-        PolyTrans_Logs_Manager::log("Sending review notification to author {$author->user_email} for post {$post->ID} (original $original_post_id)", "info");
+        \PolyTrans_Logs_Manager::log("Sending review notification to author {$author->user_email} for post {$post->ID} (original $original_post_id)", "info");
 
         // Send email
         wp_mail(
@@ -104,7 +106,7 @@ class PolyTrans_Translation_Notifications
 
         // Mark as notified
         update_post_meta($post->ID, '_polytrans_author_notified', 1);
-        PolyTrans_Logs_Manager::log("Marked as notified for post {$post->ID}", "info");
+        \PolyTrans_Logs_Manager::log("Marked as notified for post {$post->ID}", "info");
     }
 
 
@@ -143,11 +145,11 @@ class PolyTrans_Translation_Notifications
             if (!$edit_link) {
                 // If get_edit_post_link fails (background context), construct manually
                 $edit_link = admin_url('post.php?post=' . $post_id . '&action=edit');
-                PolyTrans_Logs_Manager::log("get_edit_post_link failed, using admin_url fallback: $edit_link", "info", [
+                \PolyTrans_Logs_Manager::log("get_edit_post_link failed, using admin_url fallback: $edit_link", "info", [
                     'post_id' => $post_id
                 ]);
             } else {
-                PolyTrans_Logs_Manager::log("Using WordPress generated edit link: $edit_link", "info", [
+                \PolyTrans_Logs_Manager::log("Using WordPress generated edit link: $edit_link", "info", [
                     'post_id' => $post_id
                 ]);
             }

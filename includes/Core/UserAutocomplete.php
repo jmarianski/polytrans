@@ -1,5 +1,7 @@
 <?php
 
+namespace PolyTrans\Core;
+
 /**
  * User Autocomplete Class
  * Handles user search functionality for reviewer assignment
@@ -9,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_User_Autocomplete
+class UserAutocomplete
 {
 
     private static $instance = null;
