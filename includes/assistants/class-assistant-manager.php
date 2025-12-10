@@ -438,6 +438,17 @@ class PolyTrans_Assistant_Manager {
 			} else {
 				$sanitized['api_parameters'] = $data['api_parameters'];
 			}
+			
+			// Ensure correct types for numeric parameters
+			if ( isset( $sanitized['api_parameters']['max_tokens'] ) ) {
+				$sanitized['api_parameters']['max_tokens'] = (int) $sanitized['api_parameters']['max_tokens'];
+			}
+			if ( isset( $sanitized['api_parameters']['temperature'] ) ) {
+				$sanitized['api_parameters']['temperature'] = (float) $sanitized['api_parameters']['temperature'];
+			}
+			if ( isset( $sanitized['api_parameters']['top_p'] ) ) {
+				$sanitized['api_parameters']['top_p'] = (float) $sanitized['api_parameters']['top_p'];
+			}
 		} else {
 			$sanitized['api_parameters'] = array();
 		}
