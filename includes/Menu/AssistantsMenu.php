@@ -659,13 +659,13 @@ class AssistantsMenu
     private function get_model_options()
     {
         // Check if OpenAI settings provider class exists
-        if (!class_exists('PolyTrans_OpenAI_Settings_Provider')) {
+        if (!class_exists('\PolyTrans_OpenAI_Settings_Provider')) {
             return $this->get_fallback_models();
         }
 
         try {
-            $provider = new PolyTrans_OpenAI_Settings_Provider();
-            $reflection = new ReflectionClass($provider);
+            $provider = new \PolyTrans_OpenAI_Settings_Provider();
+            $reflection = new \ReflectionClass($provider);
             $method = $reflection->getMethod('get_grouped_models');
             $method->setAccessible(true);
             return $method->invoke($provider);

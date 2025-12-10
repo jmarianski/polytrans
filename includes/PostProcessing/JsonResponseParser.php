@@ -262,8 +262,8 @@ class JsonResponseParser
             
         } catch (Throwable $e) {
             // Log exception with full details
-            if (class_exists('PolyTrans_Logs_Manager')) {
-                PolyTrans_Logs_Manager::log(
+            if (class_exists('\PolyTrans_Logs_Manager')) {
+                \PolyTrans_Logs_Manager::log(
                     'JSON Response Parser exception: ' . $e->getMessage(),
                     'error',
                     [
