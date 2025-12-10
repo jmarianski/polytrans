@@ -436,14 +436,15 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
             $parse_result = $parser->parse_with_schema($ai_output, $assistant['expected_output_schema']);
 
             if (!$parse_result['success']) {
-                // Log full response to DATABASE (background processor!)
+                // Log parsing error (without full response to avoid DB/memory issues)
                 PolyTrans_Logs_Manager::log(
                     "Managed Assistant response parsing failed: " . $parse_result['error'],
                     'error',
                     [
                         'assistant_id' => $numeric_id,
                         'response_length' => strlen($ai_output),
-                        'full_response' => $ai_output, // FULL response in database
+                        'response_preview' => substr($ai_output, 0, 500), // First 500 chars only
+                        'response_end' => substr($ai_output, -200), // Last 200 chars to see if truncated
                         'parse_error' => $parse_result['error']
                     ]
                 );

@@ -381,14 +381,15 @@ class PolyTrans_Assistant_Executor {
 		);
 
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			// Log full response to database (background processor can't use error_log!)
+			// Log parsing error (without full response to avoid DB/memory issues)
 			PolyTrans_Logs_Manager::log(
 				'Assistant JSON parsing failed: ' . json_last_error_msg(),
 				'error',
 				array(
 					'json_error'    => json_last_error_msg(),
 					'response_length' => strlen( $content ),
-					'full_response' => $content, // FULL response in database
+					'response_preview' => substr( $content, 0, 500 ), // First 500 chars
+					'response_end' => substr( $content, -200 ), // Last 200 chars to see if truncated
 				)
 			);
 			
@@ -405,6 +406,14 @@ class PolyTrans_Assistant_Executor {
 
 		// Validate output_variables if specified
 		if ( ! empty( $config['output_variables'] ) ) {
+			PolyTrans_Logs_Manager::log(
+				'Validating output_variables',
+				'debug',
+				array(
+					'expected_vars' => $config['output_variables'],
+				)
+			);
+
 			$missing = array();
 			foreach ( $config['output_variables'] as $var ) {
 				if ( ! isset( $decoded[ $var ] ) ) {
@@ -426,6 +435,14 @@ class PolyTrans_Assistant_Executor {
 				);
 			}
 		}
+
+		PolyTrans_Logs_Manager::log(
+			'JSON processing completed successfully',
+			'debug',
+			array(
+				'decoded_keys' => array_keys( $decoded ),
+			)
+		);
 
 		return array( 'output' => $decoded );
 	}
