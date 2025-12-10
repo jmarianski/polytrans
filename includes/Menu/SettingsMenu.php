@@ -5,11 +5,13 @@
  * Handles PolyTrans main menu and settings page
  */
 
+namespace PolyTrans\Menu;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Settings_Menu
+class SettingsMenu
 {
 
     private static $instance = null;

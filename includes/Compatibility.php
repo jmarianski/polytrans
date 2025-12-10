@@ -39,6 +39,15 @@ class_alias('PolyTrans\PostProcessing\Steps\AiAssistantStep', 'PolyTrans_AI_Assi
 class_alias('PolyTrans\PostProcessing\Steps\PredefinedAssistantStep', 'PolyTrans_Predefined_Assistant_Step');
 
 // ============================================================================
+// MENU MODULE
+// ============================================================================
+class_alias('PolyTrans\Menu\SettingsMenu', 'PolyTrans_Settings_Menu');
+class_alias('PolyTrans\Menu\LogsMenu', 'PolyTrans_Logs_Menu');
+class_alias('PolyTrans\Menu\TagTranslation', 'PolyTrans_Tag_Translation');
+class_alias('PolyTrans\Menu\PostprocessingMenu', 'PolyTrans_Postprocessing_Menu');
+class_alias('PolyTrans\Menu\AssistantsMenu', 'PolyTrans_Assistants_Menu');
+
+// ============================================================================
 // CORE MODULE
 // ============================================================================
 // class_alias('PolyTrans\Core\Settings\SettingsManager', 'PolyTrans_Translation_Settings');

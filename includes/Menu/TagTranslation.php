@@ -5,10 +5,12 @@
  * Handles tag translation management
  */
 
+namespace PolyTrans\Menu;
+
 if (!defined('ABSPATH')) {
     exit;
 }
-class PolyTrans_Tag_Translation
+class TagTranslation
 {
 
     private static $instance = null;
@@ -313,17 +315,17 @@ class PolyTrans_Tag_Translation
      */
     public function ajax_export_tag_csv()
     {
-        PolyTrans_Logs_Manager::log("Export CSV called", "info");
+        \PolyTrans_Logs_Manager::log("Export CSV called", "info");
 
         // Check if user is logged in and has permissions
         if (!is_user_logged_in() || !current_user_can('manage_options')) {
-            PolyTrans_Logs_Manager::log("Export CSV: Unauthorized", "info");
+            \PolyTrans_Logs_Manager::log("Export CSV: Unauthorized", "info");
             wp_die('Unauthorized', 403);
         }
 
         // Verify nonce if provided
         if (isset($_GET['nonce']) && !wp_verify_nonce($_GET['nonce'], 'polytrans_tag_translation')) {
-            PolyTrans_Logs_Manager::log("Export CSV: Invalid nonce", "info");
+            \PolyTrans_Logs_Manager::log("Export CSV: Invalid nonce", "info");
             wp_die('Invalid nonce', 403);
         }
 
@@ -343,11 +345,11 @@ class PolyTrans_Tag_Translation
         $tag_names = array_filter(array_map('trim', preg_split('/[\r\n,]+/', $tag_list_raw)));
 
         if (empty($tag_names)) {
-            PolyTrans_Logs_Manager::log("Export CSV: No tags found", "info");
+            \PolyTrans_Logs_Manager::log("Export CSV: No tags found", "info");
             wp_die('No tags found to export', 400);
         }
 
-        PolyTrans_Logs_Manager::log("Export CSV: Found ' . count($tag_names) . ' tags", "info");
+        \PolyTrans_Logs_Manager::log("Export CSV: Found ' . count($tag_names) . ' tags", "info");
 
         $csv_data = [];
         $csv_data[] = array_merge([strtoupper($source_language)], array_map('strtoupper', array_filter($langs, function ($lang) use ($source_language) {
@@ -369,7 +371,7 @@ class PolyTrans_Tag_Translation
         }
 
         // Output CSV
-        PolyTrans_Logs_Manager::log("Export CSV: Outputting CSV with ' . count($csv_data) . ' rows", "info");
+        \PolyTrans_Logs_Manager::log("Export CSV: Outputting CSV with ' . count($csv_data) . ' rows", "info");
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="tag-translations.csv"');
         $output = fopen('php://output', 'w');

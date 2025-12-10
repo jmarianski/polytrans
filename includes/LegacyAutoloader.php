@@ -61,12 +61,12 @@ class LegacyAutoloader
         // 'PolyTrans_Assistant_Executor' => 'assistants/class-assistant-executor.php', // ✅ MIGRATED
         // 'PolyTrans_Assistant_Migration_Manager' => 'assistants/class-assistant-migration-manager.php', // ✅ MIGRATED
         
-        // Menu
-        'PolyTrans_Settings_Menu' => 'menu/class-settings-menu.php',
-        'PolyTrans_Logs_Menu' => 'menu/class-logs-menu.php',
-        'PolyTrans_Tag_Translation' => 'menu/class-tag-translation.php',
-        'PolyTrans_Postprocessing_Menu' => 'menu/class-postprocessing-menu.php',
-        'PolyTrans_Assistants_Menu' => 'menu/class-assistants-menu.php',
+        // Menu - ✅ FULLY MIGRATED TO PSR-4!
+        // 'PolyTrans_Settings_Menu' => 'menu/class-settings-menu.php', // ✅ MIGRATED
+        // 'PolyTrans_Logs_Menu' => 'menu/class-logs-menu.php', // ✅ MIGRATED
+        // 'PolyTrans_Tag_Translation' => 'menu/class-tag-translation.php', // ✅ MIGRATED
+        // 'PolyTrans_Postprocessing_Menu' => 'menu/class-postprocessing-menu.php', // ✅ MIGRATED
+        // 'PolyTrans_Assistants_Menu' => 'menu/class-assistants-menu.php', // ✅ MIGRATED
         
         // Post-processing
         'PolyTrans_Variable_Manager' => 'postprocessing/class-variable-manager.php',

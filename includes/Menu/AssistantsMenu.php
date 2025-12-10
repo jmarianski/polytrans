@@ -7,11 +7,16 @@
  * Part of Phase 1: AI Assistants Management System.
  */
 
+namespace PolyTrans\Menu;
+
+use PolyTrans\Assistants\AssistantManager;
+use PolyTrans\Assistants\AssistantMigration;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Assistants_Menu
+class AssistantsMenu
 {
     private static $instance = null;
 
@@ -161,8 +166,8 @@ class PolyTrans_Assistants_Menu
      */
     private function render_assistant_list()
     {
-        $assistants = PolyTrans_Assistant_Manager::get_all_assistants();
-        $migration_status = PolyTrans_Assistant_Migration_Manager::get_migration_status();
+        $assistants = AssistantManager::get_all_assistants();
+        $migration_status = AssistantMigration::get_migration_status();
 
         ?>
         <div class="wrap">
@@ -277,7 +282,7 @@ class PolyTrans_Assistants_Menu
                 ]
             ];
         } else {
-            $assistant = PolyTrans_Assistant_Manager::get_assistant($assistant_id);
+            $assistant = AssistantManager::get_assistant($assistant_id);
             if (!$assistant) {
                 wp_die(__('Assistant not found.', 'polytrans'));
             }
@@ -496,9 +501,9 @@ class PolyTrans_Assistants_Menu
         // Save or update assistant
         try {
             if ($assistant_id > 0) {
-                $result = PolyTrans_Assistant_Manager::update_assistant($assistant_id, $assistant_data);
+                $result = AssistantManager::update_assistant($assistant_id, $assistant_data);
             } else {
-                $result = PolyTrans_Assistant_Manager::create_assistant($assistant_data);
+                $result = AssistantManager::create_assistant($assistant_data);
                 $assistant_id = $result;
             }
 
@@ -533,7 +538,7 @@ class PolyTrans_Assistants_Menu
         }
 
         try {
-            $result = PolyTrans_Assistant_Manager::delete_assistant($assistant_id);
+            $result = AssistantManager::delete_assistant($assistant_id);
 
             if ($result) {
                 wp_send_json_success(['message' => __('Assistant deleted successfully.', 'polytrans')]);
@@ -563,7 +568,7 @@ class PolyTrans_Assistants_Menu
         }
 
         try {
-            $assistant = PolyTrans_Assistant_Manager::get_assistant($assistant_id);
+            $assistant = AssistantManager::get_assistant($assistant_id);
 
             if ($assistant) {
                 wp_send_json_success(['assistant' => $assistant]);
@@ -624,7 +629,7 @@ class PolyTrans_Assistants_Menu
         }
 
         try {
-            $stats = PolyTrans_Assistant_Migration_Manager::migrate_workflows_to_managed_assistants();
+            $stats = AssistantMigration::migrate_workflows_to_managed_assistants();
 
             if (!empty($stats['errors'])) {
                 wp_send_json_error([

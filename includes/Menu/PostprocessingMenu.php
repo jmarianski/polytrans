@@ -6,11 +6,13 @@
  * Handles the admin menu page for managing post-processing workflows.
  */
 
+namespace PolyTrans\Menu;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Postprocessing_Menu
+class PostprocessingMenu
 {
     private static $instance = null;
 
@@ -1065,7 +1067,7 @@ class PolyTrans_Postprocessing_Menu
         }
 
         try {
-            $provider = new PolyTrans_OpenAI_Settings_Provider();
+            $provider = new \PolyTrans_OpenAI_Settings_Provider();
             $reflection = new ReflectionClass($provider);
             $method = $reflection->getMethod('get_assistants');
             $method->setAccessible(true);
@@ -1086,7 +1088,7 @@ class PolyTrans_Postprocessing_Menu
         }
 
         try {
-            $provider = new PolyTrans_OpenAI_Settings_Provider();
+            $provider = new \PolyTrans_OpenAI_Settings_Provider();
             $reflection = new ReflectionClass($provider);
             $method = $reflection->getMethod('get_grouped_models');
             $method->setAccessible(true);

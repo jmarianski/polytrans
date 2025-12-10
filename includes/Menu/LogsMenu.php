@@ -5,11 +5,13 @@
  * Handles logs menu management
  */
 
+namespace PolyTrans\Menu;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class PolyTrans_Logs_Menu
+class LogsMenu
 {
 
     private static $instance = null;
@@ -59,6 +61,6 @@ class PolyTrans_Logs_Menu
      */
     public function render_logs()
     {
-        PolyTrans_Logs_Manager::admin_logs_page();
+        \PolyTrans_Logs_Manager::admin_logs_page();
     }
 }
