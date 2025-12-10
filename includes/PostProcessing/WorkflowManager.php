@@ -25,9 +25,9 @@ if (!defined('ABSPATH')) {
 class WorkflowManager
 {
     private static $instance = null;
-    private PolyTrans_Workflow_Storage_Manager $storage_manager;
-    private PolyTrans_Workflow_Executor $executor;
-    private PolyTrans_Variable_Manager $variable_manager;
+    private Managers\WorkflowStorageManager $storage_manager;
+    private WorkflowExecutor $executor;
+    private VariableManager $variable_manager;
     private array $data_providers = [];
     private array $workflow_steps = [];
 
