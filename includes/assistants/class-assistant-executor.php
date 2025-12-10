@@ -244,6 +244,19 @@ class PolyTrans_Assistant_Executor {
 			);
 		}
 
+		// Log successful API response (without full content to avoid memory issues)
+		PolyTrans_Logs_Manager::log(
+			'OpenAI API response received successfully',
+			'debug',
+			array(
+				'status_code' => $status_code,
+				'model' => $body_data['model'] ?? 'unknown',
+				'usage' => $body_data['usage'] ?? null,
+				'finish_reason' => $body_data['choices'][0]['finish_reason'] ?? 'unknown',
+				'response_length' => isset( $body_data['choices'][0]['message']['content'] ) ? strlen( $body_data['choices'][0]['message']['content'] ) : 0,
+			)
+		);
+
 		return $body_data;
 	}
 
@@ -257,12 +270,30 @@ class PolyTrans_Assistant_Executor {
 	public static function process_response( $response, $config ) {
 		$expected_format = $config['expected_format'] ?? 'text';
 
+		PolyTrans_Logs_Manager::log(
+			'Starting response processing',
+			'debug',
+			array(
+				'expected_format' => $expected_format,
+				'provider' => $config['provider'] ?? 'openai',
+			)
+		);
+
 		// Extract content from response (handle different API formats)
 		$content = self::extract_content_from_response( $response, $config['provider'] ?? 'openai' );
 
 		if ( null === $content ) {
 			return new WP_Error( 'invalid_response', __( 'Failed to extract content from API response', 'polytrans' ) );
 		}
+
+		PolyTrans_Logs_Manager::log(
+			'Content extracted from response',
+			'debug',
+			array(
+				'content_length' => strlen( $content ),
+				'expected_format' => $expected_format,
+			)
+		);
 
 		// Process based on expected format
 		switch ( $expected_format ) {
@@ -326,8 +357,28 @@ class PolyTrans_Assistant_Executor {
 	 * @return array|WP_Error Parsed JSON or error.
 	 */
 	private static function process_json_response( $content, $config ) {
+		PolyTrans_Logs_Manager::log(
+			'Starting JSON parsing',
+			'debug',
+			array(
+				'content_length' => strlen( $content ),
+				'memory_usage' => memory_get_usage( true ),
+				'memory_peak' => memory_get_peak_usage( true ),
+			)
+		);
+
 		// Parse JSON
 		$decoded = json_decode( $content, true );
+
+		PolyTrans_Logs_Manager::log(
+			'JSON decode completed',
+			'debug',
+			array(
+				'success' => json_last_error() === JSON_ERROR_NONE,
+				'json_error' => json_last_error_msg(),
+				'memory_usage' => memory_get_usage( true ),
+			)
+		);
 
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			// Log full response to database (background processor can't use error_log!)
