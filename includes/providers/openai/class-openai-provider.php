@@ -380,60 +380,110 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
      */
     private function translate_with_managed_assistant($content, $source_lang, $target_lang, $assistant_id)
     {
-        // Extract numeric ID from managed_123 format
-        $numeric_id = (int) str_replace('managed_', '', $assistant_id);
-        
-        PolyTrans_Logs_Manager::log(
-            "Using Managed Assistant for translation (ID: {$numeric_id})",
-            "info",
-            ['source_lang' => $source_lang, 'target_lang' => $target_lang]
-        );
+        try {
+            // Extract numeric ID from managed_123 format
+            $numeric_id = (int) str_replace('managed_', '', $assistant_id);
+            
+            PolyTrans_Logs_Manager::log(
+                "Using Managed Assistant for translation (ID: {$numeric_id})",
+                "info",
+                ['source_lang' => $source_lang, 'target_lang' => $target_lang]
+            );
 
-        // Get the assistant configuration
-        $assistant = PolyTrans_Assistant_Manager::get_assistant($numeric_id);
-        
-        if (!$assistant) {
-            return [
-                'success' => false,
-                'error' => "Managed Assistant not found (ID: {$numeric_id})",
-                'error_code' => 'assistant_not_found'
+            // Get the assistant configuration
+            $assistant = PolyTrans_Assistant_Manager::get_assistant($numeric_id);
+            
+            if (!$assistant) {
+                return [
+                    'success' => false,
+                    'error' => "Managed Assistant not found (ID: {$numeric_id})",
+                    'error_code' => 'assistant_not_found'
+                ];
+            }
+
+            // Prepare context variables for Twig interpolation
+            $context = [
+                'source_language' => $source_lang,
+                'target_language' => $target_lang,
+                'translated' => $content, // Current content state
+                'original' => $content,   // Original content (same at this point)
             ];
-        }
 
-        // Prepare context variables for Twig interpolation
-        $context = [
-            'source_language' => $source_lang,
-            'target_language' => $target_lang,
-            'translated' => $content, // Current content state
-            'original' => $content,   // Original content (same at this point)
-        ];
+            PolyTrans_Logs_Manager::log(
+                "Executing Managed Assistant",
+                "debug",
+                [
+                    'assistant_id' => $numeric_id,
+                    'context_keys' => array_keys($context),
+                    'memory_before' => memory_get_usage(true),
+                ]
+            );
 
-        // Execute the assistant
-        $executor = new PolyTrans_Assistant_Executor();
-        $result = $executor->execute($numeric_id, $context);
+            // Execute the assistant
+            $executor = new PolyTrans_Assistant_Executor();
+            $result = $executor->execute($numeric_id, $context);
 
-        if (is_wp_error($result)) {
-            return [
-                'success' => false,
-                'error' => $result->get_error_message(),
-                'error_code' => $result->get_error_code()
-            ];
-        }
+            PolyTrans_Logs_Manager::log(
+                "Managed Assistant execution completed",
+                "debug",
+                [
+                    'is_error' => is_wp_error($result),
+                    'has_success' => isset($result['success']),
+                    'success_value' => $result['success'] ?? null,
+                    'memory_after' => memory_get_usage(true),
+                ]
+            );
 
-        if (!$result['success']) {
-            return [
-                'success' => false,
-                'error' => $result['error'] ?? 'Unknown error from Managed Assistant',
-                'error_code' => 'managed_assistant_execution_failed'
-            ];
-        }
+            if (is_wp_error($result)) {
+                return [
+                    'success' => false,
+                    'error' => $result->get_error_message(),
+                    'error_code' => $result->get_error_code()
+                ];
+            }
 
-        $ai_output = $result['output'] ?? '';
+            if (!$result['success']) {
+                return [
+                    'success' => false,
+                    'error' => $result['error'] ?? 'Unknown error from Managed Assistant',
+                    'error_code' => 'managed_assistant_execution_failed'
+                ];
+            }
 
-        // If assistant has expected_output_schema and expected_format is 'json', parse the response
-        if (!empty($assistant['expected_output_schema']) && $assistant['expected_format'] === 'json') {
-            $parser = new PolyTrans_JSON_Response_Parser();
-            $parse_result = $parser->parse_with_schema($ai_output, $assistant['expected_output_schema']);
+            $ai_output = $result['output'] ?? '';
+
+            PolyTrans_Logs_Manager::log(
+                "AI output received from executor",
+                "debug",
+                [
+                    'output_type' => gettype($ai_output),
+                    'output_is_array' => is_array($ai_output),
+                    'output_keys' => is_array($ai_output) ? array_keys($ai_output) : null,
+                    'has_schema' => !empty($assistant['expected_output_schema']),
+                ]
+            );
+
+            // If assistant has expected_output_schema and expected_format is 'json', parse the response
+            if (!empty($assistant['expected_output_schema']) && $assistant['expected_format'] === 'json') {
+                PolyTrans_Logs_Manager::log(
+                    "Starting schema-based parsing",
+                    "debug",
+                    [
+                        'schema_keys' => array_keys($assistant['expected_output_schema']),
+                    ]
+                );
+
+                $parser = new PolyTrans_JSON_Response_Parser();
+                $parse_result = $parser->parse_with_schema($ai_output, $assistant['expected_output_schema']);
+
+                PolyTrans_Logs_Manager::log(
+                    "Schema parsing completed",
+                    "debug",
+                    [
+                        'parse_success' => $parse_result['success'],
+                        'has_warnings' => !empty($parse_result['warnings']),
+                    ]
+                );
 
             if (!$parse_result['success']) {
                 // Log parsing error (without full response to avoid DB/memory issues)
@@ -464,27 +514,61 @@ class PolyTrans_OpenAI_Provider implements PolyTrans_Translation_Provider_Interf
                 );
             }
 
+                PolyTrans_Logs_Manager::log(
+                    "Returning translated content",
+                    "debug",
+                    [
+                        'data_keys' => array_keys($parse_result['data']),
+                    ]
+                );
+
+                return [
+                    'success' => true,
+                    'translated_content' => $parse_result['data']
+                ];
+            }
+
+            // If no schema or not JSON format, return raw output (shouldn't happen for translations)
+            PolyTrans_Logs_Manager::log(
+                "Managed Assistant returned text response (no schema defined)",
+                'warning',
+                ['assistant_id' => $numeric_id]
+            );
+
             return [
                 'success' => true,
-                'translated_content' => $parse_result['data']
+                'translated_content' => [
+                    'title' => $content['title'] ?? '',
+                    'content' => $ai_output, // Put raw output in content
+                    'excerpt' => $content['excerpt'] ?? '',
+                    'meta' => $content['meta'] ?? []
+                ]
+            ];
+
+        } catch (Exception $e) {
+            // Catch any unexpected errors
+            PolyTrans_Logs_Manager::log(
+                "Managed Assistant translation failed with exception: " . $e->getMessage(),
+                'error',
+                [
+                    'assistant_id' => $numeric_id ?? null,
+                    'exception_class' => get_class($e),
+                    'exception_file' => $e->getFile(),
+                    'exception_line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                ]
+            );
+
+            return [
+                'success' => false,
+                'error' => 'Managed Assistant execution failed: ' . $e->getMessage(),
+                'error_code' => 'exception',
+                'error_details' => [
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]
             ];
         }
-
-        // If no schema or not JSON format, return raw output (shouldn't happen for translations)
-        PolyTrans_Logs_Manager::log(
-            "Managed Assistant returned text response (no schema defined)",
-            'warning',
-            ['assistant_id' => $numeric_id]
-        );
-
-        return [
-            'success' => true,
-            'translated_content' => [
-                'title' => $content['title'] ?? '',
-                'content' => $ai_output, // Put raw output in content
-                'excerpt' => $content['excerpt'] ?? '',
-                'meta' => $content['meta'] ?? []
-            ]
-        ];
     }
 }
