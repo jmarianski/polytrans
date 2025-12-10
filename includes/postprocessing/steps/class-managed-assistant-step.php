@@ -123,13 +123,15 @@ class PolyTrans_Managed_Assistant_Step implements PolyTrans_Workflow_Step_Interf
         $errors = [];
 
         // Check required fields
-        if (!isset($step_config['assistant_id']) || empty($step_config['assistant_id'])) {
-            $errors[] = 'Assistant ID is required';
+        if (!isset($step_config['assistant_id'])) {
+            $errors[] = 'Assistant ID is required (field not set)';
+        } elseif (empty($step_config['assistant_id']) && $step_config['assistant_id'] !== 0) {
+            $errors[] = 'Assistant ID is required (field is empty)';
         } else {
             // Verify assistant exists
             $assistant = PolyTrans_Assistant_Manager::get_assistant($step_config['assistant_id']);
             if (!$assistant) {
-                $errors[] = 'Selected assistant does not exist';
+                $errors[] = 'Selected assistant does not exist (ID: ' . $step_config['assistant_id'] . ')';
             }
         }
 

@@ -66,7 +66,7 @@ class PolyTrans_Assistant_Migration_Manager
                         
                         if ($assistant_id) {
                             // Update step to use managed assistant
-                            $step = self::convert_step_to_managed($step, $assistant_id);
+                            $workflow['steps'][$step_index] = self::convert_step_to_managed($step, $assistant_id);
                             $stats['steps_migrated']++;
                             $stats['assistants_created']++;
                             $workflow_modified = true;
