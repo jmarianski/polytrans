@@ -185,7 +185,315 @@ includes/
 
 ---
 
-## Implementation Plan
+## Testing Strategy
+
+### Critical: Test Coverage BEFORE Refactoring
+
+**Why?**
+- Refactoring without tests = 💣 disaster waiting to happen
+- Need safety net to catch regressions
+- Validate that behavior doesn't change
+
+### Phase 0: Establish Test Baseline (2-3 days)
+
+**Before ANY refactoring**, we need:
+
+1. **Unit Tests for Core Components** (Priority: HIGH)
+   - `PolyTrans_Assistant_Manager` ✅ (26 tests exist)
+   - `PolyTrans_Assistant_Executor` ✅ (27 tests exist)
+   - `PolyTrans_JSON_Response_Parser` ✅ (tests exist)
+   - `PolyTrans_Background_Processor` ❌ (NEEDS TESTS)
+   - `PolyTrans_Translation_Handler` ❌ (NEEDS TESTS)
+   - `PolyTrans_Workflow_Manager` ❌ (NEEDS TESTS)
+   - `PolyTrans_Workflow_Executor` ❌ (NEEDS TESTS)
+
+2. **Integration Tests** (Priority: MEDIUM)
+   - Workflow execution end-to-end
+   - Translation scheduling and execution
+   - Assistant execution in workflows
+   - Background processor task execution
+
+3. **Smoke Tests** (Priority: HIGH)
+   - Plugin activation/deactivation
+   - Settings save/load
+   - Workflow CRUD operations
+   - Translation request handling
+
+### Testing Approach for Each Refactoring Step
+
+**For EVERY module we refactor:**
+
+```
+1. ✅ Write tests for OLD class (if not exist)
+2. ✅ Run tests - all GREEN
+3. 🔧 Create new namespaced class
+4. 🔧 Add class alias
+5. ✅ Run tests - should still be GREEN
+6. 🔧 Update internal references
+7. ✅ Run tests - should still be GREEN
+8. 🔧 Remove old file (keep alias)
+9. ✅ Run tests - should still be GREEN
+10. ✅ Manual smoke test
+```
+
+**If ANY test fails → STOP, fix, then continue**
+
+### Test Files to Create
+
+```
+tests/
+├── Unit/
+│   ├── Core/
+│   │   ├── BackgroundProcessorTest.php (NEW)
+│   │   ├── TaskRunnerTest.php (NEW)
+│   │   └── TaskQueueTest.php (NEW)
+│   ├── Scheduler/
+│   │   ├── TranslationHandlerTest.php (NEW)
+│   │   ├── StatusManagerTest.php (NEW)
+│   │   └── ExecutionManagerTest.php (NEW)
+│   ├── PostProcessing/
+│   │   ├── WorkflowManagerTest.php (NEW)
+│   │   ├── WorkflowExecutorTest.php (NEW)
+│   │   └── WorkflowStorageTest.php (NEW)
+│   ├── Assistants/
+│   │   ├── AssistantManagerTest.php ✅ (EXISTS)
+│   │   ├── AssistantExecutorTest.php ✅ (EXISTS)
+│   │   └── JsonResponseParserTest.php ✅ (EXISTS)
+│   └── Providers/
+│       └── OpenAI/
+│           ├── OpenAIProviderTest.php (NEW)
+│           └── OpenAIClientTest.php (NEW)
+│
+├── Integration/
+│   ├── WorkflowExecutionTest.php (NEW)
+│   ├── TranslationSchedulingTest.php (NEW)
+│   ├── AssistantWorkflowTest.php (NEW)
+│   └── BackgroundProcessingTest.php (NEW)
+│
+└── Smoke/
+    ├── PluginActivationTest.php (NEW)
+    ├── SettingsTest.php (NEW)
+    └── WorkflowCRUDTest.php (NEW)
+```
+
+### Minimum Test Coverage Requirements
+
+**Before refactoring can begin:**
+- ✅ 60%+ unit test coverage for classes >500 lines
+- ✅ Integration tests for critical paths
+- ✅ All smoke tests passing
+
+**After refactoring:**
+- ✅ 80%+ unit test coverage for all refactored classes
+- ✅ All existing tests still passing
+- ✅ New tests for extracted classes
+
+### Test Execution Strategy
+
+**Continuous Testing:**
+```bash
+# Run after EVERY change
+composer test
+
+# Run with coverage to track progress
+composer test-coverage
+
+# Run specific test suite
+composer test:unit
+```
+
+**Pre-commit Hook:**
+```bash
+# Automatically run tests before commit
+#!/bin/bash
+composer test || exit 1
+```
+
+### Mocking Strategy
+
+**For testing large classes with dependencies:**
+
+```php
+// Example: Testing BackgroundProcessor
+use Mockery;
+
+test('processes translation task successfully', function () {
+    $taskRunner = Mockery::mock(TaskRunner::class);
+    $taskRunner->shouldReceive('run')
+        ->once()
+        ->with(['type' => 'translation'])
+        ->andReturn(['success' => true]);
+    
+    $processor = new BackgroundProcessor($taskRunner);
+    $result = $processor->process(['type' => 'translation']);
+    
+    expect($result['success'])->toBeTrue();
+});
+```
+
+### Test Data Fixtures
+
+**Create reusable test data:**
+```
+tests/
+└── Fixtures/
+    ├── WorkflowFixtures.php
+    ├── AssistantFixtures.php
+    ├── PostFixtures.php
+    └── TranslationFixtures.php
+```
+
+### Specific Test Plans for Large Classes
+
+#### 1. BackgroundProcessor (840 lines)
+
+**Test Coverage Required:**
+- ✅ Task queue management (add, remove, get)
+- ✅ Task execution (translation, workflow, cleanup)
+- ✅ Error handling and retries
+- ✅ Concurrent task handling
+- ✅ Task status updates
+- ✅ Memory management
+- ✅ Timeout handling
+
+**Critical Test Cases:**
+```php
+test('processes translation task successfully')
+test('handles task failure with retry')
+test('respects memory limits')
+test('handles concurrent tasks')
+test('cleans up completed tasks')
+test('logs errors appropriately')
+```
+
+#### 2. TranslationHandler (791 lines)
+
+**Test Coverage Required:**
+- ✅ Translation scheduling
+- ✅ Status management (pending, processing, completed, failed)
+- ✅ Queue management
+- ✅ Provider selection and execution
+- ✅ Error handling and logging
+- ✅ Notification triggers
+
+**Critical Test Cases:**
+```php
+test('schedules translation successfully')
+test('updates status correctly')
+test('selects correct provider')
+test('handles provider failure')
+test('sends notifications on completion')
+test('handles stuck translations')
+```
+
+#### 3. WorkflowManager (600+ lines)
+
+**Test Coverage Required:**
+- ✅ Workflow CRUD operations
+- ✅ Workflow validation
+- ✅ Workflow execution
+- ✅ Step execution order
+- ✅ Context management
+- ✅ Error handling
+
+**Critical Test Cases:**
+```php
+test('creates workflow successfully')
+test('validates workflow structure')
+test('executes workflow steps in order')
+test('handles step failure')
+test('updates context between steps')
+test('saves workflow results')
+```
+
+#### 4. PostProcessingMenu (700+ lines)
+
+**Test Coverage Required:**
+- ✅ List rendering
+- ✅ Editor rendering
+- ✅ AJAX handlers (save, delete, test)
+- ✅ Form validation
+- ✅ Asset enqueuing
+
+**Critical Test Cases:**
+```php
+test('renders workflow list correctly')
+test('renders workflow editor correctly')
+test('saves workflow via AJAX')
+test('deletes workflow via AJAX')
+test('tests workflow via AJAX')
+test('validates workflow data')
+```
+
+#### 5. OpenAISettingsProvider (700+ lines)
+
+**Test Coverage Required:**
+- ✅ Settings rendering
+- ✅ Settings validation
+- ✅ Settings sanitization
+- ✅ API key validation
+- ✅ Assistant loading
+- ✅ Model selection
+
+**Critical Test Cases:**
+```php
+test('renders settings correctly')
+test('validates API key')
+test('sanitizes settings data')
+test('loads assistants from API')
+test('handles API errors gracefully')
+test('saves settings correctly')
+```
+
+### Test Execution Checklist
+
+**Before starting refactoring:**
+- [ ] All existing tests pass
+- [ ] New tests written for untested classes
+- [ ] Test coverage >60% for large classes
+- [ ] Integration tests for critical paths
+- [ ] Smoke tests pass
+
+**During refactoring (after EACH module):**
+- [ ] All tests still pass (GREEN)
+- [ ] New tests for extracted classes
+- [ ] Test coverage maintained or improved
+- [ ] Manual smoke test passed
+
+**After refactoring:**
+- [ ] All tests pass (GREEN)
+- [ ] Test coverage >80%
+- [ ] No regressions detected
+- [ ] Performance benchmarks acceptable
+- [ ] Documentation updated
+
+---
+
+## Implementation Plan (REVISED with Testing)
+
+### Step 0: Write Tests for Existing Code (2-3 days) 🆕
+
+**MUST DO FIRST - NO REFACTORING WITHOUT TESTS**
+
+1. **Day 1: Background Processor Tests**
+   - Unit tests for `class-background-processor.php`
+   - Mock WordPress functions
+   - Test all task types
+   - Target: 60%+ coverage
+
+2. **Day 2: Translation Handler Tests**
+   - Unit tests for `class-translation-handler.php`
+   - Test scheduling, execution, status updates
+   - Target: 60%+ coverage
+
+3. **Day 3: Workflow & Menu Tests**
+   - Unit tests for `class-workflow-manager.php`
+   - Unit tests for `class-postprocessing-menu.php`
+   - Integration tests for workflow execution
+   - Smoke tests for critical paths
+   - Target: 60%+ coverage
+
+**Deliverable**: All critical classes have test coverage, all tests GREEN ✅
 
 ### Step 1: Setup Autoloader Bootstrap (1 day)
 
@@ -331,6 +639,7 @@ class PolyTrans {
 - 6 files >500 lines
 - Mixed naming conventions
 - No autoloading
+- ~30% test coverage (only Assistants tested)
 
 **After**:
 - ✅ 0 manual `require_once` (use autoloader)
@@ -340,6 +649,8 @@ class PolyTrans {
 - ✅ Backward compatible (class aliases)
 - ✅ Better IDE support (autocomplete, navigation)
 - ✅ Easier testing (smaller, focused classes)
+- ✅ 80%+ test coverage for all refactored code
+- ✅ All tests GREEN (unit + integration + smoke)
 
 ### Backward Compatibility
 
@@ -373,15 +684,29 @@ class PolyTrans {
 
 ---
 
-## Timeline
+## Timeline (REVISED)
 
-**Total Estimate**: 7-10 days
+**Total Estimate**: 10-13 days (includes comprehensive testing)
 
-- **Day 1**: Setup Bootstrap & Autoloader
-- **Day 2-4**: Migrate small modules (Assistants, Menu, Receiver)
-- **Day 5-8**: Break down large classes (Background, Handler, Menu, Workflow)
-- **Day 9**: Update main plugin class
-- **Day 10**: Testing & validation
+### Week 1: Testing & Foundation
+- **Day 1-3**: 🧪 Write tests for existing code (CRITICAL)
+  - Background Processor tests
+  - Translation Handler tests
+  - Workflow Manager tests
+  - Smoke tests
+- **Day 4**: Setup Bootstrap & Autoloader
+- **Day 5**: Migrate small modules (Assistants)
+
+### Week 2: Migration & Refactoring
+- **Day 6-7**: Migrate remaining small modules (Menu, Receiver)
+- **Day 8-10**: Break down large classes (Background, Handler)
+- **Day 11**: Break down remaining large classes (Menu, Workflow)
+
+### Week 3: Finalization
+- **Day 12**: Update main plugin class
+- **Day 13**: Final testing, validation & documentation
+
+**Key Rule**: ⚠️ NO refactoring without tests! Each step must have GREEN tests.
 
 ---
 
