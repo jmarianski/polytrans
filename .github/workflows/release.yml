@@ -53,15 +53,19 @@ jobs:
                     --exclude='release' \
                     . release/polytrans/
       
-      - name: Create ZIP archive
+      - name: Create ZIP archives
         run: |
           cd release
+          # Create version-specific ZIP for archival
+          zip -r polytrans-${{ steps.version.outputs.VERSION }}.zip polytrans/
+          # Create generic ZIP for easy WordPress installation
           zip -r polytrans.zip polytrans/
           cd ..
       
       - name: Generate checksums
         run: |
           cd release
+          sha256sum polytrans-${{ steps.version.outputs.VERSION }}.zip > polytrans-${{ steps.version.outputs.VERSION }}.zip.sha256
           sha256sum polytrans.zip > polytrans.zip.sha256
           cd ..
       
@@ -71,16 +75,22 @@ jobs:
           files: |
             release/polytrans.zip
             release/polytrans.zip.sha256
+            release/polytrans-${{ steps.version.outputs.VERSION }}.zip
+            release/polytrans-${{ steps.version.outputs.VERSION }}.zip.sha256
           body: |
             ## PolyTrans v${{ steps.version.outputs.VERSION }}
             
             ### 📦 Installation
             
-            1. Download `polytrans.zip`
+            **For WordPress Installation (Recommended):**
+            1. Download `polytrans.zip` ⬅️ Use this one!
             2. Upload to WordPress via Plugins > Add New > Upload Plugin
             3. Activate the plugin
             
-            **Note:** The ZIP contains the plugin in a `polytrans/` directory, ensuring proper installation path in WordPress.
+            **For Archival/Version Tracking:**
+            - Download `polytrans-${{ steps.version.outputs.VERSION }}.zip` if you need version-specific archive
+            
+            **Note:** Both ZIPs contain identical files. The `polytrans.zip` ensures WordPress installs the plugin in the correct `polytrans/` directory (not `polytrans-1.5.0/`).
             
             ### ✅ What's Included
             
@@ -96,7 +106,11 @@ jobs:
             
             Verify the download integrity:
             ```bash
+            # For WordPress installation:
             sha256sum -c polytrans.zip.sha256
+            
+            # For versioned archive:
+            sha256sum -c polytrans-${{ steps.version.outputs.VERSION }}.zip.sha256
             ```
           draft: false
           prerelease: false
