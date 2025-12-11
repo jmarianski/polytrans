@@ -1,5 +1,5 @@
 # Vendor
-vendor/
+# vendor/ - NOT ignored! Needed for releases (GitHub Actions includes it in ZIP)
 node_modules/
 
 # Docker
