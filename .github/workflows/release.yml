@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*.*.*'  # Triggers on version tags like v1.5.0
 
+permissions:
+  contents: write  # Required for creating releases
+
 jobs:
   build:
     name: Build Plugin Release
