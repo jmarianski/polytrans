@@ -56,29 +56,31 @@ jobs:
       - name: Create ZIP archive
         run: |
           cd release
-          zip -r polytrans-${{ steps.version.outputs.VERSION }}.zip polytrans/
+          zip -r polytrans.zip polytrans/
           cd ..
       
       - name: Generate checksums
         run: |
           cd release
-          sha256sum polytrans-${{ steps.version.outputs.VERSION }}.zip > polytrans-${{ steps.version.outputs.VERSION }}.zip.sha256
+          sha256sum polytrans.zip > polytrans.zip.sha256
           cd ..
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            release/polytrans-${{ steps.version.outputs.VERSION }}.zip
-            release/polytrans-${{ steps.version.outputs.VERSION }}.zip.sha256
+            release/polytrans.zip
+            release/polytrans.zip.sha256
           body: |
             ## PolyTrans v${{ steps.version.outputs.VERSION }}
             
             ### 📦 Installation
             
-            1. Download `polytrans-${{ steps.version.outputs.VERSION }}.zip`
+            1. Download `polytrans.zip`
             2. Upload to WordPress via Plugins > Add New > Upload Plugin
             3. Activate the plugin
+            
+            **Note:** The ZIP contains the plugin in a `polytrans/` directory, ensuring proper installation path in WordPress.
             
             ### ✅ What's Included
             
@@ -94,7 +96,7 @@ jobs:
             
             Verify the download integrity:
             ```bash
-            sha256sum -c polytrans-${{ steps.version.outputs.VERSION }}.zip.sha256
+            sha256sum -c polytrans.zip.sha256
             ```
           draft: false
           prerelease: false
@@ -105,6 +107,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: polytrans-${{ steps.version.outputs.VERSION }}
-          path: release/polytrans-${{ steps.version.outputs.VERSION }}.zip
+          path: release/polytrans.zip
           retention-days: 30
 
