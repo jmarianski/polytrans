@@ -89,6 +89,7 @@ class_alias('PolyTrans\Core\TranslationMetaBox', 'PolyTrans_Translation_Meta_Box
 class_alias('PolyTrans\Core\TranslationNotifications', 'PolyTrans_Translation_Notifications');
 class_alias('PolyTrans\Core\UserAutocomplete', 'PolyTrans_User_Autocomplete');
 class_alias('PolyTrans\Core\PostAutocomplete', 'PolyTrans_Post_Autocomplete');
+class_alias('PolyTrans\Core\NotificationFilter', 'PolyTrans_Notification_Filter');
 
 // ============================================================================
 // RECEIVER MODULE

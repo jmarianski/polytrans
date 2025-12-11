@@ -85,6 +85,14 @@ class TranslationNotifications
             return;
         }
 
+        // Check if author should receive notifications (role/domain filter)
+        if (!\PolyTrans\Core\NotificationFilter::should_notify_user($author)) {
+            \PolyTrans_Logs_Manager::log("Notification skipped for author {$author->user_email} (ID: {$author->ID}) - filtered by notification settings", "info");
+            // Still mark as notified to prevent retry
+            update_post_meta($post->ID, '_polytrans_author_notified', 1);
+            return;
+        }
+
         // Prepare email
         $subject = $settings['author_email_title'] ?? 'Your translation is reviewed: {title}';
         $body = $settings['author_email'] ?? 'Your translation has been reviewed: {link}';
