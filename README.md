@@ -2,7 +2,7 @@
 
 A comprehensive WordPress plugin for managing multilingual content translation workflows with AI-powered translation support and advanced workflow automation.
 
-**Version**: 1.3.5 | **Status**: Phase 0 Complete ✅
+**Version**: 1.5.0 | **Status**: PSR-4 Architecture ✅
 
 ## 📚 Documentation
 
@@ -106,11 +106,33 @@ Advanced post-processing workflow engine:
 - **Output Processing**: Automated post updates based on workflow results
 - **Attribution Management**: User context switching for proper change attribution
 
+## Requirements
+
+- **WordPress**: 5.0 or higher
+- **PHP**: 7.4 or higher
+- **Composer**: Required for dependency management (Twig, PSR-4 autoloading)
+
 ## Installation
 
-1. Upload the plugin files to `/wp-content/plugins/polytrans/`
-2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Configure settings under **Settings > Translation Settings**
+### For Production (from release)
+
+1. Download the latest release (includes `vendor/` directory)
+2. Upload the plugin files to `/wp-content/plugins/polytrans/`
+3. Activate the plugin through the 'Plugins' menu in WordPress
+4. Configure settings under **PolyTrans > Settings**
+
+### For Development (from source)
+
+1. Clone the repository to `/wp-content/plugins/polytrans/`
+2. **Install Composer dependencies** (required):
+   ```bash
+   cd /wp-content/plugins/polytrans/
+   composer install
+   ```
+3. Activate the plugin through the 'Plugins' menu in WordPress
+4. Configure settings under **PolyTrans > Settings**
+
+**⚠️ Important**: The plugin requires Composer dependencies (`vendor/autoload.php`) to function. If you see errors on activation, make sure you've run `composer install`.
 
 ## Configuration
 

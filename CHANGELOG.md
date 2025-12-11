@@ -89,6 +89,20 @@ This release represents a **complete architectural refactoring** of the PolyTran
 - **Updated README.md**: All file paths updated to new structure
 - **Added PSR-4 Guide**: Documentation of namespace structure and autoloading
 
+### Upgrade Notes
+
+**✅ Fully Backward Compatible**: Upgrading from any previous version (1.3.x, 1.4.x) is safe and seamless.
+
+- **No breaking changes**: All old class names work via aliases
+- **No database changes**: Schema remains identical
+- **No settings migration**: All options preserved
+- **Zero downtime**: Plugin works immediately after update
+
+**Requirements**:
+- Composer dependencies must be installed (`vendor/autoload.php`)
+- For production releases, dependencies are included
+- For development installs, run `composer install` after update
+
 ### Added
 - **Managed Assistants in Translation System**: Integrated Managed Assistants with system translations
   - Grouped dropdown UI showing both Managed and OpenAI API Assistants
