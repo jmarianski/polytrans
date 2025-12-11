@@ -91,17 +91,25 @@ This release represents a **complete architectural refactoring** of the PolyTran
 
 ### Upgrade Notes
 
-**✅ Fully Backward Compatible**: Upgrading from any previous version (1.3.x, 1.4.x) is safe and seamless.
+**⚠️ PHP Version Requirement Change**: This release requires **PHP 8.1 or higher** (previously 7.4+).
 
+**Backward Compatibility**:
 - **No breaking changes**: All old class names work via aliases
 - **No database changes**: Schema remains identical
 - **No settings migration**: All options preserved
-- **Zero downtime**: Plugin works immediately after update
+- **Zero downtime**: Plugin works immediately after update (if PHP 8.1+ is available)
 
 **Requirements**:
+- **PHP 8.1+** (breaking change from 7.4+)
 - Composer dependencies must be installed (`vendor/autoload.php`)
 - For production releases, dependencies are included
 - For development installs, run `composer install` after update
+
+**Why PHP 8.1+?**
+- PHP 7.4 reached End of Life in November 2022
+- Twig 3.14+ requires PHP 8.1+
+- Better performance and security
+- Modern PHP features (enums, readonly properties, etc.)
 
 ### Added
 - **Managed Assistants in Translation System**: Integrated Managed Assistants with system translations

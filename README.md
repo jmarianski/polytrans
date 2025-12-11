@@ -109,7 +109,7 @@ Advanced post-processing workflow engine:
 ## Requirements
 
 - **WordPress**: 5.0 or higher
-- **PHP**: 7.4 or higher
+- **PHP**: 8.1 or higher
 - **Composer**: Required for dependency management (Twig, PSR-4 autoloading)
 
 ## Installation
