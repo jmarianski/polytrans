@@ -107,6 +107,13 @@
                     allowedTargets.push($(this).val());
                 });
 
+                // If no allowed sources/targets, show all pairs (fallback)
+                if (allowedSources.length === 0 || allowedTargets.length === 0) {
+                    $('.language-pair-row').show();
+                    $('.no-pairs-message').remove();
+                    return;
+                }
+
                 // 2. Get all rules from the DOM
                 var rules = [];
                 $('#path-rules-container .openai-path-rule, #path-rules-table .openai-path-rule').each(function (i) {
@@ -124,11 +131,22 @@
                     }
                 });
 
-                // 3. Expand all rules into all possible pairs
+                // 3. If no rules, show all pairs (backward compatibility)
+                if (rules.length === 0) {
+                    $('.language-pair-row').show();
+                    $('.no-pairs-message').remove();
+                    return;
+                }
+
+                // 4. Expand all rules into all possible pairs
                 var pairToRules = {};
                 rules.forEach(function (rule) {
                     var sources = (rule.source === 'all') ? allowedSources : [rule.source];
                     var targets = (rule.target === 'all') ? allowedTargets : [rule.target];
+                    
+                    // Debug log
+                    console.log('[PolyTrans Language Pairs] Processing rule:', rule, 'sources:', sources, 'targets:', targets);
+                    
                     sources.forEach(function (src) {
                         targets.forEach(function (tgt) {
                             if (src === tgt) return;
@@ -140,8 +158,10 @@
                                     type: 'direct',
                                     rule: rule
                                 });
+                                console.log('[PolyTrans Language Pairs] Added direct pair:', key);
                             } else {
                                 // Via intermediate: src->inter and inter->tgt
+                                // Only create pairs if source/target are different from intermediate
                                 if (src !== rule.intermediate) {
                                     var key1 = src + '_to_' + rule.intermediate;
                                     if (!pairToRules[key1]) pairToRules[key1] = [];
@@ -150,6 +170,7 @@
                                         rule: rule,
                                         inter: rule.intermediate
                                     });
+                                    console.log('[PolyTrans Language Pairs] Added via pair:', key1, 'from rule', rule.source, '->', rule.target, 'via', rule.intermediate);
                                 }
                                 if (rule.intermediate !== tgt) {
                                     var key2 = rule.intermediate + '_to_' + tgt;
@@ -159,13 +180,16 @@
                                         rule: rule,
                                         inter: rule.intermediate
                                     });
+                                    console.log('[PolyTrans Language Pairs] Added via pair:', key2, 'from rule', rule.source, '->', rule.target, 'via', rule.intermediate);
                                 }
                             }
                         });
                     });
                 });
+                
+                console.log('[PolyTrans Language Pairs] All pairs:', pairToRules);
 
-                // 4. Show/hide language pair rows
+                // 5. Show/hide language pair rows
                 var visiblePairs = 0;
                 $('.language-pair-row').each(function () {
                     var $row = $(this);
