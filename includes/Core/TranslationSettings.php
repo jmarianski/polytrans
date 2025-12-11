@@ -637,13 +637,48 @@ class TranslationSettings
 
         <script type="text/javascript">
         jQuery(document).ready(function($) {
+            // Function to update visual representation of path rule
+            function updatePathRuleVisual($row) {
+                var source = $row.find('.openai-path-source').val();
+                var target = $row.find('.openai-path-target').val();
+                var intermediate = $row.find('.openai-path-intermediate').val() || '';
+                
+                var sourceText = source === 'all' ? '<?php echo esc_js(__('All', 'polytrans')); ?>' : $row.find('.openai-path-source option:selected').text();
+                var targetText = target === 'all' ? '<?php echo esc_js(__('All', 'polytrans')); ?>' : $row.find('.openai-path-target option:selected').text();
+                var intermediateText = intermediate === '' ? '<?php echo esc_js(__('None (Direct)', 'polytrans')); ?>' : $row.find('.openai-path-intermediate option:selected').text();
+                
+                var $visual = $row.find('.path-rule-visual');
+                if (intermediate === '') {
+                    $visual.html('<span class="path-rule-direct">' + sourceText + ' → ' + targetText + '</span>');
+                } else {
+                    $visual.html(
+                        '<span>' + sourceText + '</span>' +
+                        '<span class="path-rule-arrow">→</span>' +
+                        '<span class="path-rule-intermediate">' + intermediateText + '</span>' +
+                        '<span class="path-rule-arrow">→</span>' +
+                        '<span>' + targetText + '</span>'
+                    );
+                }
+            }
+            
+            // Update visual for existing rules on change
+            $(document).on('change', '.openai-path-source, .openai-path-target, .openai-path-intermediate', function() {
+                var $row = $(this).closest('.openai-path-rule');
+                updatePathRuleVisual($row);
+            });
+            
+            // Initialize visuals for existing rules
+            $('.openai-path-rule').each(function() {
+                updatePathRuleVisual($(this));
+            });
+            
             // Add path rule
             $('#add-path-rule').on('click', function() {
                 var ruleIndex = $('#path-rules-container tbody tr').length;
                 var newRow = `
                     <tr class="openai-path-rule">
                         <td>
-                            <select name="openai_path_rules[${ruleIndex}][source]" class="openai-path-source" required>
+                            <select name="openai_path_rules[${ruleIndex}][source]" class="openai-path-source path-rule-select" required>
                                 <option value="all"><?php esc_html_e('All', 'polytrans'); ?></option>
                                 <?php foreach ($this->langs as $i => $lang): ?>
                                 <option value="<?php echo esc_attr($lang); ?>">
@@ -653,7 +688,7 @@ class TranslationSettings
                             </select>
                         </td>
                         <td>
-                            <select name="openai_path_rules[${ruleIndex}][target]" class="openai-path-target" required>
+                            <select name="openai_path_rules[${ruleIndex}][target]" class="openai-path-target path-rule-select" required>
                                 <option value="all"><?php esc_html_e('All', 'polytrans'); ?></option>
                                 <?php foreach ($this->langs as $i => $lang): ?>
                                 <option value="<?php echo esc_attr($lang); ?>">
@@ -663,7 +698,7 @@ class TranslationSettings
                             </select>
                         </td>
                         <td>
-                            <select name="openai_path_rules[${ruleIndex}][intermediate]" class="openai-path-intermediate">
+                            <select name="openai_path_rules[${ruleIndex}][intermediate]" class="openai-path-intermediate path-rule-select">
                                 <option value=""><?php esc_html_e('None (Direct)', 'polytrans'); ?></option>
                                 <?php foreach ($this->langs as $i => $lang): ?>
                                 <option value="<?php echo esc_attr($lang); ?>">
@@ -671,6 +706,7 @@ class TranslationSettings
                                 </option>
                                 <?php endforeach; ?>
                             </select>
+                            <div class="path-rule-visual"></div>
                         </td>
                         <td>
                             <button type="button" class="button remove-rule"><?php esc_html_e('Remove', 'polytrans'); ?></button>
@@ -678,6 +714,11 @@ class TranslationSettings
                     </tr>
                 `;
                 $('#path-rules-container tbody').append(newRow);
+                
+                // Initialize visual for new row
+                var $newRow = $('#path-rules-container tbody tr').last();
+                updatePathRuleVisual($newRow);
+                
                 // Trigger filtering after adding new rule
                 if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
                     window.PolyTransLanguagePairs.updateLanguagePairVisibility();
@@ -784,61 +825,169 @@ class TranslationSettings
     private function render_path_rules_table($rules)
     {
         ?>
-        <table class="widefat fixed striped" id="path-rules-table" style="margin-top: 10px;">
-            <thead>
-                <tr>
-                    <th style="width: 25%;"><?php esc_html_e('Source Language', 'polytrans'); ?></th>
-                    <th style="width: 25%;"><?php esc_html_e('Target Language', 'polytrans'); ?></th>
-                    <th style="width: 35%;"><?php esc_html_e('Intermediate Language', 'polytrans'); ?></th>
-                    <th style="width: 15%;"><?php esc_html_e('Actions', 'polytrans'); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (!empty($rules)): ?>
-                    <?php foreach ($rules as $index => $rule): ?>
-                        <tr class="openai-path-rule">
-                            <td>
-                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][source]" class="openai-path-source" required>
-                                    <option value="all" <?php selected($rule['source'], 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
-                                    <?php foreach ($this->langs as $i => $lang): ?>
-                                        <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['source'], $lang); ?>>
-                                            <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                            <td>
-                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][target]" class="openai-path-target" required>
-                                    <option value="all" <?php selected($rule['target'], 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
-                                    <?php foreach ($this->langs as $i => $lang): ?>
-                                        <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['target'], $lang); ?>>
-                                            <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                            <td>
-                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][intermediate]" class="openai-path-intermediate">
-                                    <option value="" <?php selected(empty($rule['intermediate'])); ?>><?php esc_html_e('None (Direct)', 'polytrans'); ?></option>
-                                    <?php foreach ($this->langs as $i => $lang): ?>
-                                        <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['intermediate'] ?? '', $lang); ?>>
-                                            <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                            <td>
-                                <button type="button" class="button remove-rule"><?php esc_html_e('Remove', 'polytrans'); ?></button>
+        <style>
+            .path-rules-container {
+                background: #fff;
+                border: 1px solid #c3c4c7;
+                border-radius: 4px;
+                padding: 0;
+                margin-top: 10px;
+            }
+            #path-rules-table {
+                margin: 0;
+                border: none;
+            }
+            #path-rules-table thead th {
+                background: #f6f7f7;
+                font-weight: 600;
+                padding: 12px 15px;
+                border-bottom: 2px solid #c3c4c7;
+            }
+            #path-rules-table tbody td {
+                padding: 15px;
+                vertical-align: middle;
+            }
+            #path-rules-table .openai-path-rule {
+                border-bottom: 1px solid #e5e5e5;
+            }
+            #path-rules-table .openai-path-rule:last-child {
+                border-bottom: none;
+            }
+            #path-rules-table .openai-path-rule:hover {
+                background: #f9f9f9;
+            }
+            .path-rule-select {
+                width: 100%;
+                padding: 8px 12px;
+                border: 1px solid #8c8f94;
+                border-radius: 4px;
+                font-size: 14px;
+                background: #fff;
+                transition: border-color 0.2s, box-shadow 0.2s;
+            }
+            .path-rule-select:focus {
+                border-color: #2271b1;
+                box-shadow: 0 0 0 1px #2271b1;
+                outline: none;
+            }
+            .path-rule-visual {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+                color: #50575e;
+                margin-top: 8px;
+            }
+            .path-rule-arrow {
+                color: #2271b1;
+                font-weight: bold;
+            }
+            .path-rule-intermediate {
+                color: #d63638;
+                font-weight: 600;
+            }
+            .path-rule-direct {
+                color: #00a32a;
+                font-style: italic;
+            }
+            .remove-rule {
+                background: #d63638;
+                color: #fff;
+                border-color: #d63638;
+            }
+            .remove-rule:hover {
+                background: #b32d2e;
+                border-color: #b32d2e;
+            }
+            #add-path-rule {
+                margin-top: 15px;
+                background: #2271b1;
+                color: #fff;
+                border-color: #2271b1;
+            }
+            #add-path-rule:hover {
+                background: #135e96;
+                border-color: #135e96;
+            }
+        </style>
+        <div class="path-rules-container">
+            <table class="widefat fixed" id="path-rules-table">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;"><?php esc_html_e('Source Language', 'polytrans'); ?></th>
+                        <th style="width: 25%;"><?php esc_html_e('Target Language', 'polytrans'); ?></th>
+                        <th style="width: 35%;"><?php esc_html_e('Intermediate Language', 'polytrans'); ?></th>
+                        <th style="width: 15%;"><?php esc_html_e('Actions', 'polytrans'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($rules)): ?>
+                        <?php foreach ($rules as $index => $rule): ?>
+                            <?php
+                            $source_val = $rule['source'] ?? 'all';
+                            $target_val = $rule['target'] ?? 'all';
+                            $intermediate_val = $rule['intermediate'] ?? '';
+                            $source_name = $source_val === 'all' ? __('All', 'polytrans') : ($this->lang_names[array_search($source_val, $this->langs)] ?? strtoupper($source_val));
+                            $target_name = $target_val === 'all' ? __('All', 'polytrans') : ($this->lang_names[array_search($target_val, $this->langs)] ?? strtoupper($target_val));
+                            $intermediate_name = empty($intermediate_val) ? __('None (Direct)', 'polytrans') : ($this->lang_names[array_search($intermediate_val, $this->langs)] ?? strtoupper($intermediate_val));
+                            ?>
+                            <tr class="openai-path-rule">
+                                <td>
+                                    <select name="openai_path_rules[<?php echo esc_attr($index); ?>][source]" class="openai-path-source path-rule-select" required>
+                                        <option value="all" <?php selected($source_val, 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
+                                        <?php foreach ($this->langs as $i => $lang): ?>
+                                            <option value="<?php echo esc_attr($lang); ?>" <?php selected($source_val, $lang); ?>>
+                                                <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select name="openai_path_rules[<?php echo esc_attr($index); ?>][target]" class="openai-path-target path-rule-select" required>
+                                        <option value="all" <?php selected($target_val, 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
+                                        <?php foreach ($this->langs as $i => $lang): ?>
+                                            <option value="<?php echo esc_attr($lang); ?>" <?php selected($target_val, $lang); ?>>
+                                                <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select name="openai_path_rules[<?php echo esc_attr($index); ?>][intermediate]" class="openai-path-intermediate path-rule-select">
+                                        <option value="" <?php selected(empty($intermediate_val)); ?>><?php esc_html_e('None (Direct)', 'polytrans'); ?></option>
+                                        <?php foreach ($this->langs as $i => $lang): ?>
+                                            <option value="<?php echo esc_attr($lang); ?>" <?php selected($intermediate_val, $lang); ?>>
+                                                <?php echo esc_html($this->lang_names[$i] ?? strtoupper($lang)); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="path-rule-visual">
+                                        <?php if (empty($intermediate_val)): ?>
+                                            <span class="path-rule-direct"><?php echo esc_html($source_name); ?> → <?php echo esc_html($target_name); ?></span>
+                                        <?php else: ?>
+                                            <span><?php echo esc_html($source_name); ?></span>
+                                            <span class="path-rule-arrow">→</span>
+                                            <span class="path-rule-intermediate"><?php echo esc_html($intermediate_name); ?></span>
+                                            <span class="path-rule-arrow">→</span>
+                                            <span><?php echo esc_html($target_name); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button type="button" class="button remove-rule"><?php esc_html_e('Remove', 'polytrans'); ?></button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 30px; color: #646970;">
+                                <em><?php esc_html_e('No path rules defined. Click "Add Rule" to create one.', 'polytrans'); ?></em>
                             </td>
                         </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="4"><em><?php esc_html_e('No path rules defined. Click "Add Rule" to create one.', 'polytrans'); ?></em></td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
         <?php
     }
 
