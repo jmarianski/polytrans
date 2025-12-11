@@ -871,12 +871,15 @@ class TranslationSettings
                 outline: none;
             }
             .path-rule-visual {
-                display: flex;
-                align-items: center;
-                gap: 8px;
+                display: inline-block;
                 font-size: 14px;
                 color: #50575e;
                 margin-top: 8px;
+                line-height: 1.6;
+            }
+            .path-rule-visual > span {
+                display: inline-block;
+                margin: 0 4px;
             }
             .path-rule-arrow {
                 color: #2271b1;
