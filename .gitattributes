@@ -1,0 +1,19 @@
+# Git attributes for PolyTrans plugin
+
+# Exclude development files from release archives
+/.github export-ignore
+/tests export-ignore
+/docs/planning export-ignore
+/docs/development export-ignore
+/docs/testing export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
+composer.json export-ignore
+composer.lock export-ignore
+phpunit.xml export-ignore
+phpunit.xml.dist export-ignore
+pest.php export-ignore
+docker-compose.yml export-ignore
+Dockerfile export-ignore
+.env.example export-ignore
+

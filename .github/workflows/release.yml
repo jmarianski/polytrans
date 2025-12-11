@@ -1,0 +1,107 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.5.0
+
+jobs:
+  build:
+    name: Build Plugin Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: composer:v2
+      
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Install Composer dependencies (production)
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+      
+      - name: Create release directory
+        run: |
+          mkdir -p release
+          rsync -av --exclude='.git' \
+                    --exclude='.github' \
+                    --exclude='node_modules' \
+                    --exclude='tests' \
+                    --exclude='docs/planning' \
+                    --exclude='docs/development' \
+                    --exclude='docs/testing' \
+                    --exclude='.gitignore' \
+                    --exclude='.gitattributes' \
+                    --exclude='composer.json' \
+                    --exclude='composer.lock' \
+                    --exclude='phpunit.xml' \
+                    --exclude='phpunit.xml.dist' \
+                    --exclude='pest.php' \
+                    --exclude='docker-compose.yml' \
+                    --exclude='Dockerfile' \
+                    --exclude='.env.example' \
+                    --exclude='release' \
+                    . release/polytrans/
+      
+      - name: Create ZIP archive
+        run: |
+          cd release
+          zip -r polytrans-${{ steps.version.outputs.VERSION }}.zip polytrans/
+          cd ..
+      
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum polytrans-${{ steps.version.outputs.VERSION }}.zip > polytrans-${{ steps.version.outputs.VERSION }}.zip.sha256
+          cd ..
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/polytrans-${{ steps.version.outputs.VERSION }}.zip
+            release/polytrans-${{ steps.version.outputs.VERSION }}.zip.sha256
+          body: |
+            ## PolyTrans v${{ steps.version.outputs.VERSION }}
+            
+            ### 📦 Installation
+            
+            1. Download `polytrans-${{ steps.version.outputs.VERSION }}.zip`
+            2. Upload to WordPress via Plugins > Add New > Upload Plugin
+            3. Activate the plugin
+            
+            ### ✅ What's Included
+            
+            - All plugin files
+            - Composer dependencies (vendor/)
+            - Production-optimized autoloader
+            
+            ### 📋 Changelog
+            
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for full details.
+            
+            ### 🔐 Verification
+            
+            Verify the download integrity:
+            ```bash
+            sha256sum -c polytrans-${{ steps.version.outputs.VERSION }}.zip.sha256
+            ```
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload artifact for debugging
+        uses: actions/upload-artifact@v3
+        with:
+          name: polytrans-${{ steps.version.outputs.VERSION }}
+          path: release/polytrans-${{ steps.version.outputs.VERSION }}.zip
+          retention-days: 30
+
