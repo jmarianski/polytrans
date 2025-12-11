@@ -848,6 +848,7 @@ class TranslationSettings
                 vertical-align: middle;
             }
             #path-rules-table .openai-path-rule {
+                display: table-row !important; /* Override flex from openai-integration.css */
                 border-bottom: 1px solid #e5e5e5;
             }
             #path-rules-table .openai-path-rule:last-child {
