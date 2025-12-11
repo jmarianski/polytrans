@@ -364,6 +364,12 @@
         },
 
         updateLanguagePairVisibility: function () {
+            // Only run if we're on OpenAI Settings tab AND path rules list exists
+            // (Path rules were moved to Language Pairs tab, so this may not exist)
+            if (!$('#openai-settings').is(':visible') || $('#openai-path-rules-list').length === 0) {
+                return;
+            }
+
             // 1. Get allowed source/target languages
             var allowedSources = [];
             var allowedTargets = [];
