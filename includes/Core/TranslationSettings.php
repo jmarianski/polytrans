@@ -641,9 +641,9 @@ class TranslationSettings
             $('#add-path-rule').on('click', function() {
                 var ruleIndex = $('#path-rules-container tbody tr').length;
                 var newRow = `
-                    <tr>
+                    <tr class="openai-path-rule">
                         <td>
-                            <select name="openai_path_rules[${ruleIndex}][source]" required>
+                            <select name="openai_path_rules[${ruleIndex}][source]" class="openai-path-source" required>
                                 <option value="all"><?php esc_html_e('All', 'polytrans'); ?></option>
                                 <?php foreach ($this->langs as $i => $lang): ?>
                                 <option value="<?php echo esc_attr($lang); ?>">
@@ -653,7 +653,7 @@ class TranslationSettings
                             </select>
                         </td>
                         <td>
-                            <select name="openai_path_rules[${ruleIndex}][target]" required>
+                            <select name="openai_path_rules[${ruleIndex}][target]" class="openai-path-target" required>
                                 <option value="all"><?php esc_html_e('All', 'polytrans'); ?></option>
                                 <?php foreach ($this->langs as $i => $lang): ?>
                                 <option value="<?php echo esc_attr($lang); ?>">
@@ -663,7 +663,7 @@ class TranslationSettings
                             </select>
                         </td>
                         <td>
-                            <select name="openai_path_rules[${ruleIndex}][intermediate]">
+                            <select name="openai_path_rules[${ruleIndex}][intermediate]" class="openai-path-intermediate">
                                 <option value=""><?php esc_html_e('None (Direct)', 'polytrans'); ?></option>
                                 <?php foreach ($this->langs as $i => $lang): ?>
                                 <option value="<?php echo esc_attr($lang); ?>">
@@ -678,12 +678,32 @@ class TranslationSettings
                     </tr>
                 `;
                 $('#path-rules-container tbody').append(newRow);
+                // Trigger filtering after adding new rule
+                if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
+                    window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+                }
             });
 
             // Remove path rule
             $(document).on('click', '.remove-rule', function() {
                 $(this).closest('tr').remove();
+                // Trigger filtering after removing rule
+                if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
+                    window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+                }
             });
+
+            // Trigger filtering when path rule values change
+            $(document).on('change', '.openai-path-source, .openai-path-target, .openai-path-intermediate', function() {
+                if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
+                    window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+                }
+            });
+
+            // Initial filtering on page load
+            if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
+                window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+            }
         });
         </script>
         <?php
@@ -722,7 +742,10 @@ class TranslationSettings
                     $assistant_key = $pair['key'];
                     $selected_assistant = $openai_assistants[$assistant_key] ?? '';
                     ?>
-                    <tr>
+                    <tr class="language-pair-row"
+                        data-source="<?php echo esc_attr($pair['source']); ?>"
+                        data-target="<?php echo esc_attr($pair['target']); ?>"
+                        data-pair="<?php echo esc_attr($assistant_key); ?>">
                         <td>
                             <strong><?php echo esc_html($source_name); ?> → <?php echo esc_html($target_name); ?></strong>
                         </td>
@@ -773,9 +796,9 @@ class TranslationSettings
             <tbody>
                 <?php if (!empty($rules)): ?>
                     <?php foreach ($rules as $index => $rule): ?>
-                        <tr>
+                        <tr class="openai-path-rule">
                             <td>
-                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][source]" required>
+                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][source]" class="openai-path-source" required>
                                     <option value="all" <?php selected($rule['source'], 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
                                     <?php foreach ($this->langs as $i => $lang): ?>
                                         <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['source'], $lang); ?>>
@@ -785,7 +808,7 @@ class TranslationSettings
                                 </select>
                             </td>
                             <td>
-                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][target]" required>
+                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][target]" class="openai-path-target" required>
                                     <option value="all" <?php selected($rule['target'], 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
                                     <?php foreach ($this->langs as $i => $lang): ?>
                                         <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['target'], $lang); ?>>
@@ -795,7 +818,7 @@ class TranslationSettings
                                 </select>
                             </td>
                             <td>
-                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][intermediate]">
+                                <select name="openai_path_rules[<?php echo esc_attr($index); ?>][intermediate]" class="openai-path-intermediate">
                                     <option value="" <?php selected(empty($rule['intermediate'])); ?>><?php esc_html_e('None (Direct)', 'polytrans'); ?></option>
                                     <?php foreach ($this->langs as $i => $lang): ?>
                                         <option value="<?php echo esc_attr($lang); ?>" <?php selected($rule['intermediate'] ?? '', $lang); ?>>

@@ -16,6 +16,13 @@
                 var targetId = $(this).attr('href');
                 $(targetId).addClass('active').show();
 
+                // Trigger Language Pairs filtering when switching to Language Pairs tab
+                if (targetId === '#language-pairs-settings') {
+                    if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
+                        window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+                    }
+                }
+
                 // Store active tab in localStorage
                 try {
                     localStorage.setItem('polytrans-active-tab', targetId);
@@ -63,6 +70,10 @@
             if (window.OpenAIManager && window.OpenAIManager.updateLanguagePairVisibility) {
                 window.OpenAIManager.updateLanguagePairVisibility();
             }
+            // Trigger Language Pairs filtering
+            if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
+                window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+            }
         });
 
         $('input[name="allowed_sources[]"]').on('change', function () {
@@ -70,9 +81,121 @@
             if (window.OpenAIManager && window.OpenAIManager.updateLanguagePairVisibility) {
                 window.OpenAIManager.updateLanguagePairVisibility();
             }
+            // Trigger Language Pairs filtering
+            if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
+                window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+            }
         });
 
         updateLangConfigVisibility();
+
+        // Language Pairs filtering based on path rules
+        window.PolyTransLanguagePairs = {
+            updateLanguagePairVisibility: function () {
+                // Only run if we're on Language Pairs tab
+                if (!$('#language-pairs-settings').is(':visible')) {
+                    return;
+                }
+
+                // 1. Get allowed source/target languages
+                var allowedSources = [];
+                var allowedTargets = [];
+                $('input[name="allowed_sources[]"]:checked').each(function () {
+                    allowedSources.push($(this).val());
+                });
+                $('input[name="allowed_targets[]"]:checked').each(function () {
+                    allowedTargets.push($(this).val());
+                });
+
+                // 2. Get all rules from the DOM
+                var rules = [];
+                $('#path-rules-container .openai-path-rule, #path-rules-table .openai-path-rule').each(function (i) {
+                    var $rule = $(this);
+                    var source = $rule.find('.openai-path-source').val();
+                    var target = $rule.find('.openai-path-target').val();
+                    var intermediate = $rule.find('.openai-path-intermediate').val() || '';
+                    if (source && target) {
+                        rules.push({ 
+                            source: source, 
+                            target: target, 
+                            intermediate: intermediate === '' ? 'none' : intermediate, 
+                            index: i 
+                        });
+                    }
+                });
+
+                // 3. Expand all rules into all possible pairs
+                var pairToRules = {};
+                rules.forEach(function (rule) {
+                    var sources = (rule.source === 'all') ? allowedSources : [rule.source];
+                    var targets = (rule.target === 'all') ? allowedTargets : [rule.target];
+                    sources.forEach(function (src) {
+                        targets.forEach(function (tgt) {
+                            if (src === tgt) return;
+                            if (rule.intermediate === 'none' || rule.intermediate === '') {
+                                // Direct pair
+                                var key = src + '_to_' + tgt;
+                                if (!pairToRules[key]) pairToRules[key] = [];
+                                pairToRules[key].push({
+                                    type: 'direct',
+                                    rule: rule
+                                });
+                            } else {
+                                // Via intermediate: src->inter and inter->tgt
+                                if (src !== rule.intermediate) {
+                                    var key1 = src + '_to_' + rule.intermediate;
+                                    if (!pairToRules[key1]) pairToRules[key1] = [];
+                                    pairToRules[key1].push({
+                                        type: 'via',
+                                        rule: rule,
+                                        inter: rule.intermediate
+                                    });
+                                }
+                                if (rule.intermediate !== tgt) {
+                                    var key2 = rule.intermediate + '_to_' + tgt;
+                                    if (!pairToRules[key2]) pairToRules[key2] = [];
+                                    pairToRules[key2].push({
+                                        type: 'via',
+                                        rule: rule,
+                                        inter: rule.intermediate
+                                    });
+                                }
+                            }
+                        });
+                    });
+                });
+
+                // 4. Show/hide language pair rows
+                var visiblePairs = 0;
+                $('.language-pair-row').each(function () {
+                    var $row = $(this);
+                    var pairKey = $row.data('pair');
+                    var matchingRules = pairToRules[pairKey] || [];
+                    
+                    if (matchingRules.length > 0) {
+                        $row.show();
+                        visiblePairs++;
+                    } else {
+                        $row.hide();
+                    }
+                });
+
+                // Show message if no pairs visible
+                var $table = $('.language-pair-row').closest('table');
+                var $noPairsMsg = $table.find('.no-pairs-message');
+                if (visiblePairs === 0 && $('.language-pair-row').length > 0) {
+                    if ($noPairsMsg.length === 0) {
+                        $table.find('tbody').prepend(
+                            '<tr class="no-pairs-message"><td colspan="2" style="text-align: center; padding: 20px; color: #666;"><em>' +
+                            'No language pairs match the current path rules. Adjust your rules or add a rule that covers the pairs you need.' +
+                            '</em></td></tr>'
+                        );
+                    }
+                } else {
+                    $noPairsMsg.remove();
+                }
+            }
+        };
 
         // Initialize tabs
         initTabs();
