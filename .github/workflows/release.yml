@@ -27,6 +27,30 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          # Extract changelog section for this version
+          # For v1.5.0 (first release), include everything from [1.5.0] to end
+          # For future releases, extract only the section between [X.Y.Z] and next version
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          
+          # Try to extract section for this version
+          CHANGELOG=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d')
+          
+          # If empty (no next version marker), get from version to end
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG=$(sed -n "/## \[$VERSION\]/,\$p" CHANGELOG.md)
+          fi
+          
+          # Save to file (multiline)
+          echo "$CHANGELOG" > /tmp/changelog.txt
+          
+          # Set output (GitHub Actions multiline)
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          cat /tmp/changelog.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
       - name: Install Composer dependencies (production)
         run: composer install --no-dev --optimize-autoloader --no-interaction
       
@@ -98,10 +122,6 @@ jobs:
             - Composer dependencies (vendor/)
             - Production-optimized autoloader
             
-            ### 📋 Changelog
-            
-            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for full details.
-            
             ### 🔐 Verification
             
             Verify the download integrity:
@@ -112,6 +132,14 @@ jobs:
             # For versioned archive:
             sha256sum -c polytrans-${{ steps.version.outputs.VERSION }}.zip.sha256
             ```
+            
+            ---
+            
+            ${{ steps.changelog.outputs.CHANGELOG }}
+            
+            ---
+            
+            **Full Changelog:** [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
           draft: false
           prerelease: false
         env:
