@@ -189,6 +189,7 @@ function polytrans_deactivate()
     // Clean up any scheduled tasks
     wp_clear_scheduled_hook('polytrans_cleanup');
     wp_clear_scheduled_hook('polytrans_check_stuck_translations');
+    wp_clear_scheduled_hook('polytrans_cleanup_bg_log');
 }
 register_deactivation_hook(__FILE__, 'polytrans_deactivate');
 
@@ -267,3 +268,14 @@ function polytrans_check_stuck_translations()
     }
 }
 add_action('polytrans_check_stuck_translations', 'polytrans_check_stuck_translations');
+
+/**
+ * Clean up background process log files
+ */
+function polytrans_cleanup_bg_log($log_file)
+{
+    if (file_exists($log_file) && is_writable($log_file)) {
+        @unlink($log_file);
+    }
+}
+add_action('polytrans_cleanup_bg_log', 'polytrans_cleanup_bg_log');

@@ -97,78 +97,28 @@ class BackgroundProcessor
             'action' => $action
         ], 3600); // expires in 1 hour
 
-        // Get absolute path to WordPress
-        $wp_load_path = ABSPATH . 'wp-load.php';
-
-        // Build PHP script to execute
-        $script = "<?php
-            try {
-                // Load WordPress
-                require_once('$wp_load_path');
-                
-                // Get the data
-                \$data = get_transient('polytrans_bg_$token');
-                if (!\$data) {
-                    error_log('[polytrans] Background process failed: Could not retrieve data for token $token');
-                    exit(1);
-                }
-                
-                // Extract arguments
-                \$args = \$data['args'];
-                \$action = \$data['action'];
-                
-                // Call the processing function - try both namespaced and legacy class names
-                if (class_exists('PolyTrans\\\\Core\\\\BackgroundProcessor')) {
-                    PolyTrans\\\\Core\\\\BackgroundProcessor::process_task(\$args, \$action);
-                } elseif (class_exists('PolyTrans_Background_Processor')) {
-                    PolyTrans_Background_Processor::process_task(\$args, \$action);
-                } else {
-                    error_log('[polytrans] Background process failed: BackgroundProcessor class not found');
-                    exit(1);
-                }
-                
-                // Clean up
-                delete_transient('polytrans_bg_$token');
-            } catch (\\Throwable \$e) {
-                error_log('[polytrans] Background process exception: ' . \$e->getMessage());
-                error_log('[polytrans] File: ' . \$e->getFile() . ':' . \$e->getLine());
-                error_log('[polytrans] Trace: ' . \$e->getTraceAsString());
-                
-                // Try to log via LogsManager if available
-                if (class_exists('PolyTrans\\\\Core\\\\LogsManager')) {
-                    try {
-                        PolyTrans\\\\Core\\\\LogsManager::log(
-                            'Background process failed: ' . \$e->getMessage(),
-                            'error',
-                            [
-                                'action' => \$action ?? 'unknown',
-                                'args' => \$args ?? [],
-                                'file' => \$e->getFile(),
-                                'line' => \$e->getLine()
-                            ]
-                        );
-                    } catch (\\Exception \$log_error) {
-                        // Ignore logging errors
-                    }
-                }
-                
-                // Clean up even on error
-                delete_transient('polytrans_bg_$token');
-                exit(1);
-            }
-        ?>";
-
-        // Create temporary file for the script
-        $temp_file = wp_tempnam('polytrans_bg_');
-        file_put_contents($temp_file, $script);
+        // Get path to the process task file
+        $process_file = POLYTRANS_PLUGIN_DIR . 'includes/process-task.php';
+        
+        if (!file_exists($process_file)) {
+            self::log("Background process spawn failed: process-task.php not found at $process_file", "error", [
+                'action' => $action,
+                'plugin_dir' => POLYTRANS_PLUGIN_DIR
+            ]);
+            return false;
+        }
 
         // Get PHP binary
         $php_binary = PHP_BINARY ?: 'php';
 
+        // Build command with token as argument
+        // Redirect stderr to a log file for debugging
+        $log_file = wp_upload_dir()['basedir'] . '/polytrans-bg-' . $token . '.log';
+        $cmd = "$php_binary $process_file $token > /dev/null 2>$log_file &";
+
         // Try multiple command execution methods
         $success = false;
         $output = '';
-        $cmd = "$php_binary $temp_file > /dev/null 2>&1 &";
 
         if (function_exists('exec')) {
             @exec($cmd, $output, $return_var);
@@ -177,7 +127,9 @@ class BackgroundProcessor
                 $log_context = [
                     'cmd' => $cmd,
                     'token' => $token,
-                    'action' => $action
+                    'action' => $action,
+                    'log_file' => $log_file,
+                    'process_file' => $process_file
                 ];
                 // Add post_id only if it exists (not for workflow tests)
                 if (isset($args['post_id'])) {
@@ -187,6 +139,14 @@ class BackgroundProcessor
                     $log_context['test_id'] = $args['test_id'];
                 }
                 self::log("Spawned background process with exec", "info", $log_context);
+            } else {
+                self::log("Failed to spawn background process with exec", "error", [
+                    'cmd' => $cmd,
+                    'return_var' => $return_var,
+                    'output' => $output,
+                    'token' => $token,
+                    'action' => $action
+                ]);
             }
         }
 
@@ -197,7 +157,9 @@ class BackgroundProcessor
             $log_context = [
                 'cmd' => $cmd,
                 'token' => $token,
-                'action' => $action
+                'action' => $action,
+                'log_file' => $log_file,
+                'process_file' => $process_file
             ];
             if (isset($args['post_id'])) {
                 $log_context['post_id'] = $args['post_id'];
@@ -216,7 +178,9 @@ class BackgroundProcessor
                 $log_context = [
                     'cmd' => $cmd,
                     'token' => $token,
-                    'action' => $action
+                    'action' => $action,
+                    'log_file' => $log_file,
+                    'process_file' => $process_file
                 ];
                 if (isset($args['post_id'])) {
                     $log_context['post_id'] = $args['post_id'];
@@ -225,11 +189,20 @@ class BackgroundProcessor
                     $log_context['test_id'] = $args['test_id'];
                 }
                 self::log("Spawned background process with system", "info", $log_context);
+            } else {
+                self::log("Failed to spawn background process with system", "error", [
+                    'cmd' => $cmd,
+                    'return_var' => $return_var,
+                    'token' => $token,
+                    'action' => $action
+                ]);
             }
         }
 
-        // Clean up temp file after a delay
-        wp_schedule_single_event(time() + 600, 'polytrans_cleanup_temp_file', [$temp_file]);
+        // Schedule cleanup of log file after 24 hours
+        if ($success && file_exists($log_file)) {
+            wp_schedule_single_event(time() + DAY_IN_SECONDS, 'polytrans_cleanup_bg_log', [$log_file]);
+        }
 
         return $success;
     }
