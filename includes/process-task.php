@@ -13,14 +13,39 @@
 if (!defined('ABSPATH')) {
     // Try to load WordPress if ABSPATH is not defined
     // This file can be called directly from command line
+    // Find wp-load.php by going up from plugin directory
+    
+    // Current file: wp-content/plugins/polytrans/includes/process-task.php
+    // We need: wp-load.php (in WordPress root)
+    
+    $current_file = __FILE__;
+    $plugin_dir = dirname(dirname($current_file)); // wp-content/plugins/polytrans
+    $wp_content_dir = dirname($plugin_dir); // wp-content
+    $wp_root = dirname($wp_content_dir); // WordPress root
+    
     // Try multiple common paths
     $possible_paths = [
-        dirname(dirname(dirname(__DIR__))) . '/wp-load.php', // wp-content/plugins/polytrans/../../
-        dirname(dirname(dirname(__FILE__))) . '/wp-load.php', // wp-content/plugins/polytrans/../../
-        dirname(dirname(dirname(dirname(__FILE__)))) . '/wp-load.php', // wp-content/plugins/polytrans/../../../
+        $wp_root . '/wp-load.php', // WordPress root
+        dirname($wp_content_dir) . '/wp-load.php', // Alternative root
+        $wp_content_dir . '/../wp-load.php', // Relative from wp-content
     ];
     
+    // Also try to find it by searching up directories
+    $search_dir = $plugin_dir;
+    for ($i = 0; $i < 5; $i++) {
+        $test_path = $search_dir . '/wp-load.php';
+        if (file_exists($test_path)) {
+            $possible_paths[] = $test_path;
+            break;
+        }
+        $search_dir = dirname($search_dir);
+        if ($search_dir === '/' || $search_dir === $search_dir . '/..') {
+            break; // Reached filesystem root
+        }
+    }
+    
     $wp_loaded = false;
+    $wp_load_path = null;
     foreach ($possible_paths as $wp_load_path) {
         if (file_exists($wp_load_path)) {
             require_once $wp_load_path;
@@ -30,8 +55,15 @@ if (!defined('ABSPATH')) {
     }
     
     if (!$wp_loaded) {
-        error_log('[polytrans] Background process failed: Could not find wp-load.php');
-        error_log('[polytrans] Tried paths: ' . implode(', ', $possible_paths));
+        fwrite(STDERR, "[polytrans] Background process failed: Could not find wp-load.php\n");
+        fwrite(STDERR, "[polytrans] Current file: $current_file\n");
+        fwrite(STDERR, "[polytrans] Plugin dir: $plugin_dir\n");
+        fwrite(STDERR, "[polytrans] WP content dir: $wp_content_dir\n");
+        fwrite(STDERR, "[polytrans] WP root: $wp_root\n");
+        fwrite(STDERR, "[polytrans] Tried paths:\n");
+        foreach ($possible_paths as $path) {
+            fwrite(STDERR, "  - $path " . (file_exists($path) ? "(EXISTS)" : "(NOT FOUND)") . "\n");
+        }
         exit(1);
     }
 }
@@ -40,16 +72,20 @@ if (!defined('ABSPATH')) {
 $token = $argv[1] ?? $_GET['token'] ?? '';
 
 if (empty($token)) {
-    error_log('[polytrans] Background process failed: No token provided');
+    fwrite(STDERR, "[polytrans] Background process failed: No token provided\n");
+    fwrite(STDERR, "[polytrans] Usage: php process-task.php <token>\n");
+    fwrite(STDERR, "[polytrans] argv: " . print_r($argv ?? [], true) . "\n");
     exit(1);
 }
+
+fwrite(STDERR, "[polytrans] Starting background process with token: $token\n");
 
 try {
     // Get the data from transient
     $data = get_transient('polytrans_bg_' . $token);
     
     if (!$data) {
-        error_log('[polytrans] Background process failed: Could not retrieve data for token ' . $token);
+        fwrite(STDERR, "[polytrans] Background process failed: Could not retrieve data for token $token\n");
         exit(1);
     }
     
@@ -58,30 +94,32 @@ try {
     $action = $data['action'] ?? 'process-translation';
     
     // Log start
-    error_log('[polytrans] Background process started: ' . $action . ' (token: ' . $token . ')');
+    fwrite(STDERR, "[polytrans] Background process started: $action (token: $token)\n");
     
     // Call the processing function - try namespaced class first, then legacy
     if (class_exists('\PolyTrans\Core\BackgroundProcessor')) {
+        fwrite(STDERR, "[polytrans] Using namespaced BackgroundProcessor class\n");
         \PolyTrans\Core\BackgroundProcessor::process_task($args, $action);
     } elseif (class_exists('PolyTrans_Background_Processor')) {
+        fwrite(STDERR, "[polytrans] Using legacy BackgroundProcessor class\n");
         PolyTrans_Background_Processor::process_task($args, $action);
     } else {
-        error_log('[polytrans] Background process failed: BackgroundProcessor class not found');
-        error_log('[polytrans] Available classes check:');
-        error_log('[polytrans] - PolyTrans\\Core\\BackgroundProcessor: ' . (class_exists('\PolyTrans\Core\BackgroundProcessor') ? 'YES' : 'NO'));
-        error_log('[polytrans] - PolyTrans_Background_Processor: ' . (class_exists('PolyTrans_Background_Processor') ? 'YES' : 'NO'));
+        fwrite(STDERR, "[polytrans] Background process failed: BackgroundProcessor class not found\n");
+        fwrite(STDERR, "[polytrans] Available classes check:\n");
+        fwrite(STDERR, "[polytrans] - PolyTrans\\Core\\BackgroundProcessor: " . (class_exists('\PolyTrans\Core\BackgroundProcessor') ? 'YES' : 'NO') . "\n");
+        fwrite(STDERR, "[polytrans] - PolyTrans_Background_Processor: " . (class_exists('PolyTrans_Background_Processor') ? 'YES' : 'NO') . "\n");
         exit(1);
     }
     
     // Clean up
     delete_transient('polytrans_bg_' . $token);
     
-    error_log('[polytrans] Background process completed: ' . $action . ' (token: ' . $token . ')');
+    fwrite(STDERR, "[polytrans] Background process completed: $action (token: $token)\n");
     
 } catch (\Throwable $e) {
-    error_log('[polytrans] Background process exception: ' . $e->getMessage());
-    error_log('[polytrans] File: ' . $e->getFile() . ':' . $e->getLine());
-    error_log('[polytrans] Trace: ' . $e->getTraceAsString());
+    fwrite(STDERR, "[polytrans] Background process exception: " . $e->getMessage() . "\n");
+    fwrite(STDERR, "[polytrans] File: " . $e->getFile() . ":" . $e->getLine() . "\n");
+    fwrite(STDERR, "[polytrans] Trace:\n" . $e->getTraceAsString() . "\n");
     
     // Try to log via LogsManager if available
     if (class_exists('\PolyTrans\Core\LogsManager')) {
@@ -98,7 +136,7 @@ try {
                 ]
             );
         } catch (\Exception $log_error) {
-            error_log('[polytrans] Failed to log via LogsManager: ' . $log_error->getMessage());
+            fwrite(STDERR, "[polytrans] Failed to log via LogsManager: " . $log_error->getMessage() . "\n");
         }
     } elseif (class_exists('PolyTrans_Logs_Manager')) {
         try {
@@ -114,7 +152,7 @@ try {
                 ]
             );
         } catch (\Exception $log_error) {
-            error_log('[polytrans] Failed to log via LogsManager (legacy): ' . $log_error->getMessage());
+            fwrite(STDERR, "[polytrans] Failed to log via LogsManager (legacy): " . $log_error->getMessage() . "\n");
         }
     }
     
