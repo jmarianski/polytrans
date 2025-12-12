@@ -279,3 +279,62 @@ function polytrans_cleanup_bg_log($log_file)
     }
 }
 add_action('polytrans_cleanup_bg_log', 'polytrans_cleanup_bg_log');
+
+/**
+ * Check background process log file for early errors
+ */
+function polytrans_check_bg_log($log_file, $token, $action)
+{
+    if (!file_exists($log_file)) {
+        return; // Log file doesn't exist yet, process might not have started
+    }
+
+    $log_content = @file_get_contents($log_file);
+    if (empty($log_content)) {
+        return; // No content yet
+    }
+
+    // Check for common error patterns
+    $error_patterns = [
+        '/Could not find wp-load\.php/',
+        '/Fatal error/',
+        '/Parse error/',
+        '/Class.*not found/',
+        '/Background process failed/',
+        '/Background process exception/',
+    ];
+
+    $has_errors = false;
+    foreach ($error_patterns as $pattern) {
+        if (preg_match($pattern, $log_content)) {
+            $has_errors = true;
+            break;
+        }
+    }
+
+    if ($has_errors) {
+        // Log error to WordPress logs
+        error_log("[polytrans] Background process error detected (token: $token, action: $action)");
+        error_log("[polytrans] Log file: $log_file");
+        error_log("[polytrans] Log content:\n" . $log_content);
+
+        // Also log via LogsManager if available
+        if (class_exists('\PolyTrans\Core\LogsManager')) {
+            try {
+                \PolyTrans\Core\LogsManager::log(
+                    "Background process error detected: " . substr($log_content, 0, 500),
+                    'error',
+                    [
+                        'source' => 'background_process_check',
+                        'token' => $token,
+                        'action' => $action,
+                        'log_file' => $log_file
+                    ]
+                );
+            } catch (\Exception $e) {
+                // Ignore logging errors
+            }
+        }
+    }
+}
+add_action('polytrans_check_bg_log', 'polytrans_check_bg_log', 10, 3);

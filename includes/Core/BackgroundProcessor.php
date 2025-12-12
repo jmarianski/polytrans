@@ -206,6 +206,21 @@ class BackgroundProcessor
             wp_schedule_single_event(time() + DAY_IN_SECONDS, 'polytrans_cleanup_bg_log', [$log_file]);
         }
 
+        // Check log file after 1 second to catch early errors (non-blocking)
+        if ($success) {
+            // Use scheduled event for async check
+            wp_schedule_single_event(time() + 1, 'polytrans_check_bg_log', [$log_file, $token, $action]);
+            
+            // Also do immediate check after short delay (non-blocking, uses usleep)
+            // This gives process time to start and write initial errors
+            if (function_exists('fastcgi_finish_request')) {
+                // FastCGI: finish request and check log
+                fastcgi_finish_request();
+                usleep(500000); // 0.5 second delay
+                self::check_bg_log_immediate($log_file, $token, $action);
+            }
+        }
+
         return $success;
     }
 
@@ -891,6 +906,58 @@ class BackgroundProcessor
             }
         } else {
             error_log("[polytrans] No posts found to test post meta");
+        }
+    }
+
+    /**
+     * Check background process log file immediately for early errors
+     * 
+     * @param string $log_file Path to log file
+     * @param string $token Process token
+     * @param string $action Process action
+     * @return void
+     */
+    private static function check_bg_log_immediate($log_file, $token, $action)
+    {
+        if (!file_exists($log_file)) {
+            return; // Log file doesn't exist yet
+        }
+
+        $log_content = @file_get_contents($log_file);
+        if (empty($log_content)) {
+            return; // No content yet
+        }
+
+        // Check for common error patterns
+        $error_patterns = [
+            '/Could not find wp-load\.php/',
+            '/Fatal error/',
+            '/Parse error/',
+            '/Class.*not found/',
+            '/Background process failed/',
+            '/Background process exception/',
+        ];
+
+        $has_errors = false;
+        foreach ($error_patterns as $pattern) {
+            if (preg_match($pattern, $log_content)) {
+                $has_errors = true;
+                break;
+            }
+        }
+
+        if ($has_errors) {
+            // Log error
+            self::log(
+                "Background process error detected in log file",
+                "error",
+                [
+                    'token' => $token,
+                    'action' => $action,
+                    'log_file' => $log_file,
+                    'log_preview' => substr($log_content, 0, 500)
+                ]
+            );
         }
     }
 }
