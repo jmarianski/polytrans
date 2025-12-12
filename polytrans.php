@@ -171,11 +171,15 @@ function polytrans_activate()
 
     add_option('polytrans_settings', $default_settings);
 
-    // Load the logs manager class for table creation
-    require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-logs-manager.php';
+    // Ensure Bootstrap is loaded for autoloading
+    if (!class_exists('\PolyTrans\Bootstrap')) {
+        require_once POLYTRANS_PLUGIN_DIR . 'includes/Bootstrap.php';
+    }
+    \PolyTrans\Bootstrap::init();
 
     // Create database tables if needed and enabled in settings
-    if (PolyTrans_Logs_Manager::is_db_logging_enabled()) {
+    // Use class alias for backward compatibility
+    if (class_exists('PolyTrans_Logs_Manager') && PolyTrans_Logs_Manager::is_db_logging_enabled()) {
         PolyTrans_Logs_Manager::create_logs_table();
 
         // Try to log an activation message
@@ -239,10 +243,17 @@ function polytrans_create_tables()
 
     // Create logs table using the Logs Manager if database logging is enabled
     if ($db_logging_enabled) {
-        require_once POLYTRANS_PLUGIN_DIR . 'includes/core/class-logs-manager.php';
+        // Ensure Bootstrap is loaded for autoloading
+        if (!class_exists('\PolyTrans\Bootstrap')) {
+            require_once POLYTRANS_PLUGIN_DIR . 'includes/Bootstrap.php';
+        }
+        \PolyTrans\Bootstrap::init();
 
         // This will handle creation and structure adaptation
-        PolyTrans_Logs_Manager::create_logs_table();
+        // Use class alias for backward compatibility
+        if (class_exists('PolyTrans_Logs_Manager')) {
+            PolyTrans_Logs_Manager::create_logs_table();
+        }
     } else {
         error_log("[polytrans] Database logging is disabled, skipping logs table creation");
     }
