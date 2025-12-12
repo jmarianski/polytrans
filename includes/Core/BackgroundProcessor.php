@@ -476,7 +476,6 @@ class BackgroundProcessor
 
         try {
             // Get post content and metadata
-            self::log("Preparing content for translation", "info", ['post_id' => $post_id]);
 
             $meta = get_post_meta($post_id);
             $allowed_meta_keys =  TranslationHandler::POLYTRANS_ALLOWED_SEO_META_KEYS;
@@ -503,12 +502,6 @@ class BackgroundProcessor
                         'description' => $attachment->post_content,
                         'filename' => basename(get_attached_file($thumbnail_id))
                     ];
-
-                    self::log("Featured image metadata prepared for translation", "info", [
-                        'post_id' => $post_id,
-                        'thumbnail_id' => $thumbnail_id,
-                        'alt_text' => $featured_image_data['alt']
-                    ]);
                 }
             }
 

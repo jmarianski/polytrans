@@ -36,57 +36,41 @@ class NotificationFilter
 
         $settings = get_option('polytrans_settings', []);
         
-        // If no filters configured, allow all (backward compatibility)
-        $has_role_filter = !empty($settings['notification_allowed_roles']);
-        $has_domain_filter = !empty($settings['notification_allowed_domains']);
+        // If no domain filter configured, allow all (backward compatibility)
+        $allowed_domains = $settings['notification_allowed_domains'] ?? '';
         
-        if (!$has_role_filter && !$has_domain_filter) {
+        if (empty($allowed_domains)) {
             return true;
         }
 
-        // Check role filter
-        if ($has_role_filter) {
-            $allowed_roles = (array) $settings['notification_allowed_roles'];
-            $user_roles = (array) $user->roles;
-            
-            // If user has any of the allowed roles, they pass the role filter
-            $role_match = !empty(array_intersect($user_roles, $allowed_roles));
-            
-            if (!$role_match) {
-                \PolyTrans_Logs_Manager::log(
-                    "Notification blocked for user {$user->user_email} (ID: {$user->ID}): role not in allowed list",
-                    "info",
-                    [
-                        'user_roles' => $user_roles,
-                        'allowed_roles' => $allowed_roles
-                    ]
-                );
-                return false;
-            }
+        // Normalize domains to array
+        if (is_string($allowed_domains)) {
+            $allowed_domains = self::sanitize_domains($allowed_domains);
+        }
+        
+        if (empty($allowed_domains)) {
+            return true; // Empty filter means allow all
         }
 
         // Check domain filter
-        if ($has_domain_filter) {
-            $allowed_domains = (array) $settings['notification_allowed_domains'];
-            $user_email = $user->user_email;
-            $user_domain = self::extract_domain($user_email);
-            
-            $domain_match = in_array($user_domain, $allowed_domains, true);
-            
-            if (!$domain_match) {
-                \PolyTrans_Logs_Manager::log(
-                    "Notification blocked for user {$user->user_email} (ID: {$user->ID}): domain not in allowed list",
-                    "info",
-                    [
-                        'user_domain' => $user_domain,
-                        'allowed_domains' => $allowed_domains
-                    ]
-                );
-                return false;
-            }
+        $user_email = $user->user_email;
+        $user_domain = self::extract_domain($user_email);
+        
+        $domain_match = in_array($user_domain, $allowed_domains, true);
+        
+        if (!$domain_match) {
+            \PolyTrans_Logs_Manager::log(
+                "Notification blocked for user {$user->user_email} (ID: {$user->ID}): domain not in allowed list",
+                "info",
+                [
+                    'user_domain' => $user_domain,
+                    'allowed_domains' => $allowed_domains
+                ]
+            );
+            return false;
         }
 
-        // User passed all filters
+        // User passed the filter
         return true;
     }
 
@@ -102,21 +86,6 @@ class NotificationFilter
         return isset($parts[1]) ? strtolower(trim($parts[1])) : '';
     }
 
-    /**
-     * Get all available WordPress roles for settings UI.
-     * 
-     * @return array Array of role slug => role name
-     */
-    public static function get_available_roles()
-    {
-        global $wp_roles;
-        
-        if (!isset($wp_roles)) {
-            $wp_roles = new \WP_Roles();
-        }
-        
-        return $wp_roles->get_names();
-    }
 
     /**
      * Sanitize and validate domain list.

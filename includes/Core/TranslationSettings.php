@@ -96,9 +96,6 @@ class TranslationSettings
         $settings['author_email_title'] = wp_kses_post(wp_unslash($_POST['author_email_title'] ?? ''));
 
         // Notification filters
-        $settings['notification_allowed_roles'] = isset($_POST['notification_allowed_roles']) && is_array($_POST['notification_allowed_roles']) 
-            ? array_map('sanitize_text_field', wp_unslash($_POST['notification_allowed_roles'])) 
-            : [];
         
         $settings['notification_allowed_domains'] = \PolyTrans\Core\NotificationFilter::sanitize_domains(
             wp_unslash($_POST['notification_allowed_domains'] ?? '')
@@ -413,54 +410,9 @@ class TranslationSettings
     private function render_email_settings($reviewer_email, $reviewer_email_title, $author_email, $author_email_title)
     {
         $settings = get_option('polytrans_settings', []);
-        $notification_allowed_roles = $settings['notification_allowed_roles'] ?? [];
-        $notification_allowed_domains = $settings['notification_allowed_domains'] ?? [];
-        $notification_allowed_domains_str = is_array($notification_allowed_domains) ? implode(', ', $notification_allowed_domains) : '';
+        $notification_allowed_domains = $settings['notification_allowed_domains'] ?? '';
+        $notification_allowed_domains_str = is_array($notification_allowed_domains) ? implode(', ', $notification_allowed_domains) : $notification_allowed_domains;
     ?>
-        <!-- Notification Filters Section -->
-        <div class="notification-filters-section" style="margin-bottom: 2em; padding: 1em; background: #f9f9f9; border-left: 4px solid #2271b1;">
-            <h2><?php esc_html_e('Author Notification Filters', 'polytrans'); ?></h2>
-            <p style="margin-top: 0;">
-                <?php esc_html_e('Control who receives email notifications when translations are completed. This is useful to prevent sending emails to external authors (e.g., guest contributors).', 'polytrans'); ?>
-                <br>
-                <strong><?php esc_html_e('Note:', 'polytrans'); ?></strong> <?php esc_html_e('Reviewer notifications are always sent (reviewers are internal users from settings).', 'polytrans'); ?>
-            </p>
-            
-            <div style="margin-bottom: 1.5em;">
-                <label for="notification_allowed_roles"><strong><?php esc_html_e('Allowed User Roles', 'polytrans'); ?></strong></label><br>
-                <select name="notification_allowed_roles[]" id="notification_allowed_roles" multiple style="width: 100%; max-width: 500px; height: 150px;">
-                    <?php
-                    $available_roles = \PolyTrans\Core\NotificationFilter::get_available_roles();
-                    foreach ($available_roles as $role_slug => $role_name) {
-                        $selected = in_array($role_slug, (array) $notification_allowed_roles, true) ? 'selected' : '';
-                        echo '<option value="' . esc_attr($role_slug) . '" ' . $selected . '>' . esc_html($role_name) . '</option>';
-                    }
-                    ?>
-                </select>
-                <br>
-                <small>
-                    <?php esc_html_e('Select user roles that should receive notifications. Leave empty to allow all roles.', 'polytrans'); ?>
-                    <br>
-                    <?php esc_html_e('Hold Ctrl (Cmd on Mac) to select multiple roles.', 'polytrans'); ?>
-                </small>
-            </div>
-            
-            <div style="margin-bottom: 1.5em;">
-                <label for="notification_allowed_domains"><strong><?php esc_html_e('Allowed Email Domains', 'polytrans'); ?></strong></label><br>
-                <input type="text" name="notification_allowed_domains" id="notification_allowed_domains" value="<?php echo esc_attr($notification_allowed_domains_str); ?>" style="width: 100%; max-width: 500px;" placeholder="example.com, company.org">
-                <br>
-                <small>
-                    <?php esc_html_e('Comma-separated list of allowed email domains (e.g., "example.com, company.org"). Only authors with emails from these domains will receive notifications. Leave empty to allow all domains.', 'polytrans'); ?>
-                </small>
-            </div>
-            
-            <p style="margin-bottom: 0; padding: 0.5em; background: #fff; border-left: 3px solid #72aee6;">
-                <strong><?php esc_html_e('How it works:', 'polytrans'); ?></strong><br>
-                <?php esc_html_e('If both filters are set, the author must match BOTH (role AND domain) to receive notifications.', 'polytrans'); ?><br>
-                <?php esc_html_e('If no filters are set, all authors will receive notifications (default behavior).', 'polytrans'); ?>
-            </p>
-        </div>
-
         <!-- Email Templates Section -->
         <div class="translation-emails-row" style="display:flex;gap:2em;flex-wrap:wrap;">
             <div class="translation-email-col">
@@ -493,6 +445,33 @@ class TranslationSettings
                 ?>
                 <small><?php esc_html_e('Email sent to the author when translation is published. Use {link} for the edit link and {title} for the post title. Note: Edit links will use the "Edit Link Base URL" from Advanced Settings if configured, which is recommended for background processes.', 'polytrans'); ?></small>
             </div>
+        </div>
+
+        <hr style="margin: 2em 0;">
+
+        <!-- Notification Filters Section -->
+        <div class="notification-filters-section" style="margin-bottom: 2em; padding: 1em; background: #f9f9f9; border-left: 4px solid #2271b1;">
+            <h2><?php esc_html_e('Author Notification Filters', 'polytrans'); ?></h2>
+            <p style="margin-top: 0;">
+                <?php esc_html_e('Control which authors receive email notifications when translations are completed. This is useful to prevent sending emails to external authors (e.g., guest contributors).', 'polytrans'); ?>
+                <br>
+                <strong><?php esc_html_e('Note:', 'polytrans'); ?></strong> <?php esc_html_e('Reviewer notifications are always sent (reviewers are internal users from settings).', 'polytrans'); ?>
+            </p>
+            
+            <div style="margin-bottom: 1.5em;">
+                <label for="notification_allowed_domains"><strong><?php esc_html_e('Allowed Email Domains', 'polytrans'); ?></strong></label><br>
+                <input type="text" name="notification_allowed_domains" id="notification_allowed_domains" value="<?php echo esc_attr($notification_allowed_domains_str); ?>" style="width: 100%; max-width: 500px;" placeholder="example.com, company.org">
+                <br>
+                <small>
+                    <?php esc_html_e('Comma-separated list of allowed email domains (e.g., "example.com, company.org"). Only authors with emails from these domains will receive notifications. Leave empty to allow all domains.', 'polytrans'); ?>
+                </small>
+            </div>
+            
+            <p style="margin-bottom: 0; padding: 0.5em; background: #fff; border-left: 3px solid #72aee6;">
+                <strong><?php esc_html_e('How it works:', 'polytrans'); ?></strong><br>
+                <?php esc_html_e('If filter is set, only authors with emails from the specified domains will receive notifications.', 'polytrans'); ?><br>
+                <?php esc_html_e('If no filter is set, all authors will receive notifications (default behavior).', 'polytrans'); ?>
+            </p>
         </div>
     <?php
     }
