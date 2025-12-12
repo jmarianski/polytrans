@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2025-12-11
+
+### Changed
+- **Notification Filters**: Simplified Author Notification Filters to use only email domain filtering (removed user role filtering)
+- **UI Improvements**: Moved Author Notification Filters section below email templates for better UX
+- **Translation Schema**: Updated schema to match actual data structure (meta and featured_image as arrays instead of object/string)
+
+### Fixed
+- **Background Process Logging**: Replaced file-based error logging with transient-based system for compatibility with S3 uploads
+- **Translation Response Parsing**: Fixed schema mismatches causing type coercion warnings for meta and featured_image fields
+- **Meta Translation**: Fixed issue where meta fields were not being sent/received correctly in translation responses
+
+### Technical
+- Improved error detection for background processes using transients instead of log files
+- Added comprehensive logging for translation response debugging
+- Removed redundant JSON encoding/decoding for meta fields
+
 ## [1.5.0] - 2025-12-10
 
 ### 🎉 Major Release: PSR-4 Architecture Migration
