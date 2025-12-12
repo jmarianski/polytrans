@@ -206,19 +206,18 @@ class BackgroundProcessor
             wp_schedule_single_event(time() + DAY_IN_SECONDS, 'polytrans_cleanup_bg_log', [$log_file]);
         }
 
-        // Check log file after 1 second to catch early errors (non-blocking)
+        // Check log file after 1 second to catch early errors
         if ($success) {
-            // Use scheduled event for async check
-            wp_schedule_single_event(time() + 1, 'polytrans_check_bg_log', [$log_file, $token, $action]);
-            
-            // Also do immediate check after short delay (non-blocking, uses usleep)
-            // This gives process time to start and write initial errors
+            // If FastCGI is available, finish request first (non-blocking for user)
             if (function_exists('fastcgi_finish_request')) {
-                // FastCGI: finish request and check log
                 fastcgi_finish_request();
-                usleep(500000); // 0.5 second delay
-                self::check_bg_log_immediate($log_file, $token, $action);
             }
+            
+            // Wait 1 second for process to start and write initial errors
+            sleep(1);
+            
+            // Check log file for errors
+            self::check_bg_log_immediate($log_file, $token, $action);
         }
 
         return $success;
