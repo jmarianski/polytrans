@@ -102,27 +102,60 @@ class BackgroundProcessor
 
         // Build PHP script to execute
         $script = "<?php
-            // Load WordPress
-            require_once('$wp_load_path');
-            
-            // Get the data
-            \$data = get_transient('polytrans_bg_$token');
-            if (!\$data) {
-                error_log('[polytrans] Background process failed: Could not retrieve data');
-                exit;
+            try {
+                // Load WordPress
+                require_once('$wp_load_path');
+                
+                // Get the data
+                \$data = get_transient('polytrans_bg_$token');
+                if (!\$data) {
+                    error_log('[polytrans] Background process failed: Could not retrieve data for token $token');
+                    exit(1);
+                }
+                
+                // Extract arguments
+                \$args = \$data['args'];
+                \$action = \$data['action'];
+                
+                // Call the processing function - try both namespaced and legacy class names
+                if (class_exists('PolyTrans\\\\Core\\\\BackgroundProcessor')) {
+                    PolyTrans\\\\Core\\\\BackgroundProcessor::process_task(\$args, \$action);
+                } elseif (class_exists('PolyTrans_Background_Processor')) {
+                    PolyTrans_Background_Processor::process_task(\$args, \$action);
+                } else {
+                    error_log('[polytrans] Background process failed: BackgroundProcessor class not found');
+                    exit(1);
+                }
+                
+                // Clean up
+                delete_transient('polytrans_bg_$token');
+            } catch (\\Throwable \$e) {
+                error_log('[polytrans] Background process exception: ' . \$e->getMessage());
+                error_log('[polytrans] File: ' . \$e->getFile() . ':' . \$e->getLine());
+                error_log('[polytrans] Trace: ' . \$e->getTraceAsString());
+                
+                // Try to log via LogsManager if available
+                if (class_exists('PolyTrans\\\\Core\\\\LogsManager')) {
+                    try {
+                        PolyTrans\\\\Core\\\\LogsManager::log(
+                            'Background process failed: ' . \$e->getMessage(),
+                            'error',
+                            [
+                                'action' => \$action ?? 'unknown',
+                                'args' => \$args ?? [],
+                                'file' => \$e->getFile(),
+                                'line' => \$e->getLine()
+                            ]
+                        );
+                    } catch (\\Exception \$log_error) {
+                        // Ignore logging errors
+                    }
+                }
+                
+                // Clean up even on error
+                delete_transient('polytrans_bg_$token');
+                exit(1);
             }
-            
-            // Extract arguments
-            \$args = \$data['args'];
-            \$action = \$data['action'];
-            
-            // Call the processing function
-            if (class_exists('\PolyTrans_Background_Processor')) {
-                PolyTrans_Background_Processor::process_task(\$args, \$action);
-            }
-            
-            // Clean up
-            delete_transient('polytrans_bg_$token');
         ?>";
 
         // Create temporary file for the script
@@ -210,39 +243,70 @@ class BackgroundProcessor
      */
     public static function process_task($args, $action)
     {
-        // Make sure we run for as long as needed
-        ignore_user_abort(true);
-        set_time_limit(0);
+        try {
+            // Make sure we run for as long as needed
+            ignore_user_abort(true);
+            set_time_limit(0);
 
-        // Log the start of processing
-        self::log("Started background task processing: $action", "info", $args);
+            // Log the start of processing
+            self::log("Started background task processing: $action", "info", $args);
 
-        // Process based on action
-        switch ($action) {
-            case 'process-translation':
-                $post_id = $args['post_id'] ?? 0;
-                $source_lang = $args['source_lang'] ?? '';
-                $target_lang = $args['target_lang'] ?? '';
+            // Process based on action
+            switch ($action) {
+                case 'process-translation':
+                    $post_id = $args['post_id'] ?? 0;
+                    $source_lang = $args['source_lang'] ?? '';
+                    $target_lang = $args['target_lang'] ?? '';
 
-                if (!$post_id || !$source_lang || !$target_lang) {
-                    self::log("Background translation task failed: Invalid arguments", "error", $args);
-                    return;
-                }
+                    if (!$post_id || !$source_lang || !$target_lang) {
+                        self::log("Background translation task failed: Invalid arguments", "error", $args);
+                        return;
+                    }
 
-                self::process_translation($args);
-                break;
+                    self::process_translation($args);
+                    break;
 
-            case 'workflow-test':
-                self::process_workflow_test($args);
-                break;
+                case 'workflow-test':
+                    self::process_workflow_test($args);
+                    break;
 
-            case 'workflow-execute':
-                self::process_workflow_execution($args);
-                break;
+                case 'workflow-execute':
+                    self::process_workflow_execution($args);
+                    break;
 
-            default:
-                do_action("polytrans_bg_process_$action", $args);
-                break;
+                default:
+                    do_action("polytrans_bg_process_$action", $args);
+                    break;
+            }
+        } catch (\Throwable $e) {
+            // Catch any unhandled exceptions/errors
+            self::log("Background task processing failed with unhandled exception: " . $e->getMessage(), "error", [
+                'action' => $action,
+                'args' => $args,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Try to update status if we have post_id
+            if (isset($args['post_id']) && isset($args['target_lang'])) {
+                $post_id = $args['post_id'];
+                $target_lang = $args['target_lang'];
+                $status_key = '_polytrans_translation_status_' . $target_lang;
+                $log_key = '_polytrans_translation_log_' . $target_lang;
+                
+                update_post_meta($post_id, $status_key, 'failed');
+                update_post_meta($post_id, '_polytrans_translation_error_' . $target_lang, $e->getMessage());
+                
+                $log = get_post_meta($post_id, $log_key, true);
+                if (!is_array($log)) $log = [];
+                $log[] = [
+                    'timestamp' => time(),
+                    'msg' => sprintf(__('Background process failed: %s', 'polytrans'), $e->getMessage())
+                ];
+                update_post_meta($post_id, $log_key, $log);
+            }
         }
     }
 
@@ -450,7 +514,15 @@ class BackgroundProcessor
             // Handle the translation based on provider
             self::log("Loading translation provider: $translation_provider", "info", ['post_id' => $post_id]);
 
-            $registry = PolyTrans_Provider_Registry::get_instance();
+            // Try namespaced class first, then legacy
+            if (class_exists('\PolyTrans\Providers\ProviderRegistry')) {
+                $registry = \PolyTrans\Providers\ProviderRegistry::get_instance();
+            } elseif (class_exists('PolyTrans_Provider_Registry')) {
+                $registry = PolyTrans_Provider_Registry::get_instance();
+            } else {
+                throw new Exception('ProviderRegistry class not found. Autoloader may not be initialized.');
+            }
+            
             $provider = $registry->get_provider($translation_provider);
 
             if (!$provider) {
@@ -476,8 +548,14 @@ class BackgroundProcessor
             ]);
 
             // Process the translation using the coordinator
-            // Note: PolyTrans_Translation_Coordinator is autoloaded
-            $coordinator = new \PolyTrans_Translation_Coordinator();
+            // Try namespaced class first, then legacy
+            if (class_exists('\PolyTrans\Receiver\TranslationCoordinator')) {
+                $coordinator = new \PolyTrans\Receiver\TranslationCoordinator();
+            } elseif (class_exists('PolyTrans_Translation_Coordinator')) {
+                $coordinator = new \PolyTrans_Translation_Coordinator();
+            } else {
+                throw new Exception('TranslationCoordinator class not found. Autoloader may not be initialized.');
+            }
 
             // Prepare the request data for processing
             $request_data = [
@@ -592,9 +670,14 @@ class BackgroundProcessor
 
         try {
             // Get workflow manager instance
-            // Note: PolyTrans_Workflow_Manager is autoloaded
-
-            $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
+            // Try namespaced class first, then legacy
+            if (class_exists('\PolyTrans\PostProcessing\WorkflowManager')) {
+                $workflow_manager = \PolyTrans\PostProcessing\WorkflowManager::get_instance();
+            } elseif (class_exists('PolyTrans_Workflow_Manager')) {
+                $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
+            } else {
+                throw new Exception('WorkflowManager class not found. Autoloader may not be initialized.');
+            }
 
             // Create test workflow
             $workflow = [
@@ -672,9 +755,14 @@ class BackgroundProcessor
 
         try {
             // Get workflow manager instance
-            // Note: PolyTrans_Workflow_Manager is autoloaded
-
-            $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
+            // Try namespaced class first, then legacy
+            if (class_exists('\PolyTrans\PostProcessing\WorkflowManager')) {
+                $workflow_manager = \PolyTrans\PostProcessing\WorkflowManager::get_instance();
+            } elseif (class_exists('PolyTrans_Workflow_Manager')) {
+                $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
+            } else {
+                throw new Exception('WorkflowManager class not found. Autoloader may not be initialized.');
+            }
 
             // Get workflow
             $workflow = $workflow_manager->get_storage_manager()->get_workflow($workflow_id);
