@@ -26,14 +26,14 @@ class TranslationReceiverExtension
     /**
      * Main handler for receiving translated posts from external services.
      * 
-     * @param WP_REST_Request $request The REST API request containing translation data
-     * @return WP_REST_Response Response with created post ID or error
+     * @param \WP_REST_Request $request The REST API request containing translation data
+     * @return \WP_REST_Response Response with created post ID or error
      */
     public function handle_receive_post($request)
     {
         $params = $request->get_json_params();
         if (!is_array($params)) {
-            return new WP_REST_Response(['error' => 'Invalid JSON data'], 400);
+            return new \WP_REST_Response(['error' => 'Invalid JSON data'], 400);
         }
 
         // Extract key parameters for logging
@@ -50,13 +50,13 @@ class TranslationReceiverExtension
         if (!$result['success']) {
             $status_code = (isset($result['code']) && $result['code'] === 'missing_data') ? 400 : 500;
             error_log("[polytrans] Translation processing failed: " . $result['error']);
-            return new WP_REST_Response(['error' => $result['error']], $status_code);
+            return new \WP_REST_Response(['error' => $result['error']], $status_code);
         }
 
         error_log("[polytrans] Translation processing succeeded, created post ID: " . $result['created_post_id']);
 
         // Include detailed information in the response for the sender to update status
-        return new WP_REST_Response([
+        return new \WP_REST_Response([
             'created_post_id' => $result['created_post_id'],
             'status' => $result['status'],
             'original_post_id' => $original_post_id,
@@ -68,7 +68,7 @@ class TranslationReceiverExtension
     /**
      * Validates permission for translation receiver endpoints.
      * 
-     * @param WP_REST_Request $request The REST API request
+     * @param \WP_REST_Request $request The REST API request
      * @return bool True if authorized, false otherwise
      */
     public function permission_callback($request)
