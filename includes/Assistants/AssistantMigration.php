@@ -144,8 +144,7 @@ class AssistantMigration
 
         // Extract configuration
         $config = [
-            'temperature' => $step['temperature'] ?? 0.7,
-            'max_tokens' => $step['max_tokens'] ?? 2000
+            'temperature' => $step['temperature'] ?? 0.7
         ];
 
         // Add migration metadata
@@ -161,7 +160,6 @@ class AssistantMigration
         $api_parameters = [
             'model' => $model,
             'temperature' => $config['temperature'],
-            'max_tokens' => $config['max_tokens'],
             'migrated_from' => $config['migrated_from']
         ];
 
@@ -259,7 +257,6 @@ class AssistantMigration
             'original_config' => [
                 'model' => $step['model'] ?? null,
                 'temperature' => $step['temperature'] ?? null,
-                'max_tokens' => $step['max_tokens'] ?? null,
                 'expected_format' => $step['expected_format'] ?? null
             ]
         ];

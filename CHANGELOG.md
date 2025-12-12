@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.6] - 2025-12-11
+
+### Removed
+- **Max Tokens**: Removed `max_tokens` parameter from all assistant and workflow configurations
+- OpenAI API now uses default max_tokens behavior (no limit set by plugin)
+
+### Added
+- **Model Support**: Added support for GPT-5 series models (gpt-5, gpt-5o, gpt-5-turbo, etc.)
+- **Dynamic Model Loading**: Models are now fetched from OpenAI API when available, with fallback to hardcoded list
+- **Model Refresh**: Added "Refresh" button to reload models from OpenAI API
+
 ## [1.5.5] - 2025-12-11
 
 ### Fixed

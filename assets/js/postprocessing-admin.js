@@ -465,7 +465,6 @@
         const userMessage = step.user_message || '';
         const expectedFormat = step.expected_format || 'text';
         const model = step.model || '';
-        const maxTokens = step.max_tokens || '';
         const temperature = step.temperature !== undefined ? step.temperature : 0.7;
 
         // Handle output_variables - it could be an array or a string
@@ -514,11 +513,6 @@
                 <label for="step-${index}-output-variables">Output Variables (for JSON format)</label>
                 <input type="text" id="step-${index}-output-variables" name="steps[${index}][output_variables]" value="${escapeHtml(outputVariables)}">
                 <small>📊 <strong>Example:</strong> "reviewed_title, reviewed_content, quality_score, suggestions" - These will be available as {{ reviewed_title }}, etc. in subsequent steps</small>
-            </div>
-            <div class="workflow-step-field">
-                <label for="step-${index}-max-tokens">Max Tokens</label>
-                <input type="number" id="step-${index}-max-tokens" name="steps[${index}][max_tokens]" value="${escapeHtml(maxTokens)}" min="1" max="4000">
-                <small>Maximum tokens for AI response (leave empty for default)</small>
             </div>
             <div class="workflow-step-field">
                 <label for="step-${index}-temperature">Temperature</label>
@@ -954,7 +948,6 @@
                     stepData.model = $(`#step-${index}-model`).val();
                     stepData.expected_format = $(`#step-${index}-expected-format`).val();
                     stepData.output_variables = $(`#step-${index}-output-variables`).val();
-                    stepData.max_tokens = $(`#step-${index}-max-tokens`).val() || null;
                     stepData.temperature = parseFloat($(`#step-${index}-temperature`).val()) || 0.7;
                 }
                 if (currentType === 'predefined_assistant' || newType === 'predefined_assistant') {

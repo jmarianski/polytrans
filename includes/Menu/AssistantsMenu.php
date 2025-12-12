@@ -103,11 +103,22 @@ class AssistantsMenu
             POLYTRANS_VERSION
         );
 
+        // Get current model from assistant being edited (if any)
+        $current_model = '';
+        if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
+            $assistant_id = intval($_GET['id']);
+            $assistant = AssistantManager::get_assistant($assistant_id);
+            if ($assistant && !empty($assistant['model'])) {
+                $current_model = $assistant['model'];
+            }
+        }
+        
         // Localize script
         wp_localize_script('polytrans-assistants', 'polytransAssistants', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('polytrans_assistants'),
-            'models' => $this->get_model_options(),
+            'models' => $this->get_model_options($current_model),
+            'selected_model' => $current_model,
             'strings' => [
                 'confirmDelete' => __('Are you sure you want to delete this assistant?', 'polytrans'),
                 'saveSuccess' => __('Assistant saved successfully.', 'polytrans'),
@@ -277,8 +288,7 @@ class AssistantsMenu
                 'prompt_template' => '',
                 'response_format' => 'text',
                 'config' => [
-                    'temperature' => 0.7,
-                    'max_tokens' => 2000
+                    'temperature' => 0.7
                 ]
             ];
         } else {
@@ -295,8 +305,7 @@ class AssistantsMenu
             // Map api_parameters to config for UI consistency
             if (isset($assistant['api_parameters']) && is_array($assistant['api_parameters'])) {
                 $assistant['config'] = [
-                    'temperature' => $assistant['api_parameters']['temperature'] ?? 0.7,
-                    'max_tokens' => $assistant['api_parameters']['max_tokens'] ?? 2000
+                    'temperature' => $assistant['api_parameters']['temperature'] ?? 0.7
                 ];
                 // Also map model for easier access
                 if (isset($assistant['api_parameters']['model'])) {
@@ -344,10 +353,10 @@ class AssistantsMenu
                                 <label for="assistant-model"><?php esc_html_e('AI Model', 'polytrans'); ?></label>
                             </th>
                             <td>
-                                <select id="assistant-model" name="model" class="regular-text">
+                                <select id="assistant-model" name="model" class="regular-text" data-selected-model="<?php echo esc_attr($assistant['model'] ?? ''); ?>">
                                     <?php
-                                    $models = $this->get_model_options();
-                                    $current_model = $assistant['model'];
+                                    $current_model = $assistant['model'] ?? '';
+                                    $models = $this->get_model_options($current_model);
 
                                     // Add "Use Global Setting" option
                                     $selected = empty($current_model) ? 'selected' : '';
@@ -426,15 +435,6 @@ class AssistantsMenu
                             </td>
                         </tr>
 
-                        <tr>
-                            <th scope="row">
-                                <label for="assistant-max-tokens"><?php esc_html_e('Max Tokens', 'polytrans'); ?></label>
-                            </th>
-                            <td>
-                                <input type="number" id="assistant-max-tokens" name="config[max_tokens]" class="small-text" min="1" max="32000" value="<?php echo esc_attr($assistant['config']['max_tokens'] ?? 2000); ?>">
-                                <p class="description"><?php esc_html_e('Maximum length of the response. Default: 2000', 'polytrans'); ?></p>
-                            </td>
-                        </tr>
                     </tbody>
                 </table>
 
@@ -494,8 +494,7 @@ class AssistantsMenu
         // Prepare API parameters
         $api_parameters = [
             'model' => $model,
-            'temperature' => $config['temperature'] ?? 0.7,
-            'max_tokens' => $config['max_tokens'] ?? 2000
+            'temperature' => $config['temperature'] ?? 0.7
         ];
 
         // Prepare assistant data matching Assistant Manager structure
@@ -666,9 +665,10 @@ class AssistantsMenu
     /**
      * Get model options for select dropdown
      * 
+     * @param string|null $selected_model Currently selected model (for backward compatibility)
      * @return array Grouped model options
      */
-    private function get_model_options()
+    private function get_model_options($selected_model = null)
     {
         // Check if OpenAI settings provider class exists
         if (!class_exists('\PolyTrans_OpenAI_Settings_Provider')) {
@@ -680,7 +680,7 @@ class AssistantsMenu
             $reflection = new \ReflectionClass($provider);
             $method = $reflection->getMethod('get_grouped_models');
             $method->setAccessible(true);
-            return $method->invoke($provider);
+            return $method->invoke($provider, $selected_model);
         } catch (\Exception $e) {
             return $this->get_fallback_models();
         }

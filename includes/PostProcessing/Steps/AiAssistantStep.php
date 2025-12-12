@@ -243,13 +243,6 @@ class AiAssistantStep implements WorkflowStepInterface
                 'description' => __('Comma-separated list of variable names to extract from JSON response', 'polytrans'),
                 'placeholder' => 'reviewed_content, suggestions, score'
             ],
-            'max_tokens' => [
-                'type' => 'number',
-                'label' => __('Max Tokens', 'polytrans'),
-                'description' => __('Maximum tokens for AI response (leave empty for default)', 'polytrans'),
-                'min' => 1,
-                'max' => 4000
-            ],
             'temperature' => [
                 'type' => 'number',
                 'label' => __('Temperature', 'polytrans'),
@@ -325,10 +318,6 @@ class AiAssistantStep implements WorkflowStepInterface
             'temperature' => $temperature
         ];
 
-        // Add max tokens if specified
-        if (isset($step_config['max_tokens']) && !empty($step_config['max_tokens'])) {
-            $request['max_tokens'] = intval($step_config['max_tokens']);
-        }
 
         // For JSON format, ensure system prompt includes JSON instruction
         if (($step_config['expected_format'] ?? 'text') === 'json') {
@@ -425,14 +414,14 @@ class AiAssistantStep implements WorkflowStepInterface
     /**
      * Get all available OpenAI models (using same source as OpenAI settings provider)
      */
-    private function get_all_available_models()
+    private function get_all_available_models($selected_model = null)
     {
         // Get the OpenAI settings provider to ensure we use the same model list
         $provider = new \PolyTrans_OpenAI_Settings_Provider();
         $reflection = new \ReflectionClass($provider);
         $method = $reflection->getMethod('get_grouped_models');
         $method->setAccessible(true);
-        $grouped_models = $method->invoke($provider);
+        $grouped_models = $method->invoke($provider, $selected_model);
 
         $models = [];
         foreach ($grouped_models as $group => $group_models) {

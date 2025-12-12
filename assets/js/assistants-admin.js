@@ -276,8 +276,7 @@
                 response_format: responseFormat,
                 expected_output_schema: expectedOutputSchema ? JSON.stringify(expectedOutputSchema) : null,
                 config: {
-                    temperature: parseFloat($('#assistant-temperature').val()) || 0.7,
-                    max_tokens: parseInt($('#assistant-max-tokens').val()) || 2000
+                    temperature: parseFloat($('#assistant-temperature').val()) || 0.7
                 }
             };
 

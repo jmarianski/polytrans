@@ -9,15 +9,18 @@
         assistants: [],
         assistantsLoaded: false,
         initialized: false,
+        modelsLoaded: false,
 
         init: function () {
             this.bindEvents();
             this.checkInitialApiKey();
+            this.loadModels(); // Load models on init
             this.initialized = true;
         },         bindEvents: function () {
             // API Key validation - use event delegation since elements might not exist yet
             $(document).on('click', '#validate-openai-key', this.validateApiKey.bind(this));
             $(document).on('click', '#toggle-openai-key-visibility', this.toggleApiKeyVisibility.bind(this));
+            $(document).on('click', '#refresh-openai-models', this.refreshModels.bind(this));
 
             // Source language change
             $(document).on('change', '#openai-source-language', this.updateLanguagePairVisibility.bind(this));
@@ -526,6 +529,146 @@
                         .prop('selected', true));
                 }
             });
+        },
+
+        /**
+         * Load models from OpenAI API
+         */
+        loadModels: function () {
+            var $select = $('#openai-model');
+            if ($select.length === 0) {
+                return; // Model select not on this page
+            }
+
+            var selectedModel = $select.data('selected-model') || (typeof polytrans_openai !== 'undefined' ? polytrans_openai.selected_model : '');
+            var apiKey = $('#openai-api-key').val() || '';
+
+            // Use cached models if available and no API key (for fallback)
+            if (!apiKey && typeof polytrans_openai !== 'undefined' && polytrans_openai.models) {
+                this.updateModelSelect($select, polytrans_openai.models, selectedModel);
+                this.modelsLoaded = true;
+                return;
+            }
+
+            // Fetch fresh models from API
+            this.fetchModels(apiKey, selectedModel, function (models) {
+                this.updateModelSelect($select, models, selectedModel);
+                this.modelsLoaded = true;
+            }.bind(this));
+        },
+
+        /**
+         * Fetch models from API via AJAX
+         */
+        fetchModels: function (apiKey, selectedModel, callback) {
+            var ajaxUrl = (typeof polytrans_openai !== 'undefined' && polytrans_openai.ajax_url) ?
+                polytrans_openai.ajax_url :
+                (typeof ajaxurl !== 'undefined' ? ajaxurl : null);
+
+            var nonce = (typeof polytrans_openai !== 'undefined' && polytrans_openai.nonce) ?
+                polytrans_openai.nonce :
+                $('input[name="_wpnonce"]').val();
+
+            $.ajax({
+                url: ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'polytrans_get_openai_models',
+                    api_key: apiKey,
+                    selected_model: selectedModel || '',
+                    nonce: nonce
+                },
+                success: function (response) {
+                    if (response.success && response.data && response.data.models) {
+                        callback(response.data.models);
+                    } else {
+                        // Fallback to cached models
+                        if (typeof polytrans_openai !== 'undefined' && polytrans_openai.models) {
+                            callback(polytrans_openai.models);
+                        }
+                    }
+                }.bind(this),
+                error: function () {
+                    // Fallback to cached models on error
+                    if (typeof polytrans_openai !== 'undefined' && polytrans_openai.models) {
+                        callback(polytrans_openai.models);
+                    }
+                }.bind(this)
+            });
+        },
+
+        /**
+         * Update model select dropdown with new models
+         */
+        updateModelSelect: function ($select, groupedModels, selectedModel) {
+            if (!$select.length) {
+                return;
+            }
+
+            $select.empty();
+
+            // Add models grouped by category
+            for (var groupName in groupedModels) {
+                if (!groupedModels.hasOwnProperty(groupName)) {
+                    continue;
+                }
+
+                var $optgroup = $('<optgroup></optgroup>').attr('label', groupName);
+                var models = groupedModels[groupName];
+
+                for (var modelId in models) {
+                    if (!models.hasOwnProperty(modelId)) {
+                        continue;
+                    }
+
+                    var modelLabel = models[modelId];
+                    var $option = $('<option></option>')
+                        .attr('value', modelId)
+                        .text(modelLabel);
+
+                    if (selectedModel && modelId === selectedModel) {
+                        $option.prop('selected', true);
+                    }
+
+                    $optgroup.append($option);
+                }
+
+                $select.append($optgroup);
+            }
+        },
+
+        /**
+         * Refresh models from API
+         */
+        refreshModels: function (e) {
+            e.preventDefault();
+
+            var $button = $('#refresh-openai-models');
+            var $select = $('#openai-model');
+            var selectedModel = $select.val() || $select.data('selected-model') || '';
+            var apiKey = $('#openai-api-key').val() || '';
+
+            if (!$select.length) {
+                return;
+            }
+
+            var originalText = $button.text();
+            $button.prop('disabled', true).text(
+                (typeof polytrans_openai !== 'undefined' && polytrans_openai.strings && polytrans_openai.strings.refreshing_models) ?
+                    polytrans_openai.strings.refreshing_models :
+                    'Refreshing...'
+            );
+
+            this.fetchModels(apiKey, selectedModel, function (models) {
+                this.updateModelSelect($select, models, selectedModel);
+                $button.prop('disabled', false).text(originalText);
+
+                // Show success message
+                var message = (typeof polytrans_openai !== 'undefined' && polytrans_openai.strings && polytrans_openai.strings.models_refreshed) ?
+                    polytrans_openai.strings.models_refreshed :
+                    'Models refreshed';
+                this.showMessage($('#openai-model').closest('.openai-model-section'), 'success', message);
+            }.bind(this));
         }
     };
 

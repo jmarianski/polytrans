@@ -470,9 +470,6 @@ class AssistantManager
 			}
 
 			// Ensure correct types for numeric parameters
-			if (isset($sanitized['api_parameters']['max_tokens'])) {
-				$sanitized['api_parameters']['max_tokens'] = (int) $sanitized['api_parameters']['max_tokens'];
-			}
 			if (isset($sanitized['api_parameters']['temperature'])) {
 				$sanitized['api_parameters']['temperature'] = (float) $sanitized['api_parameters']['temperature'];
 			}

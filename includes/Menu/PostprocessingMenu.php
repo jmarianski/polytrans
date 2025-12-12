@@ -112,10 +112,13 @@ class PostprocessingMenu
             wp_enqueue_style('jquery-ui-autocomplete');
 
             // Localize script
+            $settings = get_option('polytrans_settings', []);
+            $selected_model = $settings['openai_model'] ?? 'gpt-4o-mini';
             wp_localize_script('polytrans-workflows', 'polytransWorkflows', [
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('polytrans_workflows_nonce'),
-                'models' => $this->get_openai_models(),
+                'models' => $this->get_openai_models($selected_model),
+                'selected_model' => $selected_model,
                 'strings' => [
                     'confirmDelete' => __('Are you sure you want to delete this workflow?', 'polytrans'),
                     'confirmDuplicate' => __('Create a copy of this workflow?', 'polytrans'),
@@ -1080,7 +1083,7 @@ class PostprocessingMenu
     /**
      * Get OpenAI models from the settings provider
      */
-    private function get_openai_models()
+    private function get_openai_models($selected_model = null)
     {
         // Check if OpenAI settings provider class exists
         if (!class_exists('\PolyTrans_OpenAI_Settings_Provider')) {
@@ -1092,7 +1095,7 @@ class PostprocessingMenu
             $reflection = new \ReflectionClass($provider);
             $method = $reflection->getMethod('get_grouped_models');
             $method->setAccessible(true);
-            return $method->invoke($provider);
+            return $method->invoke($provider, $selected_model);
         } catch (\Exception $e) {
             // Fallback to basic models if we can't access the provider
             return [
@@ -1185,7 +1188,6 @@ class PostprocessingMenu
                     $sanitized_step['user_message'] = $this->sanitize_prompt_field($step['user_message'] ?? '');
                     $sanitized_step['model'] = $this->sanitize_model_field($step['model'] ?? '');
                     $sanitized_step['expected_format'] = sanitize_text_field($step['expected_format'] ?? 'text');
-                    $sanitized_step['max_tokens'] = !empty($step['max_tokens']) ? intval($step['max_tokens']) : null;
                     $sanitized_step['temperature'] = !empty($step['temperature']) ? floatval($step['temperature']) : 0.7;
 
                     if (isset($step['output_variables']) && is_array($step['output_variables'])) {
@@ -1302,8 +1304,8 @@ class PostprocessingMenu
 
         $model = sanitize_text_field($model);
 
-        // Get available models from the OpenAI settings provider
-        $available_models = $this->get_openai_models();
+        // Get available models from the OpenAI settings provider (pass model for backward compatibility)
+        $available_models = $this->get_openai_models($model);
 
         // Flatten the grouped models to get all valid model values
         $valid_models = [];

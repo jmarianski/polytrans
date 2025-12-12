@@ -304,11 +304,14 @@ class OpenAISettingsProvider implements SettingsProviderInterface
         }
 
         // Add AJAX URL and nonce for JavaScript
+        $settings = get_option('polytrans_settings', []);
+        $selected_model = $settings['openai_model'] ?? 'gpt-4o-mini';
         $js_handle = 'polytrans-openai-' . basename($this->get_required_js_files()[0], '.js');
         wp_localize_script($js_handle, 'polytrans_openai', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('polytrans_openai_nonce'),
-            'models' => $this->get_grouped_models(),
+            'models' => $this->get_grouped_models($selected_model),
+            'selected_model' => $selected_model,
             'strings' => [
                 'validating' => __('Validating...', 'polytrans'),
                 'valid' => __('API key is valid', 'polytrans'),
@@ -317,6 +320,9 @@ class OpenAISettingsProvider implements SettingsProviderInterface
                 'testing' => __('Testing translation...', 'polytrans'),
                 'test_success' => __('Translation successful!', 'polytrans'),
                 'test_failed' => __('Translation failed', 'polytrans'),
+                'refreshing_models' => __('Refreshing models...', 'polytrans'),
+                'models_refreshed' => __('Models refreshed', 'polytrans'),
+                'refresh_failed' => __('Failed to refresh models', 'polytrans'),
             ]
         ]);
     }
@@ -333,6 +339,10 @@ class OpenAISettingsProvider implements SettingsProviderInterface
             ],
             'polytrans_load_openai_assistants' => [
                 'callback' => [$this, 'ajax_load_openai_assistants'],
+                'is_static' => false
+            ],
+            'polytrans_get_openai_models' => [
+                'callback' => [$this, 'ajax_get_openai_models'],
                 'is_static' => false
             ]
         ];
@@ -464,11 +474,192 @@ class OpenAISettingsProvider implements SettingsProviderInterface
     }
 
     /**
-     * Get grouped models for UI display - SINGLE SOURCE OF TRUTH
+     * Fetch models from OpenAI API and group them
+     * 
+     * @param string|null $api_key API key to use (if null, uses settings)
+     * @return array Grouped models or empty array on error
      */
-    private function get_grouped_models()
+    private function fetch_models_from_api($api_key = null)
+    {
+        if (empty($api_key)) {
+            $settings = get_option('polytrans_settings', []);
+            $api_key = $settings['openai_api_key'] ?? '';
+        }
+
+        if (empty($api_key)) {
+            return [];
+        }
+
+        try {
+            $client = new OpenAIClient($api_key);
+            $models_data = $client->get_models();
+
+            if (empty($models_data) || !is_array($models_data)) {
+                return [];
+            }
+
+            // Group models by prefix
+            $grouped = [];
+            foreach ($models_data as $model) {
+                $model_id = $model['id'] ?? '';
+                if (empty($model_id)) {
+                    continue;
+                }
+
+                // Only include chat completion models (gpt-*)
+                if (strpos($model_id, 'gpt-') !== 0) {
+                    continue;
+                }
+
+                // Determine group
+                $group = $this->get_model_group($model_id);
+                if (empty($group)) {
+                    continue;
+                }
+
+                if (!isset($grouped[$group])) {
+                    $grouped[$group] = [];
+                }
+
+                $label = $this->get_model_label($model_id);
+                $grouped[$group][$model_id] = $label;
+            }
+
+            // Sort models within each group (newest first)
+            foreach ($grouped as $group => &$models) {
+                krsort($models);
+            }
+
+            return $grouped;
+        } catch (\Exception $e) {
+            \PolyTrans\Core\LogsManager::log(
+                "Failed to fetch models from OpenAI API: " . $e->getMessage(),
+                "error",
+                ['exception' => $e->getMessage()]
+            );
+            return [];
+        }
+    }
+
+    /**
+     * Get model group name based on model ID
+     * 
+     * @param string $model_id Model ID (e.g., 'gpt-5', 'gpt-4o', 'gpt-4-turbo')
+     * @return string Group name or empty string
+     */
+    private function get_model_group($model_id)
+    {
+        // Check GPT-5 models first (before GPT-4o to avoid conflicts)
+        if (strpos($model_id, 'gpt-5o') === 0) {
+            return 'GPT-5o Models';
+        } elseif (strpos($model_id, 'gpt-5-turbo') === 0 || (strpos($model_id, 'gpt-5-') === 0 && strpos($model_id, 'gpt-5o') !== 0)) {
+            // Check if it's a turbo variant
+            if (strpos($model_id, 'gpt-5-turbo') === 0 || preg_match('/^gpt-5-\d/', $model_id)) {
+                return 'GPT-5 Turbo Models';
+            }
+            return 'GPT-5 Models';
+        } elseif ($model_id === 'gpt-5' || strpos($model_id, 'gpt-5') === 0) {
+            return 'GPT-5 Models';
+        } elseif (strpos($model_id, 'gpt-4o') === 0) {
+            return 'GPT-4o Models';
+        } elseif (strpos($model_id, 'gpt-4-turbo') === 0 || strpos($model_id, 'gpt-4-') === 0) {
+            // Check if it's a turbo variant
+            if (strpos($model_id, 'gpt-4-turbo') === 0 || strpos($model_id, 'gpt-4-0') === 0 || strpos($model_id, 'gpt-4-1') === 0) {
+                return 'GPT-4 Turbo Models';
+            }
+            return 'GPT-4 Models';
+        } elseif (strpos($model_id, 'gpt-3.5') === 0) {
+            return 'GPT-3.5 Turbo Models';
+        }
+
+        return '';
+    }
+
+    /**
+     * Get human-readable label for a model
+     * 
+     * @param string $model_id Model ID
+     * @return string Label
+     */
+    private function get_model_label($model_id)
+    {
+        // Map common models to friendly names
+        $labels = [
+            'gpt-5' => 'GPT-5 (Latest)',
+            'gpt-5o' => 'GPT-5o (Latest)',
+            'gpt-5o-mini' => 'GPT-5o Mini (Fast & Cost-effective)',
+            'gpt-5-turbo' => 'GPT-5 Turbo (Latest)',
+            'gpt-4o' => 'GPT-4o (Latest)',
+            'gpt-4o-mini' => 'GPT-4o Mini (Fast & Cost-effective)',
+            'gpt-4-turbo' => 'GPT-4 Turbo (Latest)',
+            'gpt-4' => 'GPT-4 (Latest)',
+            'gpt-3.5-turbo' => 'GPT-3.5 Turbo (Latest)',
+            'gpt-3.5-turbo-16k' => 'GPT-3.5 Turbo 16K (Latest)',
+        ];
+
+        if (isset($labels[$model_id])) {
+            return $labels[$model_id];
+        }
+
+        // For versioned models, extract date or version info
+        // GPT-5 models
+        if (preg_match('/^gpt-5o-(\d{4}-\d{2}-\d{2})$/', $model_id, $matches)) {
+            return 'GPT-5o (' . $matches[1] . ')';
+        }
+        if (preg_match('/^gpt-5o-mini-(\d{4}-\d{2}-\d{2})$/', $model_id, $matches)) {
+            return 'GPT-5o Mini (' . $matches[1] . ')';
+        }
+        if (preg_match('/^gpt-5-turbo-(\d{4}-\d{2}-\d{2})$/', $model_id, $matches)) {
+            return 'GPT-5 Turbo (' . $matches[1] . ')';
+        }
+        if (preg_match('/^gpt-5-(\d{6})-preview$/', $model_id, $matches)) {
+            return 'GPT-5 Turbo (' . $matches[1] . '-preview)';
+        }
+        if (preg_match('/^gpt-5-(\d{4})$/', $model_id, $matches)) {
+            return 'GPT-5 (' . $matches[1] . ')';
+        }
+        // GPT-4 models
+        if (preg_match('/^gpt-4o-(\d{4}-\d{2}-\d{2})$/', $model_id, $matches)) {
+            return 'GPT-4o (' . $matches[1] . ')';
+        }
+        if (preg_match('/^gpt-4o-mini-(\d{4}-\d{2}-\d{2})$/', $model_id, $matches)) {
+            return 'GPT-4o Mini (' . $matches[1] . ')';
+        }
+        if (preg_match('/^gpt-4-turbo-(\d{4}-\d{2}-\d{2})$/', $model_id, $matches)) {
+            return 'GPT-4 Turbo (' . $matches[1] . ')';
+        }
+        if (preg_match('/^gpt-4-(\d{6})-preview$/', $model_id, $matches)) {
+            return 'GPT-4 Turbo (' . $matches[1] . '-preview)';
+        }
+        if (preg_match('/^gpt-4-(\d{4})$/', $model_id, $matches)) {
+            return 'GPT-4 (' . $matches[1] . ')';
+        }
+        // GPT-3.5 models
+        if (preg_match('/^gpt-3\.5-turbo-(\d{6})$/', $model_id, $matches)) {
+            return 'GPT-3.5 Turbo (' . $matches[1] . ')';
+        }
+        if (preg_match('/^gpt-3\.5-turbo-16k-(\d{6})$/', $model_id, $matches)) {
+            return 'GPT-3.5 Turbo 16K (' . $matches[1] . ')';
+        }
+
+        // Fallback: capitalize and format
+        return ucfirst(str_replace('-', ' ', $model_id));
+    }
+
+    /**
+     * Get fallback models (hardcoded list for backward compatibility)
+     * 
+     * @return array Grouped fallback models
+     */
+    private function get_fallback_models()
     {
         return [
+            'GPT-5 Models' => [
+                'gpt-5' => 'GPT-5 (Latest)',
+                'gpt-5o' => 'GPT-5o (Latest)',
+                'gpt-5o-mini' => 'GPT-5o Mini (Fast & Cost-effective)',
+                'gpt-5-turbo' => 'GPT-5 Turbo (Latest)',
+            ],
             'GPT-4o Models (Latest)' => [
                 'gpt-4o' => 'GPT-4o (Latest)',
                 'gpt-4o-mini' => 'GPT-4o Mini (Fast & Cost-effective)',
@@ -501,6 +692,69 @@ class OpenAISettingsProvider implements SettingsProviderInterface
     }
 
     /**
+     * Get grouped models for UI display - SINGLE SOURCE OF TRUTH
+     * Fetches from API if available, falls back to hardcoded list
+     * Ensures backward compatibility by always including currently selected model
+     * 
+     * @param string|null $selected_model Currently selected model ID (for backward compatibility)
+     * @return array Grouped model options
+     */
+    public function get_grouped_models($selected_model = null)
+    {
+        // Try to fetch from API
+        $api_models = $this->fetch_models_from_api();
+
+        // Get fallback models
+        $fallback_models = $this->get_fallback_models();
+
+        // Merge API models with fallback (API takes precedence)
+        $grouped = $api_models;
+
+        // If API returned models, merge with fallback to ensure we have all common models
+        if (!empty($api_models)) {
+            foreach ($fallback_models as $group => $models) {
+                if (!isset($grouped[$group])) {
+                    $grouped[$group] = [];
+                }
+                // Add fallback models that aren't in API response
+                foreach ($models as $model_id => $label) {
+                    if (!isset($grouped[$group][$model_id])) {
+                        $grouped[$group][$model_id] = $label;
+                    }
+                }
+            }
+        } else {
+            // Use fallback if API failed
+            $grouped = $fallback_models;
+        }
+
+        // Backward compatibility: ensure selected model is always present
+        if (!empty($selected_model)) {
+            $found = false;
+            foreach ($grouped as $group => $models) {
+                if (isset($models[$selected_model])) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            // If selected model not found, add it to appropriate group
+            if (!$found) {
+                $group = $this->get_model_group($selected_model);
+                if (empty($group)) {
+                    $group = 'Other Models';
+                }
+                if (!isset($grouped[$group])) {
+                    $grouped[$group] = [];
+                }
+                $grouped[$group][$selected_model] = $this->get_model_label($selected_model);
+            }
+        }
+
+        return $grouped;
+    }
+
+    /**
      * Get all available OpenAI models (flattened from grouped models)
      */
     private function get_all_available_models()
@@ -517,9 +771,9 @@ class OpenAISettingsProvider implements SettingsProviderInterface
      */
     private function render_model_selection($selected_model)
     {
-        $grouped_models = $this->get_grouped_models();
+        $grouped_models = $this->get_grouped_models($selected_model);
 
-        echo '<select name="openai_model" id="openai-model" style="max-width:300px;">';
+        echo '<select name="openai_model" id="openai-model" style="max-width:300px;" data-selected-model="' . esc_attr($selected_model ?? '') . '">';
 
         foreach ($grouped_models as $group_name => $models) {
             echo '<optgroup label="' . esc_attr($group_name) . '">';
@@ -531,6 +785,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
         }
 
         echo '</select>';
+        echo '<button type="button" id="refresh-openai-models" class="button" style="margin-left: 0.5em;" title="' . esc_attr__('Refresh models from OpenAI API', 'polytrans') . '">' . esc_html__('Refresh', 'polytrans') . '</button>';
     }
 
     /**
@@ -659,5 +914,36 @@ class OpenAISettingsProvider implements SettingsProviderInterface
 
         // Return grouped structure
         wp_send_json_success($grouped_assistants);
+    }
+
+    /**
+     * AJAX handler for fetching OpenAI models
+     */
+    public function ajax_get_openai_models()
+    {
+        // Check nonce
+        $nonce_check = false;
+        if (isset($_POST['nonce'])) {
+            $nonce_check = wp_verify_nonce($_POST['nonce'], 'polytrans_openai_nonce');
+        }
+
+        if (!$nonce_check) {
+            wp_send_json_error(__('Security check failed.', 'polytrans'));
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have sufficient permissions to access this page.', 'polytrans'));
+        }
+
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        $selected_model = sanitize_text_field($_POST['selected_model'] ?? '');
+
+        // Get models (will use API if key provided, otherwise fallback)
+        $grouped_models = $this->get_grouped_models($selected_model);
+
+        wp_send_json_success([
+            'models' => $grouped_models,
+            'selected_model' => $selected_model
+        ]);
     }
 }
