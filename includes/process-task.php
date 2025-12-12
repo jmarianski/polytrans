@@ -9,6 +9,37 @@
  * @package PolyTrans
  */
 
+/**
+ * Log to file (since stderr doesn't work in background processes)
+ */
+function polytrans_bg_log($message) {
+    $token = $GLOBALS['polytrans_bg_token'] ?? '';
+    if (empty($token)) {
+        return;
+    }
+    
+    // Try to get uploads directory
+    $log_file = null;
+    if (function_exists('wp_upload_dir')) {
+        $upload_dir = wp_upload_dir();
+        $log_file = $upload_dir['basedir'] . '/polytrans-bg-' . $token . '.log';
+    } else {
+        // Fallback: try to find uploads directory
+        $current_file = __FILE__;
+        $plugin_dir = dirname(dirname($current_file));
+        $wp_content_dir = dirname($plugin_dir);
+        $log_file = $wp_content_dir . '/uploads/polytrans-bg-' . $token . '.log';
+    }
+    
+    if ($log_file && is_writable(dirname($log_file))) {
+        $timestamp = date('Y-m-d H:i:s');
+        file_put_contents($log_file, "[$timestamp] $message\n", FILE_APPEND | LOCK_EX);
+    }
+    
+    // Also try error_log as fallback
+    error_log('[polytrans] ' . $message);
+}
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     // Try to load WordPress if ABSPATH is not defined
@@ -55,6 +86,7 @@ if (!defined('ABSPATH')) {
     }
     
     if (!$wp_loaded) {
+        // Can't use polytrans_bg_log() yet, use error_log
         error_log('[polytrans] Background process failed: Could not find wp-load.php');
         error_log('[polytrans] Current file: ' . $current_file);
         error_log('[polytrans] Plugin dir: ' . $plugin_dir);
@@ -71,6 +103,9 @@ if (!defined('ABSPATH')) {
 // Get token from command line argument or query string
 $token = $argv[1] ?? $_GET['token'] ?? '';
 
+// Set global token for logging function
+$GLOBALS['polytrans_bg_token'] = $token;
+
 if (empty($token)) {
     error_log('[polytrans] Background process failed: No token provided');
     error_log('[polytrans] Usage: php process-task.php <token>');
@@ -78,14 +113,14 @@ if (empty($token)) {
     exit(1);
 }
 
-error_log('[polytrans] Starting background process with token: ' . $token);
+polytrans_bg_log('Starting background process with token: ' . $token);
 
 try {
     // Get the data from transient
     $data = get_transient('polytrans_bg_' . $token);
     
     if (!$data) {
-        error_log('[polytrans] Background process failed: Could not retrieve data for token ' . $token);
+        polytrans_bg_log('Background process failed: Could not retrieve data for token ' . $token);
         exit(1);
     }
     
@@ -94,32 +129,32 @@ try {
     $action = $data['action'] ?? 'process-translation';
     
     // Log start
-    error_log('[polytrans] Background process started: ' . $action . ' (token: ' . $token . ')');
+    polytrans_bg_log('Background process started: ' . $action . ' (token: ' . $token . ')');
     
     // Call the processing function - try namespaced class first, then legacy
     if (class_exists('\PolyTrans\Core\BackgroundProcessor')) {
-        error_log('[polytrans] Using namespaced BackgroundProcessor class');
+        polytrans_bg_log('Using namespaced BackgroundProcessor class');
         \PolyTrans\Core\BackgroundProcessor::process_task($args, $action);
     } elseif (class_exists('PolyTrans_Background_Processor')) {
-        error_log('[polytrans] Using legacy BackgroundProcessor class');
+        polytrans_bg_log('Using legacy BackgroundProcessor class');
         PolyTrans_Background_Processor::process_task($args, $action);
     } else {
-        error_log('[polytrans] Background process failed: BackgroundProcessor class not found');
-        error_log('[polytrans] Available classes check:');
-        error_log('[polytrans] - PolyTrans\\Core\\BackgroundProcessor: ' . (class_exists('\PolyTrans\Core\BackgroundProcessor') ? 'YES' : 'NO'));
-        error_log('[polytrans] - PolyTrans_Background_Processor: ' . (class_exists('PolyTrans_Background_Processor') ? 'YES' : 'NO'));
+        polytrans_bg_log('Background process failed: BackgroundProcessor class not found');
+        polytrans_bg_log('Available classes check:');
+        polytrans_bg_log('- PolyTrans\\Core\\BackgroundProcessor: ' . (class_exists('\PolyTrans\Core\BackgroundProcessor') ? 'YES' : 'NO'));
+        polytrans_bg_log('- PolyTrans_Background_Processor: ' . (class_exists('PolyTrans_Background_Processor') ? 'YES' : 'NO'));
         exit(1);
     }
     
     // Clean up
     delete_transient('polytrans_bg_' . $token);
     
-    error_log('[polytrans] Background process completed: ' . $action . ' (token: ' . $token . ')');
+    polytrans_bg_log('Background process completed: ' . $action . ' (token: ' . $token . ')');
     
 } catch (\Throwable $e) {
-    error_log('[polytrans] Background process exception: ' . $e->getMessage());
-    error_log('[polytrans] File: ' . $e->getFile() . ':' . $e->getLine());
-    error_log('[polytrans] Trace: ' . $e->getTraceAsString());
+    polytrans_bg_log('Background process exception: ' . $e->getMessage());
+    polytrans_bg_log('File: ' . $e->getFile() . ':' . $e->getLine());
+    polytrans_bg_log('Trace: ' . $e->getTraceAsString());
     
     // Try to log via LogsManager if available
     if (class_exists('\PolyTrans\Core\LogsManager')) {
@@ -136,7 +171,7 @@ try {
                 ]
             );
         } catch (\Exception $log_error) {
-            error_log('[polytrans] Failed to log via LogsManager: ' . $log_error->getMessage());
+            polytrans_bg_log('Failed to log via LogsManager: ' . $log_error->getMessage());
         }
     } elseif (class_exists('PolyTrans_Logs_Manager')) {
         try {
@@ -152,7 +187,7 @@ try {
                 ]
             );
         } catch (\Exception $log_error) {
-            error_log('[polytrans] Failed to log via LogsManager (legacy): ' . $log_error->getMessage());
+            polytrans_bg_log('Failed to log via LogsManager (legacy): ' . $log_error->getMessage());
         }
     }
     
