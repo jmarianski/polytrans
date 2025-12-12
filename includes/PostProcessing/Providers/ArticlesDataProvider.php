@@ -2,6 +2,7 @@
 
 namespace PolyTrans\PostProcessing\Providers;
 
+use PolyTrans\Core\LogsManager;
 use PolyTrans\PostProcessing\VariableProviderInterface;
 
 /**
@@ -152,7 +153,7 @@ class ArticlesDataProvider implements VariableProviderInterface
 
         $posts = get_posts($args);
         $articles = [];
-        PolyTrans_Logs_Manager::log("Found " . count($posts) . " recent posts for articles data provider", 'debug', [
+        LogsManager::log("Found " . count($posts) . " recent posts for articles data provider", 'debug', [
             'source' => 'articles_data_provider',
             'post_count' => count($posts),
             'query_args' => $args

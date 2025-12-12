@@ -429,7 +429,7 @@ class AiAssistantStep implements WorkflowStepInterface
     {
         // Get the OpenAI settings provider to ensure we use the same model list
         $provider = new \PolyTrans_OpenAI_Settings_Provider();
-        $reflection = new ReflectionClass($provider);
+        $reflection = new \ReflectionClass($provider);
         $method = $reflection->getMethod('get_grouped_models');
         $method->setAccessible(true);
         $grouped_models = $method->invoke($provider);

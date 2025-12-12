@@ -127,7 +127,7 @@ class WorkflowDebug
             echo "<pre>" . print_r($triggers['conditions'], true) . "</pre>\n";
 
             global $polytrans_workflow_manager;
-            $reflection = new ReflectionClass($polytrans_workflow_manager);
+            $reflection = new \ReflectionClass($polytrans_workflow_manager);
             $method = $reflection->getMethod('evaluate_workflow_conditions');
             $method->setAccessible(true);
 

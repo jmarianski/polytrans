@@ -114,9 +114,8 @@ class BackgroundProcessor
         $php_binary = PHP_BINARY ?: 'php';
 
         // Build command with token as argument
-        // Redirect stderr to a log file for debugging
-        $log_file = wp_upload_dir()['basedir'] . '/polytrans-bg-' . $token . '.log';
-        $cmd = "$php_binary $process_file $token > /dev/null 2>$log_file &";
+        // Note: We use transient for error logging instead of file (works with S3 uploads)
+        $cmd = "$php_binary $process_file $token > /dev/null 2>&1 &";
 
         // Try multiple command execution methods
         $success = false;
@@ -130,7 +129,6 @@ class BackgroundProcessor
                     'cmd' => $cmd,
                     'token' => $token,
                     'action' => $action,
-                    'log_file' => $log_file,
                     'process_file' => $process_file
                 ];
                 // Add post_id only if it exists (not for workflow tests)
@@ -181,7 +179,6 @@ class BackgroundProcessor
                     'cmd' => $cmd,
                     'token' => $token,
                     'action' => $action,
-                    'log_file' => $log_file,
                     'process_file' => $process_file
                 ];
                 if (isset($args['post_id'])) {
@@ -201,23 +198,18 @@ class BackgroundProcessor
             }
         }
 
-        // Schedule cleanup of log file after 24 hours
-        if ($success && file_exists($log_file)) {
-            wp_schedule_single_event(time() + DAY_IN_SECONDS, 'polytrans_cleanup_bg_log', [$log_file]);
-        }
-
-        // Check log file after 1 second to catch early errors
+        // Check transient for errors after 1 second to catch early errors
         if ($success) {
             // If FastCGI is available, finish request first (non-blocking for user)
             if (function_exists('fastcgi_finish_request')) {
                 fastcgi_finish_request();
             }
             
-            // Wait 1 second for process to start and write initial errors
+            // Wait 1 second for process to start and write initial errors to transient
             sleep(1);
             
-            // Check log file for errors
-            self::check_bg_log_immediate($log_file, $token, $action);
+            // Check transient for errors (instead of log file - works with S3 uploads)
+            self::check_bg_errors_immediate($token, $action);
         }
 
         return $success;
@@ -312,6 +304,8 @@ class BackgroundProcessor
         $token = md5(uniqid(mt_rand(), true));
 
         // Store the args in a transient
+        // Note: No log_file needed for HTTP request - endpoint runs in WordPress context
+        // and all logging goes directly to LogsManager
         set_transient('polytrans_bg_' . $token, [
             'args' => $args,
             'action' => $action
@@ -339,6 +333,15 @@ class BackgroundProcessor
             ]
         ]);
 
+        if (is_wp_error($response)) {
+            self::log("HTTP request failed: " . $response->get_error_message(), "error", [
+                'url' => $url,
+                'token' => $token,
+                'action' => $action,
+                'error' => $response->get_error_message()
+            ]);
+        }
+        
         $success = !is_wp_error($response);
 
         // Method 2: Try file_get_contents with stream context if Method 1 failed
@@ -372,12 +375,28 @@ class BackgroundProcessor
             $success = true; // Can't verify success with curl non-blocking
         }
 
-        self::log("Spawned background process with HTTP request", "info", [
-            'url' => $url,
-            'token' => $token,
-            'action' => $action,
-            'post_id' => $args['post_id']
-        ]);
+        if ($success) {
+            self::log("Spawned background process with HTTP request", "info", [
+                'url' => $url,
+                'token' => $token,
+                'action' => $action,
+                'post_id' => $args['post_id'] ?? null
+            ]);
+            
+            // Note: For HTTP requests, endpoint runs in WordPress context
+            // All errors are logged directly to LogsManager, so no file log check needed
+            // The endpoint will handle all error logging via LogsManager
+        } else {
+            self::log("Failed to spawn background process with HTTP request - all methods failed", "error", [
+                'url' => $url,
+                'token' => $token,
+                'action' => $action,
+                'post_id' => $args['post_id'] ?? null,
+                'wp_remote_post_available' => function_exists('wp_remote_post'),
+                'file_get_contents_available' => function_exists('file_get_contents'),
+                'curl_available' => function_exists('curl_init')
+            ]);
+        }
 
         return $success;
     }
@@ -829,7 +848,7 @@ class BackgroundProcessor
         $target_lang = isset($context['target_lang']) ? $context['target_lang'] : '';
 
         // Use the logs manager to log (it will handle both error_log and DB)
-        \PolyTrans_Logs_Manager::log($message, $level, $context);
+        LogsManager::log($message, $level, $context);
 
         // Also log to post meta for this specific translation if we have a post ID
         if ($post_id && $target_lang) {
@@ -909,54 +928,50 @@ class BackgroundProcessor
     }
 
     /**
-     * Check background process log file immediately for early errors
+     * Check background process errors from transient immediately for early errors
      * 
-     * @param string $log_file Path to log file
+     * Background process writes errors to transient 'polytrans_bg_errors_{token}'
+     * This method checks that transient after 1 second and logs to LogsManager
+     * 
      * @param string $token Process token
      * @param string $action Process action
      * @return void
      */
-    private static function check_bg_log_immediate($log_file, $token, $action)
+    private static function check_bg_errors_immediate($token, $action)
     {
-        if (!file_exists($log_file)) {
-            return; // Log file doesn't exist yet
+        $error_transient_key = 'polytrans_bg_errors_' . $token;
+        $errors = get_transient($error_transient_key);
+        
+        if (empty($errors)) {
+            return; // No errors yet
         }
 
-        $log_content = @file_get_contents($log_file);
-        if (empty($log_content)) {
-            return; // No content yet
-        }
-
-        // Check for common error patterns
-        $error_patterns = [
-            '/Could not find wp-load\.php/',
-            '/Fatal error/',
-            '/Parse error/',
-            '/Class.*not found/',
-            '/Background process failed/',
-            '/Background process exception/',
-        ];
-
-        $has_errors = false;
-        foreach ($error_patterns as $pattern) {
-            if (preg_match($pattern, $log_content)) {
-                $has_errors = true;
-                break;
+        // Log errors to LogsManager
+        if (is_array($errors)) {
+            foreach ($errors as $error) {
+                self::log(
+                    "Background process error detected: " . ($error['message'] ?? 'Unknown error'),
+                    "error",
+                    [
+                        'token' => $token,
+                        'action' => $action,
+                        'error' => $error
+                    ]
+                );
             }
-        }
-
-        if ($has_errors) {
-            // Log error
+        } else {
+            // Fallback for string errors
             self::log(
-                "Background process error detected in log file",
+                "Background process error detected: " . $errors,
                 "error",
                 [
                     'token' => $token,
-                    'action' => $action,
-                    'log_file' => $log_file,
-                    'log_preview' => substr($log_content, 0, 500)
+                    'action' => $action
                 ]
             );
         }
+        
+        // Clean up transient after reading
+        delete_transient($error_transient_key);
     }
 }

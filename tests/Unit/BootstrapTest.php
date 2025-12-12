@@ -9,21 +9,21 @@
 use PolyTrans\Bootstrap;
 
 describe('Bootstrap', function () {
-    
+
     test('can be initialized', function () {
         expect(class_exists('PolyTrans\Bootstrap'))->toBeTrue();
     });
 
     test('getVersion returns version string', function () {
         $version = Bootstrap::getVersion();
-        
+
         expect($version)->toBeString();
         expect($version)->not->toBeEmpty();
     });
 
     test('isInitialized checks for Twig', function () {
         $initialized = Bootstrap::isInitialized();
-        
+
         expect($initialized)->toBeTrue('Twig should be loaded via Composer autoloader');
         expect(class_exists('Twig\Environment'))->toBeTrue();
     });
@@ -38,23 +38,23 @@ describe('Bootstrap', function () {
         // Should not throw errors when called multiple times
         Bootstrap::init();
         Bootstrap::init();
-        
+
         expect(true)->toBeTrue();
     });
 
     test('Compatibility file exists and is loaded', function () {
         $compatibilityFile = POLYTRANS_PLUGIN_DIR . 'includes/Compatibility.php';
-        
+
         expect(file_exists($compatibilityFile))->toBeTrue('Compatibility.php should exist');
     });
 
     test('PSR-4 autoloader is configured in composer.json', function () {
         $composerFile = POLYTRANS_PLUGIN_DIR . 'composer.json';
-        
+
         expect(file_exists($composerFile))->toBeTrue();
-        
+
         $composer = json_decode(file_get_contents($composerFile), true);
-        
+
         expect($composer)->toHaveKey('autoload');
         expect($composer['autoload'])->toHaveKey('psr-4');
         expect($composer['autoload']['psr-4'])->toHaveKey('PolyTrans\\');
@@ -62,18 +62,17 @@ describe('Bootstrap', function () {
     });
 
     test('Bootstrap class is in correct namespace', function () {
-        $reflection = new ReflectionClass('PolyTrans\Bootstrap');
-        
+        $reflection = new \ReflectionClass('PolyTrans\Bootstrap');
+
         expect($reflection->getNamespaceName())->toBe('PolyTrans');
         expect($reflection->getShortName())->toBe('Bootstrap');
     });
 
     test('Bootstrap has expected public methods', function () {
         $methods = get_class_methods('PolyTrans\Bootstrap');
-        
+
         expect($methods)->toContain('init');
         expect($methods)->toContain('getVersion');
         expect($methods)->toContain('isInitialized');
     });
 });
-
