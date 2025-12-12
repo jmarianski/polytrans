@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2025-12-11
+
+### Fixed
+- **Plugin Activation**: Fixed fatal error during plugin activation caused by missing old `class-logs-manager.php` file
+- Replaced old `require_once` statements with Bootstrap initialization for PSR-4 autoloading
+
 ## [1.5.1] - 2025-12-11
 
 ### Changed
