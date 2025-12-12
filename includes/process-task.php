@@ -10,33 +10,42 @@
  */
 
 /**
- * Log to file (since stderr doesn't work in background processes)
+ * Log to file and LogsManager (since stderr doesn't work in background processes)
  */
 function polytrans_bg_log($message) {
     $token = $GLOBALS['polytrans_bg_token'] ?? '';
-    if (empty($token)) {
-        return;
+    
+    // Try to log via LogsManager first (if Bootstrap is loaded)
+    if (class_exists('\PolyTrans\Core\LogsManager')) {
+        try {
+            \PolyTrans\Core\LogsManager::log($message, 'info', ['source' => 'background_process', 'token' => $token]);
+        } catch (\Exception $e) {
+            // Fallback to file if LogsManager fails
+        }
     }
     
-    // Try to get uploads directory
-    $log_file = null;
-    if (function_exists('wp_upload_dir')) {
-        $upload_dir = wp_upload_dir();
-        $log_file = $upload_dir['basedir'] . '/polytrans-bg-' . $token . '.log';
-    } else {
-        // Fallback: try to find uploads directory
-        $current_file = __FILE__;
-        $plugin_dir = dirname(dirname($current_file));
-        $wp_content_dir = dirname($plugin_dir);
-        $log_file = $wp_content_dir . '/uploads/polytrans-bg-' . $token . '.log';
+    // Also write to file for direct access
+    if (!empty($token)) {
+        // Try to get uploads directory
+        $log_file = null;
+        if (function_exists('wp_upload_dir')) {
+            $upload_dir = wp_upload_dir();
+            $log_file = $upload_dir['basedir'] . '/polytrans-bg-' . $token . '.log';
+        } else {
+            // Fallback: try to find uploads directory
+            $current_file = __FILE__;
+            $plugin_dir = dirname(dirname($current_file));
+            $wp_content_dir = dirname($plugin_dir);
+            $log_file = $wp_content_dir . '/uploads/polytrans-bg-' . $token . '.log';
+        }
+        
+        if ($log_file && is_writable(dirname($log_file))) {
+            $timestamp = date('Y-m-d H:i:s');
+            file_put_contents($log_file, "[$timestamp] $message\n", FILE_APPEND | LOCK_EX);
+        }
     }
     
-    if ($log_file && is_writable(dirname($log_file))) {
-        $timestamp = date('Y-m-d H:i:s');
-        file_put_contents($log_file, "[$timestamp] $message\n", FILE_APPEND | LOCK_EX);
-    }
-    
-    // Also try error_log as fallback
+    // Also try error_log as final fallback
     error_log('[polytrans] ' . $message);
 }
 
@@ -100,6 +109,29 @@ if (!defined('ABSPATH')) {
     }
 }
 
+// Initialize PolyTrans Bootstrap to ensure all classes are available
+if (!defined('POLYTRANS_PLUGIN_DIR')) {
+    // Try to find plugin directory
+    $current_file = __FILE__;
+    $plugin_dir = dirname(dirname($current_file));
+    define('POLYTRANS_PLUGIN_DIR', $plugin_dir . '/');
+}
+
+// Load Bootstrap if not already loaded
+if (!class_exists('\PolyTrans\Bootstrap')) {
+    $bootstrap_file = POLYTRANS_PLUGIN_DIR . 'includes/Bootstrap.php';
+    if (file_exists($bootstrap_file)) {
+        require_once $bootstrap_file;
+        \PolyTrans\Bootstrap::init();
+    } else {
+        error_log('[polytrans] Bootstrap file not found at: ' . $bootstrap_file);
+        exit(1);
+    }
+} elseif (!\PolyTrans\Bootstrap::isInitialized()) {
+    // Bootstrap class exists but not initialized
+    \PolyTrans\Bootstrap::init();
+}
+
 // Get token from command line argument or query string
 $token = $argv[1] ?? $_GET['token'] ?? '';
 
@@ -131,20 +163,8 @@ try {
     // Log start
     polytrans_bg_log('Background process started: ' . $action . ' (token: ' . $token . ')');
     
-    // Call the processing function - try namespaced class first, then legacy
-    if (class_exists('\PolyTrans\Core\BackgroundProcessor')) {
-        polytrans_bg_log('Using namespaced BackgroundProcessor class');
-        \PolyTrans\Core\BackgroundProcessor::process_task($args, $action);
-    } elseif (class_exists('PolyTrans_Background_Processor')) {
-        polytrans_bg_log('Using legacy BackgroundProcessor class');
-        PolyTrans_Background_Processor::process_task($args, $action);
-    } else {
-        polytrans_bg_log('Background process failed: BackgroundProcessor class not found');
-        polytrans_bg_log('Available classes check:');
-        polytrans_bg_log('- PolyTrans\\Core\\BackgroundProcessor: ' . (class_exists('\PolyTrans\Core\BackgroundProcessor') ? 'YES' : 'NO'));
-        polytrans_bg_log('- PolyTrans_Background_Processor: ' . (class_exists('PolyTrans_Background_Processor') ? 'YES' : 'NO'));
-        exit(1);
-    }
+    // Call the processing function (Bootstrap ensures class is available)
+    \PolyTrans\Core\BackgroundProcessor::process_task($args, $action);
     
     // Clean up
     delete_transient('polytrans_bg_' . $token);
@@ -156,39 +176,21 @@ try {
     polytrans_bg_log('File: ' . $e->getFile() . ':' . $e->getLine());
     polytrans_bg_log('Trace: ' . $e->getTraceAsString());
     
-    // Try to log via LogsManager if available
-    if (class_exists('\PolyTrans\Core\LogsManager')) {
-        try {
-            \PolyTrans\Core\LogsManager::log(
-                'Background process failed: ' . $e->getMessage(),
-                'error',
-                [
-                    'action' => $action ?? 'unknown',
-                    'args' => $args ?? [],
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'token' => $token
-                ]
-            );
-        } catch (\Exception $log_error) {
-            polytrans_bg_log('Failed to log via LogsManager: ' . $log_error->getMessage());
-        }
-    } elseif (class_exists('PolyTrans_Logs_Manager')) {
-        try {
-            PolyTrans_Logs_Manager::log(
-                'Background process failed: ' . $e->getMessage(),
-                'error',
-                [
-                    'action' => $action ?? 'unknown',
-                    'args' => $args ?? [],
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'token' => $token
-                ]
-            );
-        } catch (\Exception $log_error) {
-            polytrans_bg_log('Failed to log via LogsManager (legacy): ' . $log_error->getMessage());
-        }
+    // Log via LogsManager (Bootstrap ensures it's available)
+    try {
+        \PolyTrans\Core\LogsManager::log(
+            'Background process failed: ' . $e->getMessage(),
+            'error',
+            [
+                'action' => $action ?? 'unknown',
+                'args' => $args ?? [],
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'token' => $token
+            ]
+        );
+    } catch (\Exception $log_error) {
+        polytrans_bg_log('Failed to log via LogsManager: ' . $log_error->getMessage());
     }
     
     // Clean up even on error
