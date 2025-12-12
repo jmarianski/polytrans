@@ -114,7 +114,7 @@ try {
     echo "3. 'Finished step #1' or 'Failed step #1' log\n";
     echo "4. Single workflow completion log\n";
     echo "5. NO 'Merged step output...' or verbose step details\n";
-} catch (Exception $e) {
+} catch (\Exception $e) {
     echo "Error during test: " . $e->getMessage() . "\n";
     echo "Stack trace:\n" . $e->getTraceAsString() . "\n";
 }

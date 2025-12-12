@@ -169,7 +169,7 @@ class AssistantsMenu
         $assistants = AssistantManager::get_all_assistants();
         $migration_status = AssistantMigration::get_migration_status();
 
-        ?>
+?>
         <div class="wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e('AI Assistants', 'polytrans'); ?></h1>
             <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-assistants&action=new')); ?>" class="page-title-action">
@@ -185,11 +185,11 @@ class AssistantsMenu
                 <div class="notice notice-warning">
                     <p>
                         <strong><?php esc_html_e('Migration Available:', 'polytrans'); ?></strong>
-                        <?php 
+                        <?php
                         printf(
                             esc_html__('Found %d legacy workflow steps that can be migrated to managed assistants.', 'polytrans'),
                             $migration_status['ai_assistant_steps']
-                        ); 
+                        );
                         ?>
                     </p>
                     <p>
@@ -259,7 +259,7 @@ class AssistantsMenu
                 </table>
             <?php endif; ?>
         </div>
-        <?php
+    <?php
     }
 
     /**
@@ -286,14 +286,14 @@ class AssistantsMenu
             if (!$assistant) {
                 wp_die(__('Assistant not found.', 'polytrans'));
             }
-            
+
             // Map expected_format to response_format for UI consistency
             if (!isset($assistant['response_format']) && isset($assistant['expected_format'])) {
                 $assistant['response_format'] = $assistant['expected_format'];
             }
         }
 
-        ?>
+    ?>
         <div class="wrap">
             <h1><?php echo $is_new ? esc_html__('Add New Assistant', 'polytrans') : esc_html__('Edit Assistant', 'polytrans'); ?></h1>
 
@@ -336,11 +336,11 @@ class AssistantsMenu
                                     <?php
                                     $models = $this->get_model_options();
                                     $current_model = $assistant['model'];
-                                    
+
                                     // Add "Use Global Setting" option
                                     $selected = empty($current_model) ? 'selected' : '';
                                     echo '<option value="" ' . $selected . '>' . esc_html__('Use Global Setting', 'polytrans') . '</option>';
-                                    
+
                                     foreach ($models as $group_name => $group_models) {
                                         echo '<optgroup label="' . esc_attr($group_name) . '">';
                                         foreach ($group_models as $model_value => $model_label) {
@@ -450,7 +450,7 @@ class AssistantsMenu
             // Pass assistant data to JavaScript
             window.polytransAssistantData = <?php echo json_encode($assistant); ?>;
         </script>
-        <?php
+<?php
     }
 
     /**
@@ -515,7 +515,7 @@ class AssistantsMenu
             } else {
                 wp_send_json_error(['message' => __('Failed to save assistant.', 'polytrans')]);
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
         }
     }
@@ -545,7 +545,7 @@ class AssistantsMenu
             } else {
                 wp_send_json_error(['message' => __('Failed to delete assistant.', 'polytrans')]);
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
         }
     }
@@ -575,7 +575,7 @@ class AssistantsMenu
             } else {
                 wp_send_json_error(['message' => __('Assistant not found.', 'polytrans')]);
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
         }
     }
@@ -612,7 +612,7 @@ class AssistantsMenu
                     'error' => $result['error']
                 ]);
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
         }
     }
@@ -646,7 +646,7 @@ class AssistantsMenu
                     'stats' => $stats
                 ]);
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
         }
     }
@@ -669,7 +669,7 @@ class AssistantsMenu
             $method = $reflection->getMethod('get_grouped_models');
             $method->setAccessible(true);
             return $method->invoke($provider);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return $this->get_fallback_models();
         }
     }
@@ -696,4 +696,3 @@ class AssistantsMenu
         ];
     }
 }
-

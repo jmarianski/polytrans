@@ -22,7 +22,8 @@ class VariableManager
      *
      * @return void
      */
-    private function load_twig_engine() {
+    private function load_twig_engine()
+    {
         if (!class_exists('\PolyTrans_Twig_Engine')) {
             $twig_engine_path = dirname(__DIR__) . '/templating/class-twig-template-engine.php';
             if (file_exists($twig_engine_path)) {
@@ -52,7 +53,7 @@ class VariableManager
                             $variable_context = array_merge($variable_context, $provider_variables);
                         }
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     // Log error but continue with other providers
                     PolyTrans_Logs_Manager::log("Variable Provider Error: " . $e->getMessage(), 'error', [
                         'source' => 'variable_manager',
@@ -89,7 +90,7 @@ class VariableManager
         if (class_exists('\PolyTrans_Twig_Engine')) {
             try {
                 return PolyTrans_Twig_Engine::render($template, $context);
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 // Twig failed, fall back to legacy regex
                 PolyTrans_Logs_Manager::log(
                     "Twig rendering failed, using legacy regex: " . $e->getMessage(),

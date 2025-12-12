@@ -801,7 +801,7 @@ public function execute($context, $step_config)
 
         return $result;
 
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         return [
             'success' => false,
             'error' => $e->getMessage(),

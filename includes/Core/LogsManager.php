@@ -230,7 +230,7 @@ class LogsManager
             } else {
                 error_log("[polytrans] Failed to recreate logs table: " . $wpdb->last_error);
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("[polytrans] Error during table cleanup and recreation: " . $e->getMessage());
         }
     }
@@ -280,7 +280,7 @@ class LogsManager
                 } else {
                     $failed_count++;
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 $failed_count++;
                 error_log("[polytrans] Failed to restore log entry: " . $e->getMessage());
             }
@@ -1223,7 +1223,7 @@ class LogsManager
                 error_log("[polytrans] Missing required columns for logging to database");
                 return false;
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("[polytrans] Error logging to database: " . $e->getMessage());
             return false;
         }

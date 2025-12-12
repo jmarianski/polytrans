@@ -1072,7 +1072,7 @@ class PostprocessingMenu
             $method = $reflection->getMethod('get_assistants');
             $method->setAccessible(true);
             return $method->invoke($provider);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [];
         }
     }
@@ -1093,7 +1093,7 @@ class PostprocessingMenu
             $method = $reflection->getMethod('get_grouped_models');
             $method->setAccessible(true);
             return $method->invoke($provider);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Fallback to basic models if we can't access the provider
             return [
                 'GPT-4o Models' => [

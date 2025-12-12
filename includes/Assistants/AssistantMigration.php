@@ -56,7 +56,7 @@ class AssistantMigration
 
                 foreach ($workflow['steps'] as $step_index => &$step) {
                     $step_type = $step['type'] ?? 'unknown';
-                    
+
                     // Only migrate ai_assistant steps
                     if ($step_type !== 'ai_assistant') {
                         continue;
@@ -65,7 +65,7 @@ class AssistantMigration
                     try {
                         // Create managed assistant from ai_assistant config
                         $assistant_id = self::create_managed_assistant_from_step($step, $workflow);
-                        
+
                         if ($assistant_id) {
                             // Update step to use managed assistant
                             $workflow['steps'][$step_index] = self::convert_step_to_managed($step, $assistant_id);
@@ -83,7 +83,7 @@ class AssistantMigration
                             $stats['errors'][] = $error_msg;
                             \PolyTrans_Logs_Manager::log($error_msg, 'error');
                         }
-                    } catch (Exception $e) {
+                    } catch (\Exception $e) {
                         $error_msg = "Failed to migrate step '{$step['name']}' in workflow '{$workflow['name']}': {$e->getMessage()}";
                         $stats['errors'][] = $error_msg;
                         \PolyTrans_Logs_Manager::log($error_msg, 'error');
@@ -102,8 +102,7 @@ class AssistantMigration
                 'info',
                 $stats
             );
-
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $stats['errors'][] = "Migration failed: {$e->getMessage()}";
             \PolyTrans_Logs_Manager::log("Assistant migration failed: {$e->getMessage()}", 'error');
         }
@@ -128,7 +127,7 @@ class AssistantMigration
         // Extract configuration from step
         $system_prompt = $step['system_prompt'] ?? '';
         $user_message = $step['user_message'] ?? '';
-        
+
         // Convert legacy {variable} syntax to Twig {{ variable }} if needed
         if (strpos($system_prompt, '{{') === false && strpos($system_prompt, '{%') === false) {
             $system_prompt = preg_replace('/\{([a-zA-Z0-9_\.]+)\}/', '{{ $1 }}', $system_prompt);
@@ -165,7 +164,7 @@ class AssistantMigration
             'max_tokens' => $config['max_tokens'],
             'migrated_from' => $config['migrated_from']
         ];
-        
+
         $assistant_data = [
             'name' => $assistant_name,
             'provider' => 'openai',
@@ -184,7 +183,7 @@ class AssistantMigration
 
         // Create new assistant
         $result = AssistantManager::create_assistant($assistant_data);
-        
+
         // Check if result is WP_Error
         if (is_wp_error($result)) {
             $error_message = $result->get_error_message();
@@ -196,7 +195,7 @@ class AssistantMigration
             );
             return false;
         }
-        
+
         return $result;
     }
 
@@ -282,9 +281,11 @@ class AssistantMigration
 
         foreach ($all_assistants as $assistant) {
             // Match by name, system prompt and user message
-            if ($assistant['name'] === $name 
+            if (
+                $assistant['name'] === $name
                 && $assistant['system_prompt'] === $system_prompt
-                && $assistant['user_message_template'] === $user_message) {
+                && $assistant['user_message_template'] === $user_message
+            ) {
                 return $assistant;
             }
         }
@@ -314,7 +315,7 @@ class AssistantMigration
                     }
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             \PolyTrans_Logs_Manager::log("Failed to check migration status: {$e->getMessage()}", 'error');
         }
 
@@ -348,7 +349,7 @@ class AssistantMigration
 
                 foreach ($workflow['steps'] as $step) {
                     $type = $step['type'] ?? '';
-                    
+
                     switch ($type) {
                         case 'ai_assistant':
                             $status['ai_assistant_steps']++;
@@ -363,11 +364,10 @@ class AssistantMigration
                     }
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             \PolyTrans_Logs_Manager::log("Failed to get migration status: {$e->getMessage()}", 'error');
         }
 
         return $status;
     }
 }
-

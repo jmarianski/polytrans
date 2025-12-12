@@ -145,7 +145,7 @@ function test_post_creation_revisions()
                 }
             }
         }
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         echo "<p style='color: red;'>Exception: " . $e->getMessage() . "</p>\n";
     }
 

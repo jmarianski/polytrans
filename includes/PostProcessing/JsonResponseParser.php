@@ -64,7 +64,7 @@ class JsonResponseParser
         $cleaned = preg_replace('/^[^{]*/', '', $cleaned);
         // Remove everything after last }
         $cleaned = preg_replace('/[^}]*$/', '', $cleaned);
-        
+
         if (!empty($cleaned)) {
             $decoded = json_decode($cleaned, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
@@ -86,14 +86,14 @@ class JsonResponseParser
     {
         $normalized = [];
         $mappings = [];
-        
+
         foreach ($schema as $field_name => $definition) {
             if (is_array($definition)) {
                 // Check if this is an object schema (has 'type' key) or nested schema
                 if (isset($definition['type'])) {
                     // Object format: {"type": "string", "target": "post.title", "required": true}
                     $normalized[$field_name] = $definition['type'];
-                    
+
                     // Store target mapping if present
                     if (isset($definition['target'])) {
                         $mappings[$field_name] = [
@@ -105,7 +105,7 @@ class JsonResponseParser
                     // Nested schema - recursively normalize
                     $nested_result = $this->normalize_schema($definition);
                     $normalized[$field_name] = $nested_result['normalized_schema'];
-                    
+
                     // Prefix nested mappings with parent field name
                     foreach ($nested_result['mappings'] as $nested_field => $nested_mapping) {
                         $mappings[$field_name . '.' . $nested_field] = $nested_mapping;
@@ -116,13 +116,13 @@ class JsonResponseParser
                 $normalized[$field_name] = $definition;
             }
         }
-        
+
         return [
             'normalized_schema' => $normalized,
             'mappings' => $mappings
         ];
     }
-    
+
     /**
      * Parse response with schema validation and type coercion
      * 
@@ -160,91 +160,91 @@ class JsonResponseParser
             $normalized_schema = $schema_info['normalized_schema'];
             $mappings = $schema_info['mappings'];
 
-        // Validate and coerce according to schema
-        $result_data = [];
-        $warnings = [];
+            // Validate and coerce according to schema
+            $result_data = [];
+            $warnings = [];
 
-        // Process schema fields
-        foreach ($normalized_schema as $field_name => $expected_type) {
-            if (isset($json_data[$field_name])) {
-                $raw_value = $json_data[$field_name];
-                
-                // Check if this is a nested schema (array with field definitions)
-                if (is_array($expected_type) && !empty($expected_type)) {
-                    // Nested schema validation
-                    if (is_array($raw_value)) {
-                        $nested_result = [];
-                        $nested_count = count($expected_type);
-                        $processed_count = 0;
-                        
-                        foreach ($expected_type as $nested_field => $nested_type) {
-                            $processed_count++;
-                            if (isset($raw_value[$nested_field])) {
-                                $nested_coerced = $this->coerce_type($raw_value[$nested_field], $nested_type);
-                                
-                                // Check nested type coercion
-                                if ($this->get_type($raw_value[$nested_field]) !== $nested_type && $nested_coerced !== null) {
-                                    $warnings[] = sprintf(
-                                        'Type coercion: %s.%s (%s → %s)',
-                                        $field_name,
-                                        $nested_field,
-                                        $this->get_type($raw_value[$nested_field]),
-                                        $nested_type
-                                    );
+            // Process schema fields
+            foreach ($normalized_schema as $field_name => $expected_type) {
+                if (isset($json_data[$field_name])) {
+                    $raw_value = $json_data[$field_name];
+
+                    // Check if this is a nested schema (array with field definitions)
+                    if (is_array($expected_type) && !empty($expected_type)) {
+                        // Nested schema validation
+                        if (is_array($raw_value)) {
+                            $nested_result = [];
+                            $nested_count = count($expected_type);
+                            $processed_count = 0;
+
+                            foreach ($expected_type as $nested_field => $nested_type) {
+                                $processed_count++;
+                                if (isset($raw_value[$nested_field])) {
+                                    $nested_coerced = $this->coerce_type($raw_value[$nested_field], $nested_type);
+
+                                    // Check nested type coercion
+                                    if ($this->get_type($raw_value[$nested_field]) !== $nested_type && $nested_coerced !== null) {
+                                        $warnings[] = sprintf(
+                                            'Type coercion: %s.%s (%s → %s)',
+                                            $field_name,
+                                            $nested_field,
+                                            $this->get_type($raw_value[$nested_field]),
+                                            $nested_type
+                                        );
+                                    }
+
+                                    $nested_result[$nested_field] = $nested_coerced;
+                                } else {
+                                    // Nested field missing
+                                    $nested_result[$nested_field] = null;
+                                    $warnings[] = sprintf('Missing nested field: %s.%s', $field_name, $nested_field);
                                 }
-                                
-                                $nested_result[$nested_field] = $nested_coerced;
-                            } else {
-                                // Nested field missing
-                                $nested_result[$nested_field] = null;
-                                $warnings[] = sprintf('Missing nested field: %s.%s', $field_name, $nested_field);
                             }
-                        }
-                        
-                        // Preserve extra nested fields not in schema
-                        foreach ($raw_value as $nested_field => $nested_value) {
-                            if (!isset($expected_type[$nested_field])) {
-                                $nested_result[$nested_field] = $nested_value;
+
+                            // Preserve extra nested fields not in schema
+                            foreach ($raw_value as $nested_field => $nested_value) {
+                                if (!isset($expected_type[$nested_field])) {
+                                    $nested_result[$nested_field] = $nested_value;
+                                }
                             }
+
+                            $result_data[$field_name] = $nested_result;
+                        } else {
+                            // Expected nested object but got something else
+                            $warnings[] = sprintf('Type mismatch: %s (expected object with nested schema, got %s)', $field_name, $this->get_type($raw_value));
+                            $result_data[$field_name] = null;
                         }
-                        
-                        $result_data[$field_name] = $nested_result;
                     } else {
-                        // Expected nested object but got something else
-                        $warnings[] = sprintf('Type mismatch: %s (expected object with nested schema, got %s)', $field_name, $this->get_type($raw_value));
-                        $result_data[$field_name] = null;
+                        // Simple type validation
+                        $coerced_value = $this->coerce_type($raw_value, $expected_type);
+
+                        // Check if type coercion happened or failed
+                        if ($this->get_type($raw_value) !== $expected_type) {
+                            if ($coerced_value !== null) {
+                                $warnings[] = sprintf(
+                                    'Type coercion: %s (%s → %s)',
+                                    $field_name,
+                                    $this->get_type($raw_value),
+                                    $expected_type
+                                );
+                            } else {
+                                $warnings[] = sprintf(
+                                    'Type coercion failed: %s (cannot convert %s to %s)',
+                                    $field_name,
+                                    $this->get_type($raw_value),
+                                    $expected_type
+                                );
+                            }
+                        }
+
+                        $result_data[$field_name] = $coerced_value;
                     }
                 } else {
-                    // Simple type validation
-                    $coerced_value = $this->coerce_type($raw_value, $expected_type);
-
-                    // Check if type coercion happened or failed
-                    if ($this->get_type($raw_value) !== $expected_type) {
-                        if ($coerced_value !== null) {
-                            $warnings[] = sprintf(
-                                'Type coercion: %s (%s → %s)',
-                                $field_name,
-                                $this->get_type($raw_value),
-                                $expected_type
-                            );
-                        } else {
-                            $warnings[] = sprintf(
-                                'Type coercion failed: %s (cannot convert %s to %s)',
-                                $field_name,
-                                $this->get_type($raw_value),
-                                $expected_type
-                            );
-                        }
-                    }
-
-                    $result_data[$field_name] = $coerced_value;
+                    // Field missing from response
+                    $result_data[$field_name] = null;
+                    $warnings[] = sprintf('Missing field: %s', $field_name);
                 }
-            } else {
-                // Field missing from response
-                $result_data[$field_name] = null;
-                $warnings[] = sprintf('Missing field: %s', $field_name);
             }
-        }
 
             // Preserve extra fields not in schema (bonus data from AI)
             foreach ($json_data as $field_name => $value) {
@@ -259,8 +259,7 @@ class JsonResponseParser
                 'warnings' => $warnings,
                 'mappings' => $mappings
             ];
-            
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             // Log exception with full details
             if (class_exists('\PolyTrans_Logs_Manager')) {
                 \PolyTrans_Logs_Manager::log(
@@ -275,7 +274,7 @@ class JsonResponseParser
                     ]
                 );
             }
-            
+
             return [
                 'success' => false,
                 'error' => 'Parser exception: ' . $e->getMessage(),
@@ -377,4 +376,3 @@ class JsonResponseParser
         return 'unknown';
     }
 }
-

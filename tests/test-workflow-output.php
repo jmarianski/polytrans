@@ -107,7 +107,7 @@ function test_workflow_output_actions()
         } else {
             echo "<p style='color: red;'><strong>❌ Workflow execution failed: " . esc_html($result['error']) . "</strong></p>\n";
         }
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         echo "<p style='color: red;'><strong>❌ Exception during testing: " . esc_html($e->getMessage()) . "</strong></p>\n";
         echo "<pre>" . esc_html($e->getTraceAsString()) . "</pre>\n";
     }

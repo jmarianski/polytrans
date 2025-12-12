@@ -162,7 +162,7 @@ try {
             }
         }
     }
-} catch (Exception $e) {
+} catch (\Exception $e) {
     echo "<p style='color: red;'><strong>Exception:</strong> " . esc_html($e->getMessage()) . "</p>\n";
     echo "<pre>" . esc_html($e->getTraceAsString()) . "</pre>\n";
 }

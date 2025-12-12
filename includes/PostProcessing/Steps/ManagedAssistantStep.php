@@ -103,32 +103,32 @@ class ManagedAssistantStep implements WorkflowStepInterface
 
             // Get the AI output
             $ai_output = $result['output'] ?? $result['data'] ?? null;
-            
+
             // Parse output using schema if defined
             $parsed_data = ['ai_response' => $ai_output];
             $parse_warnings = [];
             $auto_actions = [];
-            
+
             if (!empty($assistant['expected_output_schema']) && $assistant['expected_format'] === 'json') {
                 $parser = new \PolyTrans_JSON_Response_Parser();
                 $parse_result = $parser->parse_with_schema($ai_output, $assistant['expected_output_schema']);
-                
+
                 if ($parse_result['success']) {
                     // Use parsed structured data
                     $parsed_data = $parse_result['data'];
                     $parse_warnings = $parse_result['warnings'] ?? [];
-                    
+
                     // Generate auto-actions from mappings
                     if (!empty($parse_result['mappings'])) {
                         $auto_actions = $this->generate_auto_actions($parse_result['mappings'], $parsed_data);
-                        
+
                         PolyTrans_Logs_Manager::log(
                             "Assistant '{$assistant['name']}' generated " . count($auto_actions) . " auto-actions from schema mappings",
                             'info',
                             ['assistant_id' => $assistant_id, 'auto_actions' => $auto_actions]
                         );
                     }
-                    
+
                     // Log warnings if any
                     if (!empty($parse_warnings)) {
                         PolyTrans_Logs_Manager::log(
@@ -148,7 +148,7 @@ class ManagedAssistantStep implements WorkflowStepInterface
                     $parsed_data = ['ai_response' => $ai_output];
                 }
             }
-            
+
             // Return successful result
             return [
                 'success' => true,
@@ -166,7 +166,7 @@ class ManagedAssistantStep implements WorkflowStepInterface
                 'tokens_used' => $result['usage'] ?? null,
                 'raw_response' => $result['raw_response'] ?? null
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -185,21 +185,21 @@ class ManagedAssistantStep implements WorkflowStepInterface
     private function generate_auto_actions($mappings, $data)
     {
         $actions = [];
-        
+
         foreach ($mappings as $field_path => $mapping) {
             $target = $mapping['target'];
             $value = $this->get_nested_value($data, $field_path);
-            
+
             // Skip if value is null and field is not required
             if ($value === null && !($mapping['required'] ?? false)) {
                 continue;
             }
-            
+
             // Parse target format: "post.title", "meta.seo_title", "taxonomy.category.term"
             $target_parts = explode('.', $target, 2);
             $target_type = $target_parts[0];
             $target_key = $target_parts[1] ?? null;
-            
+
             switch ($target_type) {
                 case 'post':
                     // Post field: post.title, post.content, post.excerpt
@@ -212,7 +212,7 @@ class ManagedAssistantStep implements WorkflowStepInterface
                         ];
                     }
                     break;
-                    
+
                 case 'meta':
                     // Post meta: meta.seo_title, meta.seo_description
                     if ($target_key) {
@@ -224,7 +224,7 @@ class ManagedAssistantStep implements WorkflowStepInterface
                         ];
                     }
                     break;
-                    
+
                 case 'taxonomy':
                     // Taxonomy: taxonomy.category.term_name
                     if ($target_key) {
@@ -240,10 +240,10 @@ class ManagedAssistantStep implements WorkflowStepInterface
                     break;
             }
         }
-        
+
         return $actions;
     }
-    
+
     /**
      * Get nested value from array using dot notation
      * 
@@ -255,17 +255,17 @@ class ManagedAssistantStep implements WorkflowStepInterface
     {
         $keys = explode('.', $path);
         $value = $data;
-        
+
         foreach ($keys as $key) {
             if (!is_array($value) || !isset($value[$key])) {
                 return null;
             }
             $value = $value[$key];
         }
-        
+
         return $value;
     }
-    
+
     /**
      * Validate step configuration
      */
@@ -321,7 +321,7 @@ class ManagedAssistantStep implements WorkflowStepInterface
         // Get all available assistants
         $assistants = AssistantManager::get_all_assistants();
         $assistant_options = ['' => __('Select an assistant...', 'polytrans')];
-        
+
         foreach ($assistants as $assistant) {
             $label = $assistant['name'];
             if (!empty($assistant['provider'])) {
@@ -368,4 +368,3 @@ class ManagedAssistantStep implements WorkflowStepInterface
         return $info;
     }
 }
-

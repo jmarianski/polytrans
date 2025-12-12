@@ -23,12 +23,12 @@ class PostCreator
     {
         $original_post = get_post($original_post_id);
         if (!$original_post) {
-            return new WP_Error('invalid_post', 'Could not retrieve original post');
+            return new \WP_Error('invalid_post', 'Could not retrieve original post');
         }
 
         $original_post_type = $original_post->post_type;
         if (!$original_post_type) {
-            return new WP_Error('invalid_post_type', 'Could not determine original post type');
+            return new \WP_Error('invalid_post_type', 'Could not determine original post type');
         }
 
         $postarr = [
@@ -86,17 +86,17 @@ class PostCreator
 
         // Store original current user
         $original_user_id = get_current_user_id();
-        
+
         // Temporarily switch to the author for revision creation
         wp_set_current_user($author_id);
 
         // Force WordPress to create a revision
         // This is better than manually creating revision as it respects all WP revision settings
         $revision_id = wp_save_post_revision($post_id);
-        
+
         // Restore original user
         wp_set_current_user($original_user_id);
-        
+
         if ($revision_id && !is_wp_error($revision_id)) {
             \PolyTrans_Logs_Manager::log("Created initial revision {$revision_id} for post {$post_id} with author {$author_id}", "debug", [
                 'source' => 'translation_post_creator',

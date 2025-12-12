@@ -105,10 +105,10 @@ class WorkflowManager
     {
         // Register AI Assistant step (custom prompts)
         $this->register_workflow_step(new AiAssistantStep());
-        
+
         // Register Predefined Assistant step (OpenAI Assistants API)
         $this->register_workflow_step(new PredefinedAssistantStep());
-        
+
         // Register Managed Assistant step (Phase 1 - centralized management)
         $this->register_workflow_step(new ManagedAssistantStep());
     }
@@ -249,7 +249,7 @@ class WorkflowManager
                 'skipped_no_trigger' => $skipped_no_trigger,
                 'skipped_conditions' => $skipped_conditions
             ]);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             \PolyTrans_Logs_Manager::log("Error when processing workflows for post $original_post_id: " . $e->getMessage(), 'error', [
                 'source' => 'workflow_manager',
                 'original_post_id' => $original_post_id,
@@ -432,7 +432,7 @@ class WorkflowManager
             }
 
             return $result;
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             \PolyTrans_Logs_Manager::log("Exception during workflow '{$workflow_name}' execution: " . $e->getMessage(), 'error', [
                 'source' => 'workflow_manager',
                 'workflow_name' => $workflow_name,
@@ -621,7 +621,7 @@ class WorkflowManager
                     $result = $this->execute_workflow($workflow, $test_context, true);
 
                     wp_send_json_success($result);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     wp_send_json_error(['error' => $e->getMessage()]);
                 }
             }
@@ -794,7 +794,7 @@ class WorkflowManager
                         'status' => 'completed',
                         'result' => $result
                     ]);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     delete_transient($lock_key);
                     wp_send_json_error(['error' => $e->getMessage()]);
                 }

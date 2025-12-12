@@ -116,7 +116,7 @@ class AiAssistantStep implements WorkflowStepInterface
                 'interpolated_user_message' => $interpolated_user_message,
                 'tokens_used' => $ai_response['tokens_used'] ?? 0
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),

@@ -28,40 +28,47 @@ beforeEach(function () {
 
     // Mock WordPress functions
     if (!function_exists('wp_json_encode')) {
-        function wp_json_encode($data) {
+        function wp_json_encode($data)
+        {
             return json_encode($data);
         }
     }
 
     if (!function_exists('wp_json_decode')) {
-        function wp_json_decode($json, $assoc = false) {
+        function wp_json_decode($json, $assoc = false)
+        {
             return json_decode($json, $assoc);
         }
     }
 
     if (!class_exists('WP_Error')) {
-        class WP_Error {
+        class WP_Error
+        {
             private $errors = [];
 
-            public function __construct($code = '', $message = '', $data = '') {
+            public function __construct($code = '', $message = '', $data = '')
+            {
                 if (!empty($code)) {
                     $this->errors[$code][] = $message;
                 }
             }
 
-            public function get_error_message() {
+            public function get_error_message()
+            {
                 $code = $this->get_error_code();
                 return $this->errors[$code][0] ?? '';
             }
 
-            public function get_error_code() {
+            public function get_error_code()
+            {
                 return array_key_first($this->errors);
             }
         }
     }
 
     if (!function_exists('is_wp_error')) {
-        function is_wp_error($thing) {
+        function is_wp_error($thing)
+        {
             return ($thing instanceof WP_Error);
         }
     }
@@ -103,7 +110,7 @@ test('execute returns WP_Error for non-existent assistant', function () {
     $context = [];
 
     // Expected: WP_Error
-    $result = new WP_Error('assistant_not_found', 'Assistant not found');
+    $result = new \WP_Error('assistant_not_found', 'Assistant not found');
 
     expect($result)->toBeInstanceOf(WP_Error::class);
     expect(is_wp_error($result))->toBeTrue();
@@ -114,7 +121,7 @@ test('execute returns WP_Error when assistant is inactive', function () {
     $context = [];
 
     // Expected: WP_Error
-    $result = new WP_Error('assistant_inactive', 'Assistant is inactive');
+    $result = new \WP_Error('assistant_inactive', 'Assistant is inactive');
 
     expect($result)->toBeInstanceOf(WP_Error::class);
 });
@@ -168,7 +175,7 @@ test('execute_with_config validates required config fields', function () {
     $context = [];
 
     // Expected: WP_Error
-    $result = new WP_Error('invalid_config', 'Missing required fields');
+    $result = new \WP_Error('invalid_config', 'Missing required fields');
 
     expect($result)->toBeInstanceOf(WP_Error::class);
 });
@@ -318,7 +325,7 @@ test('call_provider_api returns WP_Error for unsupported provider', function () 
     $prompts = [];
 
     // Expected: WP_Error
-    $result = new WP_Error('unsupported_provider', 'Provider not supported');
+    $result = new \WP_Error('unsupported_provider', 'Provider not supported');
 
     expect($result)->toBeInstanceOf(WP_Error::class);
 });
@@ -335,7 +342,7 @@ test('call_provider_api returns WP_Error on API failure', function () {
     ];
 
     // Simulate API error (network error, invalid API key, etc.)
-    $result = new WP_Error('api_error', 'Failed to call API', ['status' => 401]);
+    $result = new \WP_Error('api_error', 'Failed to call API', ['status' => 401]);
 
     expect($result)->toBeInstanceOf(WP_Error::class);
 });
@@ -425,7 +432,7 @@ test('process_response returns WP_Error for invalid JSON', function () {
     ];
 
     // Expected: WP_Error for invalid JSON
-    $result = new WP_Error('invalid_json', 'Failed to parse JSON response');
+    $result = new \WP_Error('invalid_json', 'Failed to parse JSON response');
 
     expect($result)->toBeInstanceOf(WP_Error::class);
 });
@@ -474,7 +481,7 @@ test('process_response extracts content from different API response formats', fu
 
 test('execute handles API rate limiting gracefully', function () {
     // Simulate rate limit error
-    $result = new WP_Error('rate_limit', 'API rate limit exceeded', ['retry_after' => 60]);
+    $result = new \WP_Error('rate_limit', 'API rate limit exceeded', ['retry_after' => 60]);
 
     expect($result)->toBeInstanceOf(WP_Error::class);
     expect($result->get_error_code())->toBe('rate_limit');
@@ -482,7 +489,7 @@ test('execute handles API rate limiting gracefully', function () {
 
 test('execute handles network timeouts', function () {
     // Simulate timeout error
-    $result = new WP_Error('timeout', 'API request timed out');
+    $result = new \WP_Error('timeout', 'API request timed out');
 
     expect($result)->toBeInstanceOf(WP_Error::class);
 });

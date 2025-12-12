@@ -318,7 +318,7 @@ class TranslationExtension
 
                         \PolyTrans_Logs_Manager::log("External translation completed successfully for post $original_post_id -> $created_post_id", "info");
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     error_log("[polytrans] Error processing translation response: " . $e->getMessage());
                 }
             }

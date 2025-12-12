@@ -206,7 +206,7 @@ Additional metadata format:
             echo '<div class="error"><strong>❌ FAILED:</strong> Some JSON structures were corrupted!</div>';
         }
         echo '</div>';
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         echo '<div class="error"><strong>Error:</strong> ' . htmlspecialchars($e->getMessage()) . '</div>';
     }
     ?>

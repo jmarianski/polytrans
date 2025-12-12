@@ -86,7 +86,7 @@ if (file_exists(POLYTRANS_PLUGIN_DIR . 'includes/providers/openai/class-openai-s
         echo "   Registering AJAX handlers...\n";
         $openai_settings->register_ajax_handlers();
         echo "   ✓ AJAX handlers registered\n";
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         echo "   ✗ Error: " . $e->getMessage() . "\n";
     }
 } else {
@@ -108,7 +108,7 @@ if (file_exists(POLYTRANS_PLUGIN_DIR . 'includes/providers/google/class-google-p
         } else {
             echo "   ✗ Google provider should return null for settings provider\n";
         }
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         echo "   ✗ Error: " . $e->getMessage() . "\n";
     }
 } else {

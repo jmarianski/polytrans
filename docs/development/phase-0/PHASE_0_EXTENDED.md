@@ -228,7 +228,7 @@ class PolyTrans_Workflow_Storage_Manager
                     $errors[] = "Failed to migrate workflow: {$data['workflow_id']} - " . $wpdb->last_error;
                 }
 
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 $errors[] = "Exception migrating workflow: " . $e->getMessage();
             }
         }

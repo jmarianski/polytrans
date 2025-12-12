@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Test script for processed actions count
  * 
@@ -11,7 +12,7 @@ require_once(dirname(__FILE__) . '/../../../wp-config.php');
 function test_processed_actions_count()
 {
     echo "<h2>Testing Processed Actions Count</h2>\n";
-    
+
     // Check if user is logged in and has proper permissions
     if (!is_user_logged_in() || !current_user_can('edit_posts')) {
         echo "<p style='color: red;'>You must be logged in with post editing capabilities to run this test.</p>\n";
@@ -28,7 +29,7 @@ function test_processed_actions_count()
     ];
 
     $test_post_id = wp_insert_post($test_post_data);
-    
+
     if (is_wp_error($test_post_id)) {
         echo "<p style='color: red;'>Failed to create test post: " . $test_post_id->get_error_message() . "</p>\n";
         return;
@@ -99,18 +100,18 @@ function test_processed_actions_count()
     ];
 
     echo "<h3>Expected: 3 actions (title, content, excerpt update)</h3>\n";
-    
+
     // Test in test mode first
     echo "<h4>Test Mode Results:</h4>\n";
     try {
         $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
         $result = $workflow_manager->execute_workflow($workflow, $context, true);
-        
+
         if ($result['success'] && isset($result['step_results'][0]['output_processing'])) {
             $output_processing = $result['step_results'][0]['output_processing'];
             $processed_count = $output_processing['processed_actions'] ?? 'N/A';
             echo "<p><strong>Processed Actions Count:</strong> {$processed_count}</p>\n";
-            
+
             if ($processed_count === 3) {
                 echo "<p style='color: green;'>✓ Correct actions count in test mode</p>\n";
             } else {
@@ -122,7 +123,7 @@ function test_processed_actions_count()
                 echo "<p>Error: " . esc_html($result['step_results'][0]['error']) . "</p>\n";
             }
         }
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         echo "<p style='color: red;'>Exception in test mode: " . $e->getMessage() . "</p>\n";
     }
 
@@ -130,18 +131,18 @@ function test_processed_actions_count()
     echo "<h4>Production Mode Results:</h4>\n";
     try {
         $result = $workflow_manager->execute_workflow($workflow, $context, false);
-        
+
         if ($result['success'] && isset($result['step_results'][0]['output_processing'])) {
             $output_processing = $result['step_results'][0]['output_processing'];
             $processed_count = $output_processing['processed_actions'] ?? 'N/A';
             echo "<p><strong>Processed Actions Count:</strong> {$processed_count}</p>\n";
-            
+
             if ($processed_count === 3) {
                 echo "<p style='color: green;'>✓ Correct actions count in production mode</p>\n";
             } else {
                 echo "<p style='color: red;'>✗ Incorrect actions count in production mode (expected 3, got {$processed_count})</p>\n";
             }
-            
+
             // Check if changes were actually applied
             $updated_post = get_post($test_post_id);
             echo "<p><strong>Post Title Changed:</strong> " . ($updated_post->post_title !== $test_post_data['post_title'] ? 'Yes' : 'No') . "</p>\n";
@@ -153,7 +154,7 @@ function test_processed_actions_count()
                 echo "<p>Error: " . esc_html($result['step_results'][0]['error']) . "</p>\n";
             }
         }
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         echo "<p style='color: red;'>Exception in production mode: " . $e->getMessage() . "</p>\n";
     }
 
@@ -161,7 +162,7 @@ function test_processed_actions_count()
     echo "<h4>Direct Output Processor Test:</h4>\n";
     try {
         $output_processor = PolyTrans_Workflow_Output_Processor::get_instance();
-        
+
         // Mock step results
         $step_results = [
             'multiple_actions_step' => [
@@ -173,9 +174,9 @@ function test_processed_actions_count()
                 ]
             ]
         ];
-        
+
         $output_actions = $workflow['steps'][0]['output_actions'];
-        
+
         $output_result = $output_processor->process_step_outputs(
             $step_results,
             $output_actions,
@@ -183,19 +184,18 @@ function test_processed_actions_count()
             true, // test mode
             $workflow
         );
-        
+
         echo "<p><strong>Direct Test - Processed Actions:</strong> " . ($output_result['processed_actions'] ?? 'N/A') . "</p>\n";
         echo "<p><strong>Direct Test - Success:</strong> " . ($output_result['success'] ? 'Yes' : 'No') . "</p>\n";
-        
+
         if (isset($output_result['errors']) && !empty($output_result['errors'])) {
             echo "<p><strong>Direct Test - Errors:</strong> " . implode(', ', $output_result['errors']) . "</p>\n";
         }
-        
+
         if (isset($output_result['changes'])) {
             echo "<p><strong>Direct Test - Changes Created:</strong> " . count($output_result['changes']) . "</p>\n";
         }
-        
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         echo "<p style='color: red;'>Exception in direct test: " . $e->getMessage() . "</p>\n";
     }
 
@@ -214,8 +214,8 @@ if (basename($_SERVER['PHP_SELF']) === 'test-actions-count.php') {
 
     echo "<!DOCTYPE html><html><head><title>Actions Count Test</title></head><body>\n";
     echo "<h1>PolyTrans Processed Actions Count Test</h1>\n";
-    
+
     test_processed_actions_count();
-    
+
     echo "</body></html>\n";
 }

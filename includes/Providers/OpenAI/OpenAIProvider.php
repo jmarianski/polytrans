@@ -161,14 +161,14 @@ class OpenAIProvider implements TranslationProviderInterface
                     }
                 }
                 \PolyTrans_Logs_Manager::log("OpenAI: translating step $step_source -> $step_target with assistant $assistant_id", "info");
-                
+
                 // Detect assistant type and route accordingly
                 if (strpos($assistant_id, 'managed_') === 0) {
                     // Managed Assistant (from local database)
                     $result = $this->translate_with_managed_assistant($content_to_translate, $step_source, $step_target, $assistant_id);
                 } else {
                     // OpenAI API Assistant (asst_xxx format)
-                $result = $this->translate_with_openai($content_to_translate, $step_source, $step_target, $assistant_id, $openai_api_key);
+                    $result = $this->translate_with_openai($content_to_translate, $step_source, $step_target, $assistant_id, $openai_api_key);
                 }
                 if (!$result['success']) {
                     // Build detailed error message with error code if available
@@ -205,7 +205,7 @@ class OpenAIProvider implements TranslationProviderInterface
                 'translated_content' => $content_to_translate,
                 'error' => null
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("[polytrans] OpenAI translation error: " . $e->getMessage());
             \PolyTrans_Logs_Manager::log("OpenAI: exception: " . $e->getMessage(), "error");
             return [
@@ -337,7 +337,7 @@ class OpenAIProvider implements TranslationProviderInterface
 
         // Use JSON Response Parser for robust extraction and validation
         $parser = new JsonResponseParser();
-        
+
         // Define expected schema for translation response
         $schema = [
             'title' => 'string',
@@ -390,10 +390,10 @@ class OpenAIProvider implements TranslationProviderInterface
         try {
             // Extract numeric ID from managed_123 format
             $numeric_id = (int) str_replace('managed_', '', $assistant_id);
-            
+
             // Get the assistant configuration
             $assistant = AssistantManager::get_assistant($numeric_id);
-            
+
             if (!$assistant) {
                 return [
                     'success' => false,
@@ -447,34 +447,34 @@ class OpenAIProvider implements TranslationProviderInterface
                 $parser = new JsonResponseParser();
                 $parse_result = $parser->parse_with_schema($ai_output, $assistant['expected_output_schema']);
 
-            if (!$parse_result['success']) {
-                // Log parsing error (without full response to avoid DB/memory issues)
-                \PolyTrans_Logs_Manager::log(
-                    "Managed Assistant response parsing failed: " . $parse_result['error'],
-                    'error',
-                    [
-                        'assistant_id' => $numeric_id,
-                        'response_length' => strlen($ai_output),
-                        'response_preview' => substr($ai_output, 0, 500), // First 500 chars only
-                        'response_end' => substr($ai_output, -200), // Last 200 chars to see if truncated
-                        'parse_error' => $parse_result['error']
-                    ]
-                );
-                return [
-                    'success' => false,
-                    'error' => 'Failed to parse Managed Assistant response: ' . $parse_result['error'],
-                    'error_code' => 'parsing_failed'
-                ];
-            }
+                if (!$parse_result['success']) {
+                    // Log parsing error (without full response to avoid DB/memory issues)
+                    \PolyTrans_Logs_Manager::log(
+                        "Managed Assistant response parsing failed: " . $parse_result['error'],
+                        'error',
+                        [
+                            'assistant_id' => $numeric_id,
+                            'response_length' => strlen($ai_output),
+                            'response_preview' => substr($ai_output, 0, 500), // First 500 chars only
+                            'response_end' => substr($ai_output, -200), // Last 200 chars to see if truncated
+                            'parse_error' => $parse_result['error']
+                        ]
+                    );
+                    return [
+                        'success' => false,
+                        'error' => 'Failed to parse Managed Assistant response: ' . $parse_result['error'],
+                        'error_code' => 'parsing_failed'
+                    ];
+                }
 
-            // Log warnings if any
-            if (!empty($parse_result['warnings'])) {
-                \PolyTrans_Logs_Manager::log(
-                    "Managed Assistant response parsing warnings: " . implode(', ', $parse_result['warnings']),
-                    'warning',
-                    ['assistant_id' => $numeric_id, 'source_lang' => $source_lang, 'target_lang' => $target_lang]
-                );
-            }
+                // Log warnings if any
+                if (!empty($parse_result['warnings'])) {
+                    \PolyTrans_Logs_Manager::log(
+                        "Managed Assistant response parsing warnings: " . implode(', ', $parse_result['warnings']),
+                        'warning',
+                        ['assistant_id' => $numeric_id, 'source_lang' => $source_lang, 'target_lang' => $target_lang]
+                    );
+                }
 
                 return [
                     'success' => true,
@@ -493,9 +493,8 @@ class OpenAIProvider implements TranslationProviderInterface
                     'meta' => $content['meta'] ?? []
                 ]
             ];
-
-        } catch (Throwable $e) {
-            // Catch any unexpected errors (Exception, Error, TypeError, etc.)
+        } catch (\Throwable $e) {
+            // Catch any unexpected errors (\Exception, Error, TypeError, etc.)
             \PolyTrans_Logs_Manager::log(
                 "Managed Assistant translation failed with exception: " . $e->getMessage(),
                 'error',

@@ -108,7 +108,7 @@ class PredefinedAssistantStep implements WorkflowStepInterface
                 'assistant_id' => $assistant_id,
                 'tokens_used' => $ai_response['tokens_used'] ?? 0
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -168,7 +168,7 @@ class PredefinedAssistantStep implements WorkflowStepInterface
     {
         $available_assistants = $this->get_available_assistants();
         $assistant_options = [''];
-        
+
         // Convert assistants to options format
         foreach ($available_assistants as $assistant) {
             $assistant_options[$assistant['id']] = $assistant['name'] . ' (' . $assistant['model'] . ')';
@@ -344,7 +344,7 @@ class PredefinedAssistantStep implements WorkflowStepInterface
                 'data' => $message_response['content'],
                 'tokens_used' => 0 // Could be extracted from completion_response if needed
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
                 'error' => 'Assistant API call failed: ' . $e->getMessage()
@@ -371,7 +371,7 @@ class PredefinedAssistantStep implements WorkflowStepInterface
                     if (is_string($output_variables)) {
                         $output_variables = array_map('trim', explode(',', $output_variables));
                     }
-                    
+
                     // Extract specified variables
                     foreach ($output_variables as $var_name) {
                         if (!empty($var_name) && isset($json_data[$var_name])) {

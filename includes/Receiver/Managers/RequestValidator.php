@@ -27,19 +27,19 @@ class RequestValidator
 
         if (!$translated || !$target_language || !$original_post_id) {
             error_log('[polytrans] Missing data in translation request: ' . json_encode($params));
-            return new WP_Error('missing_data', 'Missing required translation data');
+            return new \WP_Error('missing_data', 'Missing required translation data');
         }
 
         if (!get_post($original_post_id)) {
-            return new WP_Error('invalid_post', 'Original post not found');
+            return new \WP_Error('invalid_post', 'Original post not found');
         }
 
         if (!$this->is_valid_language_code($source_language) || !$this->is_valid_language_code($target_language)) {
-            return new WP_Error('invalid_language', 'Invalid language code provided');
+            return new \WP_Error('invalid_language', 'Invalid language code provided');
         }
 
         if (!$this->has_required_translation_fields($translated)) {
-            return new WP_Error('invalid_translation', 'Translation data missing required fields');
+            return new \WP_Error('invalid_translation', 'Translation data missing required fields');
         }
 
         return true;

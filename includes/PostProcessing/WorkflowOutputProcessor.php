@@ -111,7 +111,7 @@ class WorkflowOutputProcessor
                 } else {
                     $errors[] = $change_result['error'];
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 $errors[] = 'Action processing failed: ' . $e->getMessage();
             }
         }
@@ -754,7 +754,7 @@ class WorkflowOutputProcessor
                 'success' => true,
                 'change' => $change
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
                 'error' => 'Failed to create change object: ' . $e->getMessage()
@@ -998,7 +998,7 @@ class WorkflowOutputProcessor
                         'error' => "Unknown action: {$action}"
                     ];
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
                 'error' => 'Failed to execute change: ' . $e->getMessage()

@@ -63,7 +63,7 @@ class GoogleProvider implements TranslationProviderInterface
                 'translated_content' => $translated,
                 'error' => null
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("[polytrans] Google Translate error: " . $e->getMessage());
             return [
                 'success' => false,

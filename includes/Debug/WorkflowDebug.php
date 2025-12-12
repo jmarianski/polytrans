@@ -134,7 +134,7 @@ class WorkflowDebug
             try {
                 $conditions_met = $method->invoke($polytrans_workflow_manager, $triggers['conditions'], $context);
                 echo "<p><strong>Conditions Met:</strong> " . ($conditions_met ? "✅ Yes" : "❌ No") . "</p>\n";
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 echo "<div style='color: red;'>Error evaluating conditions: " . $e->getMessage() . "</div>\n";
             }
         } else {

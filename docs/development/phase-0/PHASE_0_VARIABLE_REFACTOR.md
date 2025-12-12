@@ -613,7 +613,7 @@ public function interpolate_template($template, $context)
     try {
         // Use Twig for rendering (handles legacy syntax conversion)
         return PolyTrans_Twig_Engine::render($template, $context);
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         // Fallback to old regex method if Twig fails
         error_log('[PolyTrans] Twig rendering failed: ' . $e->getMessage());
         return $this->interpolate_template_legacy($template, $context);

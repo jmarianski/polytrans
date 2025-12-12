@@ -88,7 +88,7 @@ class TranslationCoordinator
                 'created_post_id' => $new_post_id,
                 'status' => $final_status
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $error_message = 'Translation processing failed: ' . $e->getMessage();
             \PolyTrans_Logs_Manager::log("$error_message", "info");
 

@@ -29,58 +29,68 @@ beforeEach(function () {
 
     // Mock WordPress functions if not already defined
     if (!function_exists('sanitize_text_field')) {
-        function sanitize_text_field($str) {
+        function sanitize_text_field($str)
+        {
             return trim(strip_tags($str));
         }
     }
 
     if (!function_exists('wp_json_encode')) {
-        function wp_json_encode($data) {
+        function wp_json_encode($data)
+        {
             return json_encode($data);
         }
     }
 
     if (!function_exists('wp_json_decode')) {
-        function wp_json_decode($json, $assoc = false) {
+        function wp_json_decode($json, $assoc = false)
+        {
             return json_decode($json, $assoc);
         }
     }
 
     if (!function_exists('current_time')) {
-        function current_time($type, $gmt = 0) {
+        function current_time($type, $gmt = 0)
+        {
             return date('Y-m-d H:i:s');
         }
     }
 
     if (!function_exists('get_current_user_id')) {
-        function get_current_user_id() {
+        function get_current_user_id()
+        {
             return 1;
         }
     }
 
     if (!class_exists('WP_Error')) {
-        class WP_Error {
+        class WP_Error
+        {
             private $errors = [];
 
-            public function __construct($code = '', $message = '', $data = '') {
+            public function __construct($code = '', $message = '', $data = '')
+            {
                 if (!empty($code)) {
                     $this->errors[$code][] = $message;
                 }
             }
 
-            public function get_error_message() {
+            public function get_error_message()
+            {
                 $code = $this->get_error_code();
                 return $this->errors[$code][0] ?? '';
             }
 
-            public function get_error_code() {
+            public function get_error_code()
+            {
                 return array_key_first($this->errors);
             }
         }
     }
 
     if (!function_exists('is_wp_error')) {
-        function is_wp_error($thing) {
+        function is_wp_error($thing)
+        {
             return ($thing instanceof WP_Error);
         }
     }
@@ -250,7 +260,7 @@ test('create_assistant returns WP_Error on validation failure', function () {
     ];
 
     // Expected: WP_Error object
-    $result = new WP_Error('invalid_data', 'Name is required');
+    $result = new \WP_Error('invalid_data', 'Name is required');
 
     expect($result)->toBeInstanceOf(WP_Error::class);
     expect(is_wp_error($result))->toBeTrue();
@@ -311,7 +321,7 @@ test('update_assistant returns WP_Error on validation failure', function () {
     ];
 
     // Expected: WP_Error
-    $result = new WP_Error('invalid_provider', 'Invalid provider');
+    $result = new \WP_Error('invalid_provider', 'Invalid provider');
 
     expect($result)->toBeInstanceOf(WP_Error::class);
 });

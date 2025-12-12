@@ -527,7 +527,7 @@ class BackgroundProcessor
                 'source_lang' => $source_lang,
                 'target_lang' => $target_lang
             ]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Update error status and log
             update_post_meta($post_id, $status_key, 'failed');
 
@@ -620,7 +620,7 @@ class BackgroundProcessor
                 'success' => $result['success'] ?? false,
                 'steps_executed' => $result['steps_executed'] ?? 0
             ]);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             self::log("Workflow test failed: " . $e->getMessage(), "error", [
                 'test_id' => $test_id,
                 'error' => $e->getMessage()
@@ -712,7 +712,7 @@ class BackgroundProcessor
                 'success' => $result['success'] ?? false,
                 'steps_executed' => $result['steps_executed'] ?? 0
             ]);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             self::log("Workflow execution failed: " . $e->getMessage(), "error", [
                 'execution_id' => $execution_id,
                 'workflow_id' => $workflow_id,

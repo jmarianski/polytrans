@@ -3,6 +3,8 @@
 namespace PolyTrans\Scheduler;
 
 use PolyTrans\PostProcessing\Providers\ArticlesDataProvider;
+use PolyTrans\Core\BackgroundProcessor;
+use PolyTrans\Core\LogsManager;
 
 /**
  * Translation Handler Class
@@ -121,7 +123,7 @@ class TranslationHandler
         }
 
         update_post_meta($post_id, $langs_key, $scheduled_langs);
-        \PolyTrans_Logs_Manager::log("Translation scheduling finished for post $post_id", "info", [
+        LogsManager::log("Translation scheduling finished for post $post_id", "info", [
             'post_id' => $post_id,
             'scheduled_langs' => $scheduled_langs,
             'scope' => $scope,
@@ -165,7 +167,7 @@ class TranslationHandler
             'msg' => sprintf(__('Translation process scheduled (mode: %s).', 'polytrans'), $transport_mode)
         ];
         update_post_meta($post_id, $log_key, $log);
-        \PolyTrans_Logs_Manager::log("Translation scheduled for post $post_id from $source_lang to $target_lang (mode: $transport_mode)", "info");
+        LogsManager::log("Translation scheduled for post $post_id from $source_lang to $target_lang (mode: $transport_mode)", "info");
 
         if ($transport_mode === 'internal') {
             // For internal mode, use the background processor
@@ -189,7 +191,6 @@ class TranslationHandler
     private function process_with_background_processor($post_id, $source_lang, $target_lang, &$log, $log_key, $status_key)
     {
         // Require the background processor class
-        // Note: PolyTrans_Background_Processor is autoloaded
 
         // Update status to 'translating' to indicate it's being processed via background
         update_post_meta($post_id, $status_key, 'translating');
@@ -209,7 +210,7 @@ class TranslationHandler
         ];
 
         // Process using our background processor
-        $result = PolyTrans_Background_Processor::spawn($args);
+        $result = BackgroundProcessor::spawn($args);
 
         if ($result) {
             // Get the logs page URL
@@ -224,7 +225,7 @@ class TranslationHandler
                 )
             ];
 
-            \PolyTrans_Logs_Manager::log("Translation request queued in background process for post $post_id from $source_lang to $target_lang", "info");
+            LogsManager::log("Translation request queued in background process for post $post_id from $source_lang to $target_lang", "info");
             update_post_meta($post_id, $log_key, $log);
             return;
         }
@@ -234,7 +235,7 @@ class TranslationHandler
             'timestamp' => time(),
             'msg' => __('Failed to start background process. Please check server configuration.', 'polytrans')
         ];
-        \PolyTrans_Logs_Manager::log("Failed to spawn background process for post $post_id translation", "info");
+        LogsManager::log("Failed to spawn background process for post $post_id translation", "info");
         update_post_meta($post_id, $status_key, 'failed');
         update_post_meta($post_id, $log_key, $log);
     }
@@ -262,7 +263,7 @@ class TranslationHandler
                 'timestamp' => time(),
                 'msg' => __('Failed to send translation request: No translation endpoint configured.', 'polytrans')
             ];
-            \PolyTrans_Logs_Manager::log("Failed to send external translation request for post $post_id: No endpoint configured", "info");
+            LogsManager::log("Failed to send external translation request for post $post_id: No endpoint configured", "info");
             update_post_meta($post_id, $status_key, 'failed');
             update_post_meta($post_id, $log_key, $log);
             return;
@@ -271,7 +272,7 @@ class TranslationHandler
         if (empty($translation_receiver_endpoint)) {
             // Use default receiver endpoint if none is configured
             $translation_receiver_endpoint = site_url('/wp-json/polytrans/v1/translation/receive-post');
-            \PolyTrans_Logs_Manager::log("Using default receiver endpoint: $translation_receiver_endpoint", "info");
+            LogsManager::log("Using default receiver endpoint: $translation_receiver_endpoint", "info");
         }
 
         // Update status to 'translating' to indicate it's actively being sent to external service
@@ -291,7 +292,7 @@ class TranslationHandler
                 'timestamp' => time(),
                 'msg' => __('Failed to send translation request: Post not found.', 'polytrans')
             ];
-            \PolyTrans_Logs_Manager::log("Failed to send external translation request for post $post_id: Post not found", "info");
+            LogsManager::log("Failed to send external translation request for post $post_id: Post not found", "info");
             update_post_meta($post_id, $status_key, 'failed');
             update_post_meta($post_id, $log_key, $log);
             return;
@@ -310,64 +311,62 @@ class TranslationHandler
 
         // Get recent articles in target language for context
         $context_articles = [];
-        if (class_exists('\PolyTrans_Articles_Data_Provider')) {
-            $articles_provider = new ArticlesDataProvider();
+        $articles_provider = new ArticlesDataProvider();
 
-            // Prepare context for the articles provider
-            $context = [
-                'articles_count' => 20,
-                'post_id' => $post_id, // Exclude current post
-                'article_post_types' => ['post'],
-                'target_language' => $target_lang
-            ];
+        // Prepare context for the articles provider
+        $context = [
+            'articles_count' => 20,
+            'post_id' => $post_id, // Exclude current post
+            'article_post_types' => ['post'],
+            'target_language' => $target_lang
+        ];
 
-            $variables = $articles_provider->get_variables($context);
-            $recent_articles = $variables['recent_articles'] ?? [];
+        $variables = $articles_provider->get_variables($context);
+        $recent_articles = $variables['recent_articles'] ?? [];
 
-            if (!empty($recent_articles)) {
-                foreach ($recent_articles as $article) {
-                    $context_articles[] = [
-                        'id' => $article['id'],
-                        'title' => $article['title'],
-                        'content' => $article['content'],
-                        'excerpt' => $article['excerpt'],
-                        'date' => $article['date'],
-                        'url' => $article['url'],
-                        'categories' => $article['categories'],
-                        'tags' => $article['tags']
-                    ];
-                }
-
-                \PolyTrans_Logs_Manager::log(
-                    "Added " . count($context_articles) . " recent articles in $target_lang as translation context for post $post_id",
-                    "info"
-                );
-
-                // Add payload structure info to log
-                $log[] = [
-                    'timestamp' => time(),
-                    'msg' => sprintf(
-                        __('Payload includes: source article + %d context articles in %s', 'polytrans'),
-                        count($context_articles),
-                        $target_lang
-                    )
+        if (!empty($recent_articles)) {
+            foreach ($recent_articles as $article) {
+                $context_articles[] = [
+                    'id' => $article['id'],
+                    'title' => $article['title'],
+                    'content' => $article['content'],
+                    'excerpt' => $article['excerpt'],
+                    'date' => $article['date'],
+                    'url' => $article['url'],
+                    'categories' => $article['categories'],
+                    'tags' => $article['tags']
                 ];
-                update_post_meta($post_id, $log_key, $log);
-            } else {
-                \PolyTrans_Logs_Manager::log(
-                    "No recent articles found in $target_lang for translation context for post $post_id",
-                    "info"
-                );
-
-                $log[] = [
-                    'timestamp' => time(),
-                    'msg' => sprintf(
-                        __('No context articles found in %s - sending only source article', 'polytrans'),
-                        $target_lang
-                    )
-                ];
-                update_post_meta($post_id, $log_key, $log);
             }
+
+            LogsManager::log(
+                "Added " . count($context_articles) . " recent articles in $target_lang as translation context for post $post_id",
+                "info"
+            );
+
+            // Add payload structure info to log
+            $log[] = [
+                'timestamp' => time(),
+                'msg' => sprintf(
+                    __('Payload includes: source article + %d context articles in %s', 'polytrans'),
+                    count($context_articles),
+                    $target_lang
+                )
+            ];
+            update_post_meta($post_id, $log_key, $log);
+        } else {
+            LogsManager::log(
+                "No recent articles found in $target_lang for translation context for post $post_id",
+                "info"
+            );
+
+            $log[] = [
+                'timestamp' => time(),
+                'msg' => sprintf(
+                    __('No context articles found in %s - sending only source article', 'polytrans'),
+                    $target_lang
+                )
+            ];
+            update_post_meta($post_id, $log_key, $log);
         }
 
         // Prepare payload for the external translation request
@@ -428,7 +427,7 @@ class TranslationHandler
             'timestamp' => time(),
             'msg' => sprintf(__('Translation request sent successfully to external endpoint. Awaiting response.', 'polytrans'))
         ];
-        \PolyTrans_Logs_Manager::log("External translation request sent successfully for post $post_id", "info");
+        LogsManager::log("External translation request sent successfully for post $post_id", "info");
 
 
         // Update the log
@@ -539,7 +538,7 @@ class TranslationHandler
             update_post_meta($post_id, $langs_key, $scheduled_langs);
             delete_post_meta($post_id, '_polytrans_translation_status_' . $lang);
             delete_post_meta($post_id, '_polytrans_translation_log_' . $lang);
-            \PolyTrans_Logs_Manager::log("Cleared translation status for $lang on post $post_id", "info");
+            LogsManager::log("Cleared translation status for $lang on post $post_id", "info");
             wp_send_json_success(['scheduled_langs' => $scheduled_langs]);
         }
 
@@ -606,7 +605,7 @@ class TranslationHandler
         // Update scheduled languages
         update_post_meta($post_id, $langs_key, $scheduled_langs);
 
-        \PolyTrans_Logs_Manager::log("Retry translation initiated for $lang on post $post_id", "info", [
+        LogsManager::log("Retry translation initiated for $lang on post $post_id", "info", [
             'post_id' => $post_id,
             'source_lang' => $source_lang,
             'target_lang' => $lang,

@@ -182,7 +182,7 @@ class WorkflowExecutor
                     if ($output_result['success']) {
                         $actions_processed = $output_result['processed_actions'] ?? 0;
                         $output_processing_info = " (processed {$actions_processed} actions)";
-                        
+
                         // Update execution context with changes (both test mode and production mode)
                         if (isset($output_result['updated_context'])) {
                             $execution_context = $output_result['updated_context'];
@@ -327,7 +327,7 @@ class WorkflowExecutor
                 'final_context' => $execution_context,
                 'test_mode' => $test_mode
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $execution_time = microtime(true) - $start_time;
             $error_msg = "Exception during workflow execution: " . $e->getMessage();
             \PolyTrans_Logs_Manager::log("'{$workflow_name}' failed with exception after " . round($execution_time, 3) . "s: {$error_msg}", 'error', [
@@ -444,7 +444,7 @@ class WorkflowExecutor
             $result['execution_time'] = microtime(true) - $start_time;
 
             return $result;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),

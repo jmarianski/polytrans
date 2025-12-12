@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Test script for workflow attribution user functionality
  * 
@@ -13,7 +14,7 @@ function test_workflow_attribution_user()
     // Get current user for comparison
     $current_user_id = get_current_user_id();
     $current_user = get_user_by('id', $current_user_id);
-    
+
     // Get first admin user (if different from current)
     $admin_users = get_users(['role' => 'administrator', 'number' => 2]);
     $attribution_user = null;
@@ -23,16 +24,16 @@ function test_workflow_attribution_user()
             break;
         }
     }
-    
+
     // If no different admin found, use current user for demonstration
     if (!$attribution_user) {
         $attribution_user = $current_user;
     }
-    
+
     echo "<h2>Testing Workflow Attribution User Functionality</h2>\n";
     echo "<p><strong>Current User:</strong> {$current_user->display_name} (ID: {$current_user_id})</p>\n";
     echo "<p><strong>Attribution User:</strong> {$attribution_user->display_name} (ID: {$attribution_user->ID})</p>\n";
-    
+
     // Sample workflow configuration with attribution user
     $workflow = [
         'id' => 'test_attribution_workflow',
@@ -93,10 +94,10 @@ function test_workflow_attribution_user()
     try {
         $workflow_manager = PolyTrans_Workflow_Manager::get_instance();
         $result = $workflow_manager->execute_workflow($workflow, $context, true);
-        
+
         echo "<h4>Test Mode Result:</h4>\n";
         echo "<pre>" . print_r($result, true) . "</pre>\n";
-        
+
         if ($result['success']) {
             echo "<p style='color: green;'>✓ Test mode execution successful</p>\n";
         } else {
@@ -105,7 +106,7 @@ function test_workflow_attribution_user()
                 echo "<p>Errors: " . implode(', ', $result['errors']) . "</p>\n";
             }
         }
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         echo "<p style='color: red;'>Exception in test mode: " . $e->getMessage() . "</p>\n";
     }
 
@@ -113,7 +114,7 @@ function test_workflow_attribution_user()
     echo "<h3>Testing Output Processor Directly:</h3>\n";
     try {
         $output_processor = PolyTrans_Workflow_Output_Processor::get_instance();
-        
+
         // Mock step results
         $step_results = [
             'test_step' => [
@@ -123,33 +124,32 @@ function test_workflow_attribution_user()
                 ]
             ]
         ];
-        
+
         // Get output actions from workflow
         $output_actions = $workflow['steps'][0]['output_actions'];
-        
+
         echo "<p><strong>Before processing - Current User:</strong> " . get_current_user_id() . "</p>\n";
-        
+
         // Test with attribution user
         $output_result = $output_processor->process_step_outputs(
-            $step_results, 
-            $output_actions, 
-            $context, 
+            $step_results,
+            $output_actions,
+            $context,
             true, // test mode
             $workflow
         );
-        
+
         echo "<p><strong>After processing - Current User:</strong> " . get_current_user_id() . "</p>\n";
-        
+
         echo "<h4>Output Processing Result:</h4>\n";
         echo "<pre>" . print_r($output_result, true) . "</pre>\n";
-        
+
         if ($output_result['success']) {
             echo "<p style='color: green;'>✓ Output processing successful</p>\n";
         } else {
             echo "<p style='color: red;'>✗ Output processing failed</p>\n";
         }
-        
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         echo "<p style='color: red;'>Exception in output processing: " . $e->getMessage() . "</p>\n";
     }
 
@@ -157,26 +157,25 @@ function test_workflow_attribution_user()
     echo "<h3>Testing with Invalid Attribution User:</h3>\n";
     $invalid_workflow = $workflow;
     $invalid_workflow['attribution_user'] = '99999'; // Non-existent user ID
-    
+
     try {
         $output_result = $output_processor->process_step_outputs(
-            $step_results, 
-            $output_actions, 
-            $context, 
+            $step_results,
+            $output_actions,
+            $context,
             true, // test mode
             $invalid_workflow
         );
-        
+
         echo "<h4>Invalid User Result:</h4>\n";
         echo "<pre>" . print_r($output_result, true) . "</pre>\n";
-        
+
         if ($output_result['success']) {
             echo "<p style='color: green;'>✓ Invalid user handled gracefully</p>\n";
         } else {
             echo "<p style='color: orange;'>⚠ Invalid user caused processing failure (expected behavior)</p>\n";
         }
-        
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         echo "<p style='color: red;'>Exception with invalid user: " . $e->getMessage() . "</p>\n";
     }
 }
@@ -185,7 +184,7 @@ function test_workflow_attribution_user()
 function show_recent_attribution_logs()
 {
     echo "<h3>Recent Attribution Logs:</h3>\n";
-    
+
     if (class_exists('PolyTrans_Logs_Manager')) {
         try {
             // Get recent logs related to attribution
@@ -193,11 +192,11 @@ function show_recent_attribution_logs()
                 'limit' => 10,
                 'source' => 'workflow_output_processor'
             ]);
-            
+
             if (!empty($logs)) {
                 echo "<table border='1' style='border-collapse: collapse; width: 100%;'>\n";
                 echo "<tr><th>Time</th><th>Level</th><th>Message</th><th>Context</th></tr>\n";
-                
+
                 foreach ($logs as $log) {
                     $context_str = !empty($log['context']) ? json_encode($log['context'], JSON_PRETTY_PRINT) : '';
                     echo "<tr>\n";
@@ -207,12 +206,12 @@ function show_recent_attribution_logs()
                     echo "<td><pre>" . esc_html($context_str) . "</pre></td>\n";
                     echo "</tr>\n";
                 }
-                
+
                 echo "</table>\n";
             } else {
                 echo "<p>No recent attribution logs found.</p>\n";
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             echo "<p style='color: red;'>Error retrieving logs: " . $e->getMessage() . "</p>\n";
         }
     } else {
@@ -229,9 +228,9 @@ if (basename($_SERVER['PHP_SELF']) === 'test-attribution-user.php') {
 
     echo "<!DOCTYPE html><html><head><title>Attribution User Test</title></head><body>\n";
     echo "<h1>PolyTrans Workflow Attribution User Test</h1>\n";
-    
+
     test_workflow_attribution_user();
     show_recent_attribution_logs();
-    
+
     echo "</body></html>\n";
 }
