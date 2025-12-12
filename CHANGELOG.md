@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.5] - 2025-12-11
+
+### Fixed
+- **External Translation**: Fixed namespace resolution errors for WordPress REST API classes
+- Added leading backslash to `WP_REST_Response` and `WP_REST_Request` in `TranslationReceiverExtension`
+
 ## [1.5.4] - 2025-12-11
 
 ### Fixed
