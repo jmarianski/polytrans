@@ -131,12 +131,40 @@ class TranslationCoordinator
         // Setup featured image with translated metadata
         $featured_image_data = $translated['featured_image'] ?? null;
         if ($featured_image_data) {
-            $this->media_manager->setup_featured_image(
-                $new_post_id,
-                $original_post_id,
-                $target_language,
-                $featured_image_data
-            );
+            // Handle legacy format: if featured_image is a string (ID), convert to array format
+            if (is_string($featured_image_data) || is_numeric($featured_image_data)) {
+                $attachment_id = (int) $featured_image_data;
+                $attachment = get_post($attachment_id);
+                if ($attachment) {
+                    $featured_image_data = [
+                        'id' => $attachment_id,
+                        'alt' => get_post_meta($attachment_id, '_wp_attachment_image_alt', true),
+                        'title' => $attachment->post_title,
+                        'caption' => $attachment->post_excerpt,
+                        'description' => $attachment->post_content,
+                        'filename' => basename(get_attached_file($attachment_id))
+                    ];
+                } else {
+                    \PolyTrans_Logs_Manager::log("Featured image ID $attachment_id not found, skipping", "warning", [
+                        'post_id' => $new_post_id,
+                        'attachment_id' => $attachment_id
+                    ]);
+                    $featured_image_data = null;
+                }
+            }
+            
+            if ($featured_image_data && isset($featured_image_data['id'])) {
+                $this->media_manager->setup_featured_image(
+                    $new_post_id,
+                    $original_post_id,
+                    $target_language,
+                    $featured_image_data
+                );
+            } else {
+                \PolyTrans_Logs_Manager::log("Invalid featured image data format for post $new_post_id", "warning", [
+                    'featured_image_data' => $featured_image_data
+                ]);
+            }
         } else {
             \PolyTrans_Logs_Manager::log("No featured image data provided for post $new_post_id", "info", $translated);
         }

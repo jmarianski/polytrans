@@ -15,29 +15,29 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Define allowed SEO meta keys for translation as a constant
-const POLYTRANS_ALLOWED_SEO_META_KEYS = [
-    // RankMath SEO fields
-    'rank_math_title',
-    'rank_math_description',
-    'rank_math_facebook_title',
-    'rank_math_facebook_description',
-    'rank_math_twitter_title',
-    'rank_math_twitter_description',
-    'rank_math_focus_keyword',
-    // Yoast SEO fields
-    '_yoast_wpseo_title',
-    '_yoast_wpseo_metadesc',
-    '_yoast_wpseo_focuskw',
-    '_yoast_wpseo_opengraph-title',
-    '_yoast_wpseo_opengraph-description',
-    '_yoast_wpseo_twitter-title',
-    '_yoast_wpseo_twitter-description',
-];
-
 class TranslationHandler
 {
 
+    // Define allowed SEO meta keys for translation as a constant
+    public const POLYTRANS_ALLOWED_SEO_META_KEYS = [
+        // RankMath SEO fields
+        'rank_math_title',
+        'rank_math_description',
+        'rank_math_facebook_title',
+        'rank_math_facebook_description',
+        'rank_math_twitter_title',
+        'rank_math_twitter_description',
+        'rank_math_focus_keyword',
+        // Yoast SEO fields
+        '_yoast_wpseo_title',
+        '_yoast_wpseo_metadesc',
+        '_yoast_wpseo_focuskw',
+        '_yoast_wpseo_opengraph-title',
+        '_yoast_wpseo_opengraph-description',
+        '_yoast_wpseo_twitter-title',
+        '_yoast_wpseo_twitter-description',
+    ];
+    
     private static $instance = null;
 
     /**
@@ -300,7 +300,7 @@ class TranslationHandler
 
         // Prepare metadata
         $meta = get_post_meta($post_id);
-        $allowed_meta_keys = defined('POLYTRANS_ALLOWED_SEO_META_KEYS') ? POLYTRANS_ALLOWED_SEO_META_KEYS : [];
+        $allowed_meta_keys = self::POLYTRANS_ALLOWED_SEO_META_KEYS;
         $meta = array_intersect_key($meta, array_flip($allowed_meta_keys));
 
         foreach ($meta as $k => $v) {

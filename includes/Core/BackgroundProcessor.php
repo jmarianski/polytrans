@@ -3,6 +3,7 @@
 namespace PolyTrans\Core;
 
 use Exception;
+use PolyTrans\Scheduler\TranslationHandler;
 
 /**
  * Background Process Handler
@@ -478,7 +479,7 @@ class BackgroundProcessor
             self::log("Preparing content for translation", "info", ['post_id' => $post_id]);
 
             $meta = get_post_meta($post_id);
-            $allowed_meta_keys = defined('POLYTRANS_ALLOWED_SEO_META_KEYS') ? POLYTRANS_ALLOWED_SEO_META_KEYS : [];
+            $allowed_meta_keys =  TranslationHandler::POLYTRANS_ALLOWED_SEO_META_KEYS;
             $meta = array_intersect_key($meta, array_flip($allowed_meta_keys));
 
             foreach ($meta as $k => $v) {
@@ -515,8 +516,8 @@ class BackgroundProcessor
                 'title' => $post->post_title,
                 'content' => $post->post_content,
                 'excerpt' => $post->post_excerpt,
-                'meta' => json_decode(json_encode($meta), true),
-                'featured_image' => $featured_image_data
+                'meta' => $meta, // Already an array, no need for json_decode/json_encode
+                'featured_image' => $featured_image_data // Array with image metadata (id, alt, title, caption, description, filename)
             ];
 
             // Handle the translation based on provider

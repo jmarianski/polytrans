@@ -335,16 +335,29 @@ class OpenAIProvider implements TranslationProviderInterface
 
         $response_text = $message_result['content'];
 
+        // Log raw response before parsing
+        \PolyTrans_Logs_Manager::log(
+            "Raw response received from OpenAI",
+            "info",
+            [
+                'source_lang' => $source_lang,
+                'target_lang' => $target_lang,
+                'response_length' => strlen($response_text),
+                'response_preview' => substr($response_text, 0, 1000) // First 1000 chars
+            ]
+        );
+
         // Use JSON Response Parser for robust extraction and validation
         $parser = new JsonResponseParser();
 
         // Define expected schema for translation response
+        // Note: In PHP, JSON objects are arrays, so we use 'array' for both meta and featured_image
         $schema = [
             'title' => 'string',
             'content' => 'string',
             'excerpt' => 'string',
-            'meta' => 'object',
-            'featured_image' => 'string' // Optional, can be null
+            'meta' => 'array', // JSON object becomes PHP array
+            'featured_image' => 'array' // Featured image data as object/array (id, alt, title, caption, description, filename)
         ];
 
         $parse_result = $parser->parse_with_schema($response_text, $schema);
@@ -370,9 +383,30 @@ class OpenAIProvider implements TranslationProviderInterface
             );
         }
 
+        // Log what we received from translator
+        $translated_data = $parse_result['data'];
+        \PolyTrans_Logs_Manager::log(
+            "Translation response received from OpenAI",
+            "info",
+            [
+                'source_lang' => $source_lang,
+                'target_lang' => $target_lang,
+                'has_title' => !empty($translated_data['title']),
+                'has_content' => !empty($translated_data['content']),
+                'has_excerpt' => !empty($translated_data['excerpt']),
+                'has_meta' => !empty($translated_data['meta']),
+                'meta_type' => gettype($translated_data['meta'] ?? null),
+                'meta_keys' => is_array($translated_data['meta'] ?? null) ? array_keys($translated_data['meta']) : null,
+                'meta_sample' => is_array($translated_data['meta'] ?? null) ? array_slice($translated_data['meta'], 0, 3, true) : null,
+                'has_featured_image' => !empty($translated_data['featured_image']),
+                'featured_image_type' => gettype($translated_data['featured_image'] ?? null),
+                'featured_image_data' => $translated_data['featured_image'] ?? null
+            ]
+        );
+
         return [
             'success' => true,
-            'translated_content' => $parse_result['data']
+            'translated_content' => $translated_data
         ];
     }
 
