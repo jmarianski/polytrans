@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.4] - 2025-12-11
+
+### Fixed
+- **External Translation**: Fixed fatal error in REST API endpoint when receiving translations from external services
+- Fixed namespace resolution error for `PolyTrans_Logs_Manager` in `TranslationReceiverExtension`
+
 ## [1.5.3] - 2025-12-11
 
 ### Fixed
