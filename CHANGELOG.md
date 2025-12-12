@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.3] - 2025-12-11
+
+### Fixed
+- **JSON Parsing**: Fixed parsing of JSON responses with double-escaped characters (common in code blocks)
+- Added normalization of escaped characters (`\\r\\n` → `\r\n`, `\\n` → `\n`) before JSON parsing
+- Improved error logging for JSON parsing failures with detailed error codes and response previews
+
+### Technical
+- Enhanced `JsonResponseParser` to handle double/triple-escaped characters in JSON responses
+- Added JSON normalization in `AssistantExecutor` for better compatibility with AI responses
+- Improved error reporting with JSON error codes and response snippets
+
 ## [1.5.2] - 2025-12-11
 
 ### Fixed

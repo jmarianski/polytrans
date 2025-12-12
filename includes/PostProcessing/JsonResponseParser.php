@@ -16,6 +16,50 @@ if (!defined('ABSPATH')) {
 class JsonResponseParser
 {
     /**
+     * Normalize JSON string by fixing double-escaped characters
+     * 
+     * @param string $json JSON string that may have double-escaped characters
+     * @return string Normalized JSON string
+     */
+    private function normalize_json_escaping($json)
+    {
+        // Strategy: Try to decode and re-encode to normalize escaping
+        // This handles cases where JSON was escaped multiple times
+        
+        // First, try to decode as-is
+        $decoded = json_decode($json, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            // If it decodes successfully, re-encode to normalize
+            return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+        
+        // If direct decode failed, try to fix common double-escape issues
+        
+        // Fix double-escaped newlines: \\r\\n -> \r\n, \\n -> \n, \\r -> \r
+        // But be careful - only fix if it's actually double-escaped (4+ backslashes)
+        $json = preg_replace('/(?<!\\\\)\\\\{4,}r\\\\{4,}n/', "\r\n", $json);
+        $json = preg_replace('/(?<!\\\\)\\\\{4,}n/', "\n", $json);
+        $json = preg_replace('/(?<!\\\\)\\\\{4,}r/', "\r", $json);
+        
+        // Fix triple+ escaped (common in code blocks): \\\n -> \n
+        $json = preg_replace('/\\\\{3,}n/', "\n", $json);
+        $json = preg_replace('/\\\\{3,}r\\\\{3,}n/', "\r\n", $json);
+        $json = preg_replace('/\\\\{3,}r/', "\r", $json);
+        
+        // Fix double-escaped tabs: \\t -> \t
+        $json = preg_replace('/\\\\{3,}t/', "\t", $json);
+        
+        // Try decoding again after normalization
+        $decoded = json_decode($json, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+        
+        // If still failing, return as-is (will be handled by error reporting)
+        return $json;
+    }
+
+    /**
      * Extract JSON from AI response with multiple fallback strategies
      * 
      * @param string $response Raw AI response
@@ -35,7 +79,10 @@ class JsonResponseParser
 
         // Strategy 2: Extract from ```json...``` code blocks
         if (preg_match('/```json\s*(.*?)\s*```/s', $response, $matches)) {
-            $decoded = json_decode($matches[1], true);
+            $json_content = $matches[1];
+            // Normalize escaping before parsing
+            $json_content = $this->normalize_json_escaping($json_content);
+            $decoded = json_decode($json_content, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
@@ -43,7 +90,10 @@ class JsonResponseParser
 
         // Strategy 3: Extract from ``` blocks (without json tag)
         if (preg_match('/```\s*(.*?)\s*```/s', $response, $matches)) {
-            $decoded = json_decode($matches[1], true);
+            $json_content = $matches[1];
+            // Normalize escaping before parsing
+            $json_content = $this->normalize_json_escaping($json_content);
+            $decoded = json_decode($json_content, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
@@ -52,7 +102,10 @@ class JsonResponseParser
         // Strategy 4: Find JSON object anywhere in text (with proper nesting support)
         // Match balanced braces using recursive pattern
         if (preg_match('/\{(?:[^{}]|(?R))*\}/x', $response, $matches)) {
-            $decoded = json_decode($matches[0], true);
+            $json_content = $matches[0];
+            // Normalize escaping before parsing
+            $json_content = $this->normalize_json_escaping($json_content);
+            $decoded = json_decode($json_content, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
@@ -66,6 +119,8 @@ class JsonResponseParser
         $cleaned = preg_replace('/[^}]*$/', '', $cleaned);
 
         if (!empty($cleaned)) {
+            // Normalize escaping before parsing
+            $cleaned = $this->normalize_json_escaping($cleaned);
             $decoded = json_decode($cleaned, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
@@ -137,10 +192,31 @@ class JsonResponseParser
             $json_data = $this->extract_json($response);
 
             if ($json_data === null) {
+                // Try to get more details about why parsing failed
+                $last_error = json_last_error();
+                $last_error_msg = json_last_error_msg();
+                
+                // Log detailed error for debugging
+                if (class_exists('\PolyTrans_Logs_Manager')) {
+                    \PolyTrans_Logs_Manager::log(
+                        'JSON Response Parser: Failed to extract JSON from response',
+                        'error',
+                        [
+                            'json_error_code' => $last_error,
+                            'json_error_message' => $last_error_msg,
+                            'response_length' => strlen($response),
+                            'response_preview' => substr($response, 0, 1000),
+                            'response_end' => substr($response, -500)
+                        ]
+                    );
+                }
+                
                 return [
                     'success' => false,
-                    'error' => 'Failed to extract JSON from response',
-                    'raw_response' => $response,
+                    'error' => 'Failed to extract JSON from response: ' . ($last_error_msg ?: 'Unknown error'),
+                    'json_error' => $last_error_msg,
+                    'json_error_code' => $last_error,
+                    'raw_response' => substr($response, 0, 1000), // Limit size
                     'mappings' => []
                 ];
             }

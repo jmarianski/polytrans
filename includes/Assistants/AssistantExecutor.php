@@ -341,8 +341,29 @@ class AssistantExecutor
 	 */
 	private static function process_json_response($content, $config)
 	{
-		// Parse JSON
+		// Parse JSON - try direct parse first
 		$decoded = json_decode($content, true);
+
+		// If parsing failed, try to normalize escaping (common issue with code blocks)
+		if (json_last_error() !== JSON_ERROR_NONE) {
+			// Try to extract JSON from code blocks if present
+			$normalized_content = $content;
+			
+			// Extract from ```json...``` or ```...``` blocks
+			if (preg_match('/```(?:json)?\s*(.*?)\s*```/s', $content, $matches)) {
+				$normalized_content = trim($matches[1]);
+			}
+			
+			// Try to fix double-escaped characters
+			// Common issue: \\r\\n instead of \r\n
+			$normalized_content = preg_replace('/\\\\{3,}r\\\\{3,}n/', "\r\n", $normalized_content);
+			$normalized_content = preg_replace('/\\\\{3,}n/', "\n", $normalized_content);
+			$normalized_content = preg_replace('/\\\\{3,}r/', "\r", $normalized_content);
+			$normalized_content = preg_replace('/\\\\{3,}t/', "\t", $normalized_content);
+			
+			// Try parsing again with normalized content
+			$decoded = json_decode($normalized_content, true);
+		}
 
 		if (json_last_error() !== JSON_ERROR_NONE) {
 			// Log parsing error (without full response to avoid DB/memory issues)
@@ -351,6 +372,7 @@ class AssistantExecutor
 				'error',
 				array(
 					'json_error'    => json_last_error_msg(),
+					'json_error_code' => json_last_error(),
 					'response_length' => strlen($content),
 					'response_preview' => substr($content, 0, 500), // First 500 chars
 					'response_end' => substr($content, -200), // Last 200 chars to see if truncated
@@ -362,6 +384,7 @@ class AssistantExecutor
 				__('Failed to parse JSON response', 'polytrans'),
 				array(
 					'json_error' => json_last_error_msg(),
+					'json_error_code' => json_last_error(),
 					'content'    => substr($content, 0, 200),
 					'full_length' => strlen($content),
 				)
