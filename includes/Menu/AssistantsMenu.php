@@ -291,6 +291,18 @@ class AssistantsMenu
             if (!isset($assistant['response_format']) && isset($assistant['expected_format'])) {
                 $assistant['response_format'] = $assistant['expected_format'];
             }
+
+            // Map api_parameters to config for UI consistency
+            if (isset($assistant['api_parameters']) && is_array($assistant['api_parameters'])) {
+                $assistant['config'] = [
+                    'temperature' => $assistant['api_parameters']['temperature'] ?? 0.7,
+                    'max_tokens' => $assistant['api_parameters']['max_tokens'] ?? 2000
+                ];
+                // Also map model for easier access
+                if (isset($assistant['api_parameters']['model'])) {
+                    $assistant['model'] = $assistant['api_parameters']['model'];
+                }
+            }
         }
 
     ?>
