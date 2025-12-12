@@ -2,6 +2,8 @@
 
 namespace PolyTrans\Core;
 
+use Exception;
+
 /**
  * Background Process Handler
  * Handles running tasks in background processes

@@ -18,18 +18,13 @@ if (!defined('ABSPATH')) {
 class VariableManager
 {
     /**
-     * Lazy load Twig Engine (requires Composer autoloader)
+     * Check if Twig Engine is available (now autoloaded via PSR-4)
      *
-     * @return void
+     * @return bool
      */
-    private function load_twig_engine()
+    private function is_twig_available()
     {
-        if (!class_exists('\PolyTrans_Twig_Engine')) {
-            $twig_engine_path = dirname(__DIR__) . '/templating/class-twig-template-engine.php';
-            if (file_exists($twig_engine_path)) {
-                require_once $twig_engine_path;
-            }
-        }
+        return class_exists('\PolyTrans\Templating\TwigEngine') || class_exists('PolyTrans_Twig_Engine');
     }
 
     /**
@@ -83,13 +78,15 @@ class VariableManager
             return $template;
         }
 
-        // Lazy load Twig Engine (requires Composer autoloader)
-        $this->load_twig_engine();
-
-        // Use Twig Engine if available
-        if (class_exists('\PolyTrans_Twig_Engine')) {
+        // Use Twig Engine if available (now autoloaded via PSR-4)
+        if ($this->is_twig_available()) {
             try {
-                return PolyTrans_Twig_Engine::render($template, $context);
+                // Try namespaced class first, then legacy
+                if (class_exists('\PolyTrans\Templating\TwigEngine')) {
+                    return \PolyTrans\Templating\TwigEngine::render($template, $context);
+                } elseif (class_exists('PolyTrans_Twig_Engine')) {
+                    return PolyTrans_Twig_Engine::render($template, $context);
+                }
             } catch (\Exception $e) {
                 // Twig failed, fall back to legacy regex
                 PolyTrans_Logs_Manager::log(
