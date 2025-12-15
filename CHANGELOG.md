@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.7] - 2025-12-15
+
+### Removed
+- **Test Assistant Functionality**: Removed unused test assistant button and related code
+  - Removed `testSuccess` and `testError` i18n strings from AssistantsMenu
+  - Removed test-results-container CSS styles
+  - Test assistant functionality was never fully implemented and caused errors
+  - Workflow testing functionality remains intact (has separate UI)
+
 ## [1.6.6] - 2025-12-15
 
 ### Fixed
