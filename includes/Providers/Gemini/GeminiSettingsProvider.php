@@ -248,11 +248,9 @@ class GeminiSettingsProvider implements SettingsProviderInterface
     
     public function load_models(array $settings): array
     {
-        error_log("[PolyTrans] GeminiSettingsProvider::load_models() called");
         $api_key = $settings['gemini_api_key'] ?? '';
         
         if (empty($api_key)) {
-            error_log("[PolyTrans] Gemini API key is empty, returning empty array");
             return [];
         }
         
@@ -314,13 +312,6 @@ class GeminiSettingsProvider implements SettingsProviderInterface
                 // We only want models that support generateContent (text/chat)
                 $supported_methods = $model['supportedGenerationMethods'] ?? [];
                 
-                // Log supported methods for debugging
-                error_log(sprintf(
-                    'PolyTrans: Gemini model "%s" - supportedGenerationMethods: %s',
-                    $model_id,
-                    is_array($supported_methods) ? json_encode($supported_methods) : 'not set or not array'
-                ));
-                
                 // Check for generateContent (camelCase) - Gemini API format
                 $has_generate_content = false;
                 if (is_array($supported_methods)) {
@@ -331,18 +322,8 @@ class GeminiSettingsProvider implements SettingsProviderInterface
                 
                 if (!$has_generate_content) {
                     // Skip models that don't support text generation (image/video only models)
-                    error_log(sprintf(
-                        'PolyTrans: Skipping Gemini model "%s" - does not support generateContent (methods: %s)',
-                        $model_id,
-                        is_array($supported_methods) ? json_encode($supported_methods) : 'not set'
-                    ));
                     continue;
                 }
-                
-                error_log(sprintf(
-                    'PolyTrans: Including Gemini model "%s" - supports generateContent',
-                    $model_id
-                ));
                 
                 // Additional filter: exclude known image/video model patterns
                 // Nano Banana, Nano Banana Pro, and similar are image generation models
