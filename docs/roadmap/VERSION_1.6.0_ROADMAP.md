@@ -27,63 +27,70 @@
 - [x] API reference dla wszystkich hooków i filtrów (w guide)
 - [x] Przykłady użycia w różnych scenariuszach (w przykładowym pluginie)
 
-### 2. Claude Provider (Wbudowany)
+### 2. Claude Provider (Wbudowany) ✅ ZREALIZOWANE
 
 #### Backend
-- [ ] `ClaudeProvider` implementujący `TranslationProviderInterface`
-- [ ] `ClaudeSettingsProvider` implementujący `SettingsProviderInterface`
-- [ ] `ClaudeAssistantClientAdapter` implementujący `AIAssistantClientInterface`
-- [ ] Rejestracja w `ProviderRegistry`
-- [ ] Implementacja `validate_api_key()` dla Claude
-- [ ] Implementacja `load_assistants()` dla Claude Projects
-- [ ] Implementacja `load_models()` dla Claude models
+- [x] `ClaudeProvider` implementujący `TranslationProviderInterface` ✅
+- [x] `ClaudeSettingsProvider` implementujący `SettingsProviderInterface` ✅
+- [x] `ClaudeChatClientAdapter` implementujący `ChatClientInterface` ✅
+- [x] Rejestracja w `ProviderRegistry` ✅
+- [x] Implementacja `validate_api_key()` dla Claude ✅
+- [x] Implementacja `load_assistants()` dla Claude (zwraca pustą tablicę - Claude nie ma Assistants API) ✅
+- [x] Implementacja `load_models()` dla Claude models ✅
 
 #### Frontend
-- [ ] HTML settings UI dla Claude (API key, model selection)
-- [ ] Data attributes dla uniwersalnego JS systemu
-- [ ] Lokalizacja strings dla Claude
+- [x] HTML settings UI dla Claude (używa universal UI) ✅
+- [x] Data attributes dla uniwersalnego JS systemu ✅
+- [x] Lokalizacja strings dla Claude ✅
+- [x] UI notice informujący że Claude nie ma Assistants API ✅
 
-### 3. Gemini Provider (Wbudowany)
+### 3. Gemini Provider (Wbudowany) ✅ ZREALIZOWANE
 
 #### Backend
-- [ ] `GeminiProvider` implementujący `TranslationProviderInterface`
-- [ ] `GeminiSettingsProvider` implementujący `SettingsProviderInterface`
-- [ ] `GeminiAssistantClientAdapter` implementujący `AIAssistantClientInterface`
-- [ ] Rejestracja w `ProviderRegistry`
-- [ ] Implementacja `validate_api_key()` dla Gemini
-- [ ] Implementacja `load_assistants()` dla Gemini Tuned Models
-- [ ] Implementacja `load_models()` dla Gemini models
+- [x] `GeminiProvider` implementujący `TranslationProviderInterface` ✅
+- [x] `GeminiSettingsProvider` implementujący `SettingsProviderInterface` ✅
+- [x] `GeminiChatClientAdapter` implementujący `ChatClientInterface` ✅
+- [x] `GeminiAssistantClientAdapter` implementujący `AIAssistantClientInterface` ✅ (placeholder)
+- [x] Rejestracja w `ProviderRegistry` ✅
+- [x] Implementacja `validate_api_key()` dla Gemini ✅
+- [x] Implementacja `load_assistants()` dla Gemini Agents/Tuned Models ✅
+- [x] Implementacja `load_models()` dla Gemini models ✅
+- [x] Filtrowanie modeli (wykluczenie image/video generation models) ✅
 
 #### Frontend
-- [ ] HTML settings UI dla Gemini (API key, model selection)
-- [ ] Data attributes dla uniwersalnego JS systemu
-- [ ] Lokalizacja strings dla Gemini
+- [x] HTML settings UI dla Gemini (używa universal UI) ✅
+- [x] Data attributes dla uniwersalnego JS systemu ✅
+- [x] Lokalizacja strings dla Gemini ✅
 
-### 4. Universal Provider JS System
+### 4. Universal Provider JS System ✅ ZREALIZOWANE
 
 #### Implementation
-- [x] Stworzyć `assets/js/settings/provider-settings-universal.js`
-- [x] Dodać endpoint `polytrans_validate_provider_key` z parametrem `provider_id` ✅ (już istnieje)
-- [x] Dodać metodę `validate_api_key()` do `SettingsProviderInterface` ✅ (już istnieje)
+- [x] Stworzyć `assets/js/settings/provider-settings-universal.js` ✅
+- [x] Dodać endpoint `polytrans_validate_provider_key` z parametrem `provider_id` ✅
+- [x] Dodać metodę `validate_api_key()` do `SettingsProviderInterface` ✅
 - [x] Zaimplementować w `OpenAISettingsProvider` ✅
 - [x] Zaktualizować HTML wszystkich providerów (dodać data attributes) ✅ (universal UI automatycznie)
-- [ ] Zaktualizować `openai-integration.js` aby używał uniwersalnego systemu (opcjonalnie - backward compatible)
+- [x] Usunąć `openai-integration.js` i `openai-integration.css` ✅ (OpenAI używa teraz universal system)
+- [x] Force refresh models functionality ✅
+- [x] "None selected" option dla modeli ✅
 
 #### Migration
 - [x] Zachować backward compatibility (stare ID selektorów) ✅
 - [x] Dodać data attributes obok istniejących ID ✅ (universal UI używa data attributes)
 - [ ] Przetestować z OpenAI, Claude, Gemini, DeepSeek (przykładowy zewnętrzny)
 
-### 5. Universal Endpoints Refactoring
+### 5. Universal Endpoints Refactoring ✅ ZREALIZOWANE
 
 #### Endpoints to Refactor
-- [ ] `polytrans_load_assistants` - przenieść z `OpenAISettingsProvider` do `TranslationSettings` lub osobnej klasy
-- [ ] Iterować przez wszystkie providery z manifestami (wbudowane + zewnętrzne)
-- [ ] Wywoływać `load_assistants()` jeśli metoda istnieje lub używać hooka `polytrans_load_assistants_{provider_id}`
+- [x] `polytrans_load_assistants` - iteruje przez wszystkie providery ✅
+- [x] Iterować przez wszystkie providery z manifestami (wbudowane + zewnętrzne) ✅
+- [x] Wywoływać `load_assistants()` jeśli metoda istnieje ✅
+- [x] `polytrans_get_provider_models` - uniwersalny endpoint dla modeli ✅
+- [x] Force refresh support dla modeli ✅
 
 #### Interface Extensions
-- [ ] Dodać `load_assistants(array $settings): array` do `SettingsProviderInterface`
-- [ ] Dodać `load_models(array $settings): array` do `SettingsProviderInterface` (opcjonalnie)
+- [x] Dodać `load_assistants(array $settings): array` do `SettingsProviderInterface` ✅
+- [x] Dodać `load_models(array $settings): array` do `SettingsProviderInterface` ✅
 
 ## Przykładowy Plugin: polytrans_deepseek
 

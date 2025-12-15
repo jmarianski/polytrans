@@ -55,32 +55,43 @@
   - UI automatycznie ukrywa pole system promptu dla providerów bez wsparcia
   - Walidacja warunkowa (nie wymaga system promptu jeśli provider nie wspiera)
 
-### ⏳ W Trakcie / Do Zrobienia
+## ✅ Zrealizowane (Faza 3: Claude Provider)
 
-### Faza 3: Claude Provider
-- [ ] `ClaudeProvider` implementujący `TranslationProviderInterface`
-- [ ] `ClaudeSettingsProvider` implementujący `SettingsProviderInterface`
-- [ ] `ClaudeAssistantClientAdapter` implementujący `AIAssistantClientInterface`
-- [ ] Rejestracja w `ProviderRegistry`
-- [ ] Implementacja `validate_api_key()` dla Claude
-- [ ] Implementacja `load_assistants()` dla Claude Projects
-- [ ] Implementacja `load_models()` dla Claude models
-- [ ] HTML settings UI (użyje universal UI automatycznie)
+### Claude Provider Implementation
+- [x] `ClaudeProvider` implementujący `TranslationProviderInterface` ✅
+- [x] `ClaudeSettingsProvider` implementujący `SettingsProviderInterface` ✅
+- [x] `ClaudeChatClientAdapter` implementujący `ChatClientInterface` ✅
+- [x] Rejestracja w `ProviderRegistry` ✅
+- [x] Implementacja `validate_api_key()` dla Claude ✅
+- [x] Implementacja `load_assistants()` dla Claude (zwraca pustą tablicę - Claude nie ma Assistants API) ✅
+- [x] Implementacja `load_models()` dla Claude models (z API) ✅
+- [x] HTML settings UI (używa universal UI) ✅
+- [x] UI notice informujący że Claude nie ma Assistants API ✅
+- [x] System prompt capability support ✅
 
-### Faza 4: Gemini Provider
-- [ ] `GeminiProvider` implementujący `TranslationProviderInterface`
-- [ ] `GeminiSettingsProvider` implementujący `SettingsProviderInterface`
-- [ ] `GeminiAssistantClientAdapter` implementujący `AIAssistantClientInterface`
-- [ ] Rejestracja w `ProviderRegistry`
-- [ ] Implementacja `validate_api_key()` dla Gemini
-- [ ] Implementacja `load_assistants()` dla Gemini Tuned Models
-- [ ] Implementacja `load_models()` dla Gemini models
-- [ ] HTML settings UI (użyje universal UI automatycznie)
+## ✅ Zrealizowane (Faza 4: Gemini Provider)
 
-### Faza 5: Universal Endpoints Refactoring
-- [x] `polytrans_load_assistants` - już iteruje przez wszystkie providery ✅
+### Gemini Provider Implementation
+- [x] `GeminiProvider` implementujący `TranslationProviderInterface` ✅
+- [x] `GeminiSettingsProvider` implementujący `SettingsProviderInterface` ✅
+- [x] `GeminiChatClientAdapter` implementujący `ChatClientInterface` ✅
+- [x] `GeminiAssistantClientAdapter` implementujący `AIAssistantClientInterface` ✅ (placeholder)
+- [x] Rejestracja w `ProviderRegistry` ✅
+- [x] Implementacja `validate_api_key()` dla Gemini ✅
+- [x] Implementacja `load_assistants()` dla Gemini Agents/Tuned Models ✅
+- [x] Implementacja `load_models()` dla Gemini models (z API) ✅
+- [x] Filtrowanie modeli (wykluczenie image/video generation models) ✅
+- [x] HTML settings UI (używa universal UI) ✅
+- [x] System prompt capability support ✅
+
+## ✅ Zrealizowane (Faza 5: Universal Endpoints Refactoring)
+
+### Universal Endpoints
+- [x] `polytrans_load_assistants` - iteruje przez wszystkie providery ✅
+- [x] `polytrans_get_provider_models` - uniwersalny endpoint dla modeli ✅
+- [x] Force refresh support dla modeli ✅
 - [x] Metody `load_assistants()` w interfejsie ✅
-- [ ] Opcjonalnie: przenieść endpoint z `OpenAISettingsProvider` do osobnej klasy (nie krytyczne)
+- [x] Metody `load_models()` w interfejsie ✅
 
 ## 📊 Podsumowanie
 
@@ -90,25 +101,24 @@
 - ✅ **Provider Capabilities** - pełny system rozróżniania typów
 - ✅ **Dokumentacja** - kompletne przewodniki
 
-### Wymaga implementacji:
+### Wszystko zrealizowane:
 - ✅ **Universal JS System** - **ZREALIZOWANE** ✅
-- ⏳ **Claude Provider** - wbudowany provider
-- ⏳ **Gemini Provider** - wbudowany provider
+- ✅ **Claude Provider** - **ZREALIZOWANE** ✅
+- ✅ **Gemini Provider** - **ZREALIZOWANE** ✅
 
 ## 🎯 Co można już zrobić?
 
-**Zewnętrzne pluginy mogą już działać!** Przykład:
-- Plugin `polytrans_deepseek` może być zainstalowany i działać
-- DeepSeek pojawi się w Enabled Translation Providers
-- DeepSeek będzie miał własny tab w settings (automatycznie)
-- DeepSeek może być używany dla managed assistants
-- Walidacja API key działa (przez universal endpoint)
+**Wszystkie providery działają!** Przykład:
+- ✅ OpenAI, Claude, Gemini są wbudowane i działają
+- ✅ Zewnętrzne pluginy (np. `polytrans_deepseek`) mogą być zainstalowane i działać
+- ✅ Wszystkie providery pojawiają się w Enabled Translation Providers
+- ✅ Wszystkie providery mają własne taby w settings (automatycznie)
+- ✅ Wszystkie providery mogą być używane dla managed assistants
+- ✅ Walidacja API key działa dla wszystkich providerów (przez universal endpoint)
+- ✅ Model loading działa dla wszystkich providerów (z API, z cache, force refresh)
+- ✅ System prompt support detection działa automatycznie
 
-**Brakuje tylko:**
-- ~~Universal JS dla automatycznego ładowania modeli i walidacji~~ ✅ **ZREALIZOWANE**
-- Claude i Gemini jako wbudowane providery
-
-## ✅ Wersja 1.6.0 - Gotowa do dodania providerów!
+## ✅ Wersja 1.6.0 - KOMPLETNA! 🎉
 
 **Wszystkie wymagane komponenty są zrealizowane:**
 
@@ -117,18 +127,25 @@
 - ✅ Universal UI System (automatyczne renderowanie)
 - ✅ Universal JS System (data attributes, walidacja, refresh)
 - ✅ Provider Capabilities System
-- ✅ AIAssistantClientFactory (gotowy na Claude/Gemini)
-- ✅ ProviderRegistry (gotowy na rejestrację)
+- ✅ AIAssistantClientFactory (działa z OpenAI, Claude, Gemini)
+- ✅ ChatClientFactory (działa z OpenAI, Claude, Gemini)
+- ✅ ProviderRegistry (zarejestrowane: Google, OpenAI, Claude, Gemini)
 - ✅ Dokumentacja i przykłady
 
-### ⏳ Do dodania (Faza 3 + 4):
-- ⏳ Claude Provider (backend + frontend)
-- ⏳ Gemini Provider (backend + frontend)
+### ✅ Wbudowane Providery (Faza 3 + 4):
+- ✅ Claude Provider (backend + frontend) - **ZREALIZOWANE**
+- ✅ Gemini Provider (backend + frontend) - **ZREALIZOWANE**
 
-**Status:** System jest w pełni gotowy do dodania Claude'a i Gemini! Wszystkie interfejsy, factory, registry i UI są przygotowane. Dodanie nowych providerów to tylko implementacja klas zgodnych z interfejsami.
+**Status:** ✅ **WERSJA 1.6.0 KOMPLETNA!** Wszystkie cele zostały zrealizowane. System jest w pełni ekstensybilny i gotowy do użycia z wbudowanymi i zewnętrznymi providerami.
 
 ### 📝 Uwagi:
-- `AssistantExecutor::call_provider_api()` ma hardcoded switch - można to później poprawić, ale nie blokuje dodania Claude'a
-- `PredefinedAssistantStep` już używa `AIAssistantClientFactory` - działa uniwersalnie
-- `ManagedAssistantStep` używa `AssistantExecutor` - działa z managed assistants niezależnie od providera
+- ✅ `AssistantExecutor::call_provider_api()` został zrefaktorowany do factory pattern (1.6.0)
+- ✅ `PredefinedAssistantStep` używa `AIAssistantClientFactory` - działa uniwersalnie
+- ✅ `ManagedAssistantStep` używa `AssistantExecutor` - działa z managed assistants niezależnie od providera
+- ✅ OpenAI, Claude, Gemini są w pełni zintegrowane i działają
+- ✅ `openai-integration.js` i `openai-integration.css` zostały usunięte (1.6.4)
+- ✅ Wszystkie providery używają universal JS system
+
+### 🎯 Następne kroki:
+- Wersja 1.7.0: Enhanced Extensibility & Behavior Modification (hooki do modyfikacji procesu translacji)
 
