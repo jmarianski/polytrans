@@ -42,7 +42,6 @@ class AssistantsMenu
         add_action('wp_ajax_polytrans_save_assistant', [$this, 'ajax_save_assistant']);
         add_action('wp_ajax_polytrans_delete_assistant', [$this, 'ajax_delete_assistant']);
         add_action('wp_ajax_polytrans_get_assistant', [$this, 'ajax_get_assistant']);
-        add_action('wp_ajax_polytrans_test_assistant', [$this, 'ajax_test_assistant']);
         add_action('wp_ajax_polytrans_migrate_workflows', [$this, 'ajax_migrate_workflows']);
         add_action('wp_ajax_polytrans_get_provider_models', [$this, 'ajax_get_provider_models']);
     }
@@ -133,8 +132,6 @@ class AssistantsMenu
                 'saveError' => __('Failed to save assistant.', 'polytrans'),
                 'deleteSuccess' => __('Assistant deleted successfully.', 'polytrans'),
                 'deleteError' => __('Failed to delete assistant.', 'polytrans'),
-                'testSuccess' => __('Test completed successfully.', 'polytrans'),
-                'testError' => __('Test failed.', 'polytrans'),
                 'loading' => __('Loading...', 'polytrans'),
                 'requiredField' => __('This field is required.', 'polytrans'),
             ],
@@ -562,20 +559,12 @@ class AssistantsMenu
                     <button type="submit" class="button button-primary">
                         <?php esc_html_e('Save Assistant', 'polytrans'); ?>
                     </button>
-                    <button type="button" id="test-assistant-btn" class="button">
-                        <?php esc_html_e('Test Assistant', 'polytrans'); ?>
-                    </button>
                     <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-assistants')); ?>" class="button">
                         <?php esc_html_e('Cancel', 'polytrans'); ?>
                     </a>
                 </div>
             </form>
 
-            <!-- Test Results Container -->
-            <div id="test-results-container" style="display: none; margin-top: 20px;">
-                <h2><?php esc_html_e('Test Results', 'polytrans'); ?></h2>
-                <div id="test-results-content"></div>
-            </div>
         </div>
 
         <script type="text/javascript">
@@ -738,42 +727,6 @@ class AssistantsMenu
         }
     }
 
-    /**
-     * AJAX: Test assistant
-     */
-    public function ajax_test_assistant()
-    {
-        check_ajax_referer('polytrans_assistants', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permission denied.', 'polytrans')]);
-        }
-
-        $assistant_id = isset($_POST['assistant_id']) ? intval($_POST['assistant_id']) : 0;
-        $test_variables = isset($_POST['test_variables']) ? wp_unslash($_POST['test_variables']) : [];
-
-        if ($assistant_id <= 0) {
-            wp_send_json_error(['message' => __('Invalid assistant ID.', 'polytrans')]);
-        }
-
-        try {
-            $result = PolyTrans_Assistant_Executor::execute($assistant_id, $test_variables);
-
-            if ($result['success']) {
-                wp_send_json_success([
-                    'message' => __('Test completed successfully.', 'polytrans'),
-                    'result' => $result
-                ]);
-            } else {
-                wp_send_json_error([
-                    'message' => __('Test failed.', 'polytrans'),
-                    'error' => $result['error']
-                ]);
-            }
-        } catch (\Exception $e) {
-            wp_send_json_error(['message' => $e->getMessage()]);
-        }
-    }
 
     /**
      * AJAX: Migrate workflows to managed assistants

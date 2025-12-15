@@ -27,8 +27,6 @@
             // Save assistant form
             $('#assistant-editor-form').on('submit', this.handleSave.bind(this));
 
-            // Test assistant
-            $('#test-assistant-btn').on('click', this.handleTest.bind(this));
 
             // Provider change - load models dynamically
             $('#assistant-provider').on('change', this.handleProviderChange.bind(this));
@@ -427,79 +425,6 @@
             });
         },
 
-        /**
-         * Handle test assistant
-         */
-        handleTest: function(e) {
-            e.preventDefault();
-
-            const $button = $(e.currentTarget);
-            const assistantId = $('input[name="assistant_id"]').val();
-
-            // For testing, we'll use some sample variables
-            const testVariables = {
-                title: 'Sample Article Title',
-                content: 'This is sample content for testing the assistant.',
-                excerpt: 'Sample excerpt',
-                language: 'en'
-            };
-
-            $button.prop('disabled', true).text(polytransAssistants.strings.loading);
-            $('#test-results-container').hide();
-
-            $.ajax({
-                url: polytransAssistants.ajaxUrl,
-                type: 'POST',
-                data: {
-                    action: 'polytrans_test_assistant',
-                    nonce: polytransAssistants.nonce,
-                    assistant_id: assistantId,
-                    test_variables: testVariables
-                },
-                success: function(response) {
-                    $button.prop('disabled', false).text(polytransAssistants.strings.test);
-
-                    if (response.success) {
-                        AssistantsAdmin.showTestResults(response.data.result);
-                    } else {
-                        AssistantsAdmin.showNotice(response.data.message + ': ' + (response.data.error || ''), 'error');
-                    }
-                },
-                error: function() {
-                    $button.prop('disabled', false).text(polytransAssistants.strings.test);
-                    AssistantsAdmin.showNotice(polytransAssistants.strings.testError, 'error');
-                }
-            });
-        },
-
-        /**
-         * Show test results
-         */
-        showTestResults: function(result) {
-            const $container = $('#test-results-container');
-            const $content = $('#test-results-content');
-
-            let html = '<div class="notice notice-success"><p>' + polytransAssistants.strings.testSuccess + '</p></div>';
-            
-            html += '<div class="test-result-data">';
-            html += '<h3>Response:</h3>';
-            html += '<pre>' + this.escapeHtml(JSON.stringify(result.data, null, 2)) + '</pre>';
-            
-            if (result.metadata) {
-                html += '<h3>Metadata:</h3>';
-                html += '<ul>';
-                html += '<li><strong>Provider:</strong> ' + this.escapeHtml(result.metadata.provider) + '</li>';
-                html += '<li><strong>Model:</strong> ' + this.escapeHtml(result.metadata.model) + '</li>';
-                if (result.metadata.tokens_used) {
-                    html += '<li><strong>Tokens Used:</strong> ' + result.metadata.tokens_used + '</li>';
-                }
-                html += '</ul>';
-            }
-            html += '</div>';
-
-            $content.html(html);
-            $container.show();
-        },
 
         /**
          * Show admin notice

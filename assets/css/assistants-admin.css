@@ -53,48 +53,6 @@
     margin-right: 10px;
 }
 
-/* Test Results */
-#test-results-container {
-    background: #fff;
-    border: 1px solid #ccd0d4;
-    border-radius: 4px;
-    padding: 20px;
-    margin-top: 20px;
-}
-
-#test-results-container h2 {
-    margin-top: 0;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #ddd;
-}
-
-#test-results-container h3 {
-    margin-top: 20px;
-    margin-bottom: 10px;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.test-result-data pre {
-    background: #f6f7f7;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    padding: 15px;
-    overflow-x: auto;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-.test-result-data ul {
-    margin: 10px 0;
-    padding-left: 20px;
-}
-
-.test-result-data ul li {
-    margin: 5px 0;
-}
-
 /* Notices */
 .notice.is-dismissible {
     position: relative;
