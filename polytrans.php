@@ -4,7 +4,7 @@
  * Plugin Name: PolyTrans
  * Plugin URI: https://github.com/your-username/polytrans
  * Description: Advanced multilingual translation management system with AI-powered translation, scheduling, and review workflow
- * Version: 1.6.1
+ * Version: 1.6.2
  * Author: PolyTrans Team
  * Author URI: https://github.com/your-username/polytrans
  * Text Domain: polytrans
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('POLYTRANS_VERSION', '1.6.1');
+define('POLYTRANS_VERSION', '1.6.2');
 define('POLYTRANS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('POLYTRANS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('POLYTRANS_PLUGIN_FILE', __FILE__);
@@ -118,7 +118,7 @@ function polytrans_handle_background_request()
 add_action('init', 'polytrans_handle_background_request', 5);
 
 /**
- * Register default providers (Google, OpenAI)
+ * Register default providers (Google, OpenAI, Claude)
  * These are registered via hook for consistency with external plugins
  */
 add_action('polytrans_register_providers', function($registry) {
@@ -126,10 +126,11 @@ add_action('polytrans_register_providers', function($registry) {
     // Classes are autoloaded via PSR-4, no require_once needed
     $registry->register_provider(new \PolyTrans_Google_Provider());
     $registry->register_provider(new \PolyTrans_OpenAI_Provider());
+    $registry->register_provider(new \PolyTrans\Providers\Claude\ClaudeProvider());
 }, 10, 1);
 
 /**
- * Register default chat clients (OpenAI)
+ * Register default chat clients (OpenAI, Claude)
  * These are registered via filter for consistency with external plugins
  */
 add_filter('polytrans_chat_client_factory_create', function($client, $provider_id, $settings) {
@@ -139,6 +140,14 @@ add_filter('polytrans_chat_client_factory_create', function($client, $provider_i
         if (!empty($api_key)) {
             // Class is autoloaded via PSR-4, no require_once needed
             return new \PolyTrans\Providers\OpenAI\OpenAIChatClientAdapter($api_key);
+        }
+    }
+    
+    // Claude chat client
+    if ($provider_id === 'claude' && $client === null) {
+        $api_key = $settings['claude_api_key'] ?? '';
+        if (!empty($api_key)) {
+            return new \PolyTrans\Providers\Claude\ClaudeChatClientAdapter($api_key);
         }
     }
     

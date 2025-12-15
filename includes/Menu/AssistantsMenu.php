@@ -143,11 +143,10 @@ class AssistantsMenu
                     'label' => __('OpenAI', 'polytrans'),
                     'models' => ['gpt-4', 'gpt-4-turbo-preview', 'gpt-3.5-turbo']
                 ],
-                // Claude support ready for 1.6.2:
-                // 'claude' => [
-                //     'label' => __('Claude (Anthropic)', 'polytrans'),
-                //     'models' => ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']
-                // ],
+                'claude' => [
+                    'label' => __('Claude (Anthropic)', 'polytrans'),
+                    'models' => ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']
+                ],
                 'gemini' => [
                     'label' => __('Gemini (Google)', 'polytrans'),
                     'models' => ['gemini-pro', 'gemini-pro-vision']
@@ -390,7 +389,7 @@ class AssistantsMenu
                                 if (empty($available_assistant_providers)) {
                                     $available_assistant_providers = [
                                         'openai' => $registry->get_provider('openai'),
-                                        'claude' => null, // Placeholder
+                                        'claude' => $registry->get_provider('claude'),
                                         'gemini' => null, // Placeholder
                                     ];
                                 }
@@ -824,24 +823,23 @@ class AssistantsMenu
     private function get_fallback_models($provider_id = null)
     {
         // Provider-specific fallbacks
-        // Claude support ready for 1.6.2:
-        // if ($provider_id === 'claude') {
-        //     return [
-        //         'Claude 3.5 Models' => [
-        //             'claude-3-5-sonnet-20241022' => 'Claude 3.5 Sonnet (Latest)',
-        //             'claude-3-5-haiku-20241022' => 'Claude 3.5 Haiku (Fast)',
-        //         ],
-        //         'Claude 3 Opus Models' => [
-        //             'claude-3-opus-20240229' => 'Claude 3 Opus',
-        //         ],
-        //         'Claude 3 Sonnet Models' => [
-        //             'claude-3-sonnet-20240229' => 'Claude 3 Sonnet',
-        //         ],
-        //         'Claude 3 Haiku Models' => [
-        //             'claude-3-haiku-20240307' => 'Claude 3 Haiku',
-        //         ],
-        //     ];
-        // }
+        if ($provider_id === 'claude') {
+            return [
+                'Claude 3.5 Models' => [
+                    'claude-3-5-sonnet-20241022' => 'Claude 3.5 Sonnet (Latest)',
+                    'claude-3-5-haiku-20241022' => 'Claude 3.5 Haiku (Fast)',
+                ],
+                'Claude 3 Opus Models' => [
+                    'claude-3-opus-20240229' => 'Claude 3 Opus',
+                ],
+                'Claude 3 Sonnet Models' => [
+                    'claude-3-sonnet-20240229' => 'Claude 3 Sonnet',
+                ],
+                'Claude 3 Haiku Models' => [
+                    'claude-3-haiku-20240307' => 'Claude 3 Haiku',
+                ],
+            ];
+        }
         
         // Default: OpenAI fallback (for backward compatibility)
         return [

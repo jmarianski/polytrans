@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.2] - 2025-12-15
+
+### Added
+- **Claude Provider Support**: Full integration of Claude (Anthropic) as a translation provider
+  - `ClaudeProvider`: Translation provider interface implementation
+  - `ClaudeSettingsProvider`: Settings provider with API key validation and model loading from API
+  - `ClaudeChatClientAdapter`: Chat client adapter for Claude Messages API
+  - Claude models loaded dynamically from `/v1/models` endpoint with filtering and grouping
+  - Support for Claude 3.x models (Opus, Sonnet, Haiku, 3.5 series)
+  - Claude provider available in Language Paths and Managed Assistants
+  - Informational notice in settings explaining Claude requires Managed Assistants (no dedicated Assistants API)
+
+### Changed
+- **Provider Registration**: Claude provider and chat client now registered via hooks/filters
+- **Response Parsing**: Added Claude response format handling (`content[0].text` structure)
+- **Model Fallbacks**: Added Claude-specific fallback models for offline scenarios
+
+### Technical
+- Claude provider uses PSR-4 autoloading (no require_once needed)
+- Claude chat client integrated via `ChatClientFactory`
+- Backward compatibility aliases added for Claude classes
+
 ## [1.6.1] - 2025-12-15
 
 ### Changed

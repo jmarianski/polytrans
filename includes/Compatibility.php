@@ -69,9 +69,8 @@ class_alias('PolyTrans\Providers\Google\GoogleProvider', 'PolyTrans_Google_Provi
 class_alias('PolyTrans\Providers\OpenAI\OpenAIClient', 'PolyTrans_OpenAI_Client');
 class_alias('PolyTrans\Providers\OpenAI\OpenAIProvider', 'PolyTrans_OpenAI_Provider');
 class_alias('PolyTrans\Providers\OpenAI\OpenAISettingsProvider', 'PolyTrans_OpenAI_Settings_Provider');
-// Claude aliases ready for 1.6.2:
-// class_alias('PolyTrans\Providers\Claude\ClaudeProvider', 'PolyTrans_Claude_Provider');
-// class_alias('PolyTrans\Providers\Claude\ClaudeSettingsProvider', 'PolyTrans_Claude_Settings_Provider');
+class_alias('PolyTrans\Providers\Claude\ClaudeProvider', 'PolyTrans_Claude_Provider');
+class_alias('PolyTrans\Providers\Claude\ClaudeSettingsProvider', 'PolyTrans_Claude_Settings_Provider');
 // OpenAISettingsUI removed - replaced by OpenAISettingsProvider
 
 // ============================================================================
