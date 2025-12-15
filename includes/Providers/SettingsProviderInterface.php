@@ -115,7 +115,10 @@ interface SettingsProviderInterface
      *   - capabilities: array of strings - what this provider can do:
      *     * 'translation' - direct translation API (e.g., Google Translate)
      *     * 'chat' - chat/completion API (all AI models, can be used for managed assistants)
-     *     * 'assistants' - dedicated Assistants API (e.g., OpenAI Assistants, Claude Projects, Gemini Tuned Models)
+     *     * 'assistants' - dedicated Assistants API (e.g., OpenAI Assistants, Gemini Agents)
+     *       * Note: Not all providers have Assistants API - Claude and DeepSeek only support managed assistants via chat API
+     *     * 'system_prompt' - provider supports system prompt in chat API (if 'chat' is present, 'system_prompt' indicates support)
+     *       * If 'chat' is present but 'system_prompt' is not, managed assistants can only use user_message_template, not system_prompt
      *   - assistants_endpoint: URL to fetch assistants (if supports 'assistants' capability)
      *   - chat_endpoint: URL for chat/completion (if supports 'chat' or 'assistants' capability)
      *   - models_endpoint: URL to fetch available models (if supports 'chat' or 'assistants' capability)
@@ -123,14 +126,13 @@ interface SettingsProviderInterface
      *   - auth_header: header name for auth (e.g., 'Authorization')
      *   - api_key_setting: setting key for API key (e.g., 'openai_api_key')
      *   - api_key_configured: bool - whether API key is set (for admin only)
-     *   - supports_system_prompt: bool - whether provider supports system prompt in chat API (default: true)
-     *     * If false, managed assistants can only use user_message_template, not system_prompt
      * 
      * Examples:
-     *   - Google: ['translation'], supports_system_prompt: false (no chat API)
-     *   - OpenAI: ['assistants', 'chat'], supports_system_prompt: true
-     *   - DeepSeek: ['chat'], supports_system_prompt: false (only user message supported)
-     *   - Claude: ['assistants', 'chat'], supports_system_prompt: true
+     *   - Google: ['translation'] (no chat API, no system prompt, no assistants)
+     *   - OpenAI: ['assistants', 'chat', 'system_prompt'] (has Assistants API, chat API with system prompt support)
+     *   - DeepSeek: ['chat', 'system_prompt'] (chat API with system prompt support, but NO Assistants API - use managed assistants)
+     *   - Claude: ['chat', 'system_prompt'] (chat API with system prompt support, but NO Assistants API - use managed assistants)
+     *   - Gemini: ['assistants', 'chat', 'system_prompt'] (has Agents API, chat API with system prompt support)
      */
     public function get_provider_manifest(array $settings);
     

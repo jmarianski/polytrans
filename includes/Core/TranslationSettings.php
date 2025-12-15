@@ -1307,6 +1307,33 @@ class TranslationSettings
                 </div>
             <?php endif; ?>
             
+            <?php 
+            // Check if provider supports assistants API
+            $has_assistants_api = in_array('assistants', $capabilities);
+            $has_chat = in_array('chat', $capabilities);
+            
+            // Show notice if provider has chat but no assistants API
+            if ($has_chat && !$has_assistants_api): ?>
+                <div class="notice notice-info" style="margin-top:2em;">
+                    <p>
+                        <strong><?php esc_html_e('Note:', 'polytrans'); ?></strong>
+                        <?php 
+                        printf(
+                            esc_html__('%s does not have a dedicated Assistants API. To use %s for AI-powered translations, please create a "Managed Assistant" in the Assistants menu. Managed Assistants allow you to configure system prompts and user message templates for %s.', 'polytrans'),
+                            esc_html($settings_provider->get_tab_label()),
+                            esc_html($settings_provider->get_tab_label()),
+                            esc_html($settings_provider->get_tab_label())
+                        );
+                        ?>
+                    </p>
+                    <p>
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-assistants&action=new')); ?>" class="button button-secondary">
+                            <?php esc_html_e('Create Managed Assistant', 'polytrans'); ?>
+                        </a>
+                    </p>
+                </div>
+            <?php endif; ?>
+            
             <?php if ($has_chat_or_assistants): ?>
                 <!-- Model Selection Section -->
                 <div class="provider-model-section" style="margin-top:2em;">

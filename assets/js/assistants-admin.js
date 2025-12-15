@@ -206,7 +206,16 @@
             // Check if provider supports system prompt
             const providerManifests = polytransAssistants.providerManifests || {};
             const manifest = providerManifests[provider];
-            const supportsSystemPrompt = manifest ? (manifest.supports_system_prompt !== false) : true; // Default to true for backward compatibility
+            // Check for system_prompt capability, fallback to supports_system_prompt for backward compatibility
+            let supportsSystemPrompt = true; // Default to true for backward compatibility
+            if (manifest) {
+                if (manifest.capabilities && Array.isArray(manifest.capabilities)) {
+                    supportsSystemPrompt = manifest.capabilities.includes('system_prompt');
+                } else {
+                    // Fallback to supports_system_prompt for backward compatibility
+                    supportsSystemPrompt = manifest.supports_system_prompt !== false;
+                }
+            }
             
             if (supportsSystemPrompt) {
                 // Show system prompt field

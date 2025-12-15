@@ -41,17 +41,13 @@ class AIAssistantClientFactory
             return new OpenAIAssistantClientAdapter($api_key);
         }
         
-        // Future: Claude assistants (project_xxx)
-        // if (strpos($assistant_id, 'project_') === 0) {
-        //     $api_key = $settings['claude_api_key'] ?? '';
-        //     if (empty($api_key)) {
-        //         return null;
-        //     }
-        //     return new ClaudeAssistantClientAdapter($api_key);
-        // }
+        // Future: Claude support (1.6.2)
+        // Note: Claude does NOT have an Assistants API - prompts created in UI are not accessible via API
+        // Claude must use Managed Assistants via ChatClientFactory instead
         
-        // Future: Gemini assistants (tuned_model_xxx)
-        // if (strpos($assistant_id, 'tuned_model_') === 0) {
+        // Future: Gemini Agents API
+        // Gemini has Agents API (different from OpenAI Assistants)
+        // if (strpos($assistant_id, 'agent_') === 0 || strpos($assistant_id, 'gemini_') === 0) {
         //     $api_key = $settings['gemini_api_key'] ?? '';
         //     if (empty($api_key)) {
         //         return null;
@@ -80,9 +76,10 @@ class AIAssistantClientFactory
         if (strpos($assistant_id, 'asst_') === 0) {
             return 'openai';
         }
-        if (strpos($assistant_id, 'project_') === 0) {
-            return 'claude';
-        }
+        // Claude support ready for 1.6.2:
+        // if (strpos($assistant_id, 'project_') === 0) {
+        //     return 'claude';
+        // }
         if (strpos($assistant_id, 'tuned_model_') === 0) {
             return 'gemini';
         }

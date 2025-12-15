@@ -209,12 +209,18 @@ class OpenAISettingsProvider implements SettingsProviderInterface
 
         // Validate model selection
         if (isset($posted_data['openai_model'])) {
-            $allowed_models = $this->get_all_available_models();
             $model = sanitize_text_field($posted_data['openai_model']);
-            if (in_array($model, $allowed_models)) {
-                $validated['openai_model'] = $model;
+            // Allow empty model (None selected) - will use default from get_default_settings()
+            if (empty($model)) {
+                $validated['openai_model'] = '';
             } else {
-                $validated['openai_model'] = 'gpt-4o-mini';
+                $allowed_models = $this->get_all_available_models();
+                if (in_array($model, $allowed_models)) {
+                    $validated['openai_model'] = $model;
+                } else {
+                    // Invalid model - use default instead
+                    $validated['openai_model'] = 'gpt-4o-mini';
+                }
             }
         }
 
@@ -900,9 +906,9 @@ class OpenAISettingsProvider implements SettingsProviderInterface
             
             foreach ($all_providers as $provider_id => $provider) {
                 // Only include enabled providers that can translate directly
-                // Skip OpenAI - it's assistant-only, not a translation provider
-                if ($provider_id === 'openai') {
-                    continue; // OpenAI doesn't have translation endpoints, only assistants
+                // Skip OpenAI and Claude - they're assistant-only, not translation providers
+                if ($provider_id === 'openai' || $provider_id === 'claude') {
+                    continue; // OpenAI and Claude don't have translation endpoints, only assistants
                 }
                 
                 if (in_array($provider_id, $enabled_providers)) {
@@ -988,6 +994,10 @@ class OpenAISettingsProvider implements SettingsProviderInterface
                 error_log('PolyTrans: Failed to load OpenAI assistants: ' . $e->getMessage());
             }
         }
+
+        // Note: Claude does not have an Assistants API (prompts created in UI are not accessible via API)
+        // Users must create Managed Assistants for Claude instead
+        // Gemini has Agents API and will be loaded when implemented
 
         // Return grouped structure
         wp_send_json_success($grouped_assistants);
@@ -1111,7 +1121,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
         
         return [
             'provider_id' => 'openai',
-            'capabilities' => ['assistants', 'chat'], // OpenAI provides both Assistants API and Chat API
+            'capabilities' => ['assistants', 'chat', 'system_prompt'], // OpenAI provides both Assistants API and Chat API with system prompt support
             'assistants_endpoint' => 'https://api.openai.com/v1/assistants',
             'chat_endpoint' => 'https://api.openai.com/v1/chat/completions',
             'models_endpoint' => 'https://api.openai.com/v1/models',
@@ -1120,7 +1130,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
             'api_key_setting' => 'openai_api_key',
             'api_key_configured' => !empty($api_key) && current_user_can('manage_options'), // Only show to admins
             'base_url' => 'https://api.openai.com/v1',
-            'supports_system_prompt' => true, // OpenAI supports system prompt in chat API
+            // Note: 'system_prompt' capability is included in capabilities array
         ];
     }
 

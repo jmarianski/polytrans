@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2025-12-15
+
+### Changed
+- **System Prompt as Capability**: Refactored `supports_system_prompt` boolean to `system_prompt` capability in provider manifest
+  - More consistent with other capabilities (`translation`, `chat`, `assistants`)
+  - Providers now declare `'system_prompt'` in capabilities array if they support it
+  - Backward compatibility maintained with fallback to `supports_system_prompt` field
+
+### Fixed
+- **Model Selection**: Fixed issue where "Loading models..." option remained selected after models loaded
+  - Now shows "None selected" option and doesn't auto-select first model
+  - Empty model selection is allowed (uses default from settings)
+- **Provider Model Loading**: Fixed `get_model_options()` to use `load_models()` from `SettingsProviderInterface` instead of hardcoded fallback
+  - Provider-specific fallback models based on provider_id
+  - Proper error handling and logging for model loading failures
+
+### Improved
+- **Provider Capabilities Documentation**: Updated documentation with accurate provider capabilities
+  - DeepSeek: `['chat', 'system_prompt']` (has system prompt support, no Assistants API)
+  - Gemini: `['assistants', 'chat', 'system_prompt']` (has Agents API)
+- **Provider Settings UI**: Added informational notice for providers without Assistants API
+  - Shows message explaining that Managed Assistants must be used
+  - Includes link to create Managed Assistant
+  - Automatically displayed based on provider manifest capabilities
+- **Empty Model Handling**: Improved handling of empty model selection
+  - Chat clients now fall back to default model from settings if model is empty
+  - Validation accepts empty model (uses default from `get_default_settings()`)
+  - Better UX with "None selected" option in model dropdown
+
+### Technical
+- **Code Quality**: Removed hardcoded `require_once` statements in favor of PSR-4 autoloading
+  - All provider classes now use Composer autoloader
+  - Consistent with modern PHP standards
+
 ## [1.6.0] - 2025-12-11
 
 ### Added

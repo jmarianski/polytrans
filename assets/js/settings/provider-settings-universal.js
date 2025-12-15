@@ -32,13 +32,13 @@
         bindEvents: function () {
             // Validate API key
             $(document).on('click', '[data-provider][data-action="validate-key"]', this.validateApiKey.bind(this));
-            
+
             // Toggle API key visibility
             $(document).on('click', '[data-provider][data-action="toggle-visibility"]', this.toggleApiKeyVisibility.bind(this));
-            
+
             // Refresh models
             $(document).on('click', '[data-provider][data-action="refresh-models"]', this.refreshModels.bind(this));
-            
+
             // Load models when provider tab is shown
             $(document).on('click', '.provider-settings-tab', this.onProviderTabClick.bind(this));
         },
@@ -48,22 +48,22 @@
          */
         initializeProviders: function () {
             var self = this;
-            
+
             // Find all provider sections
             $('[data-provider-id]').each(function () {
                 var $section = $(this);
                 var providerId = $section.data('provider-id');
-                
+
                 if (!providerId) {
                     return;
                 }
-                
+
                 // Initialize provider
                 self.providers[providerId] = {
                     initialized: false,
                     modelsLoaded: false
                 };
-                
+
                 // Load models if model select exists
                 var $modelSelect = $section.find('[data-provider="' + providerId + '"][data-field="model"]');
                 if ($modelSelect.length > 0) {
@@ -78,7 +78,7 @@
         onProviderTabClick: function (e) {
             var $tab = $(e.currentTarget);
             var providerId = $tab.attr('id').replace('-tab', '');
-            
+
             // Load models if not already loaded
             if (this.providers[providerId] && !this.providers[providerId].modelsLoaded) {
                 this.loadModels(providerId);
@@ -90,37 +90,37 @@
          */
         validateApiKey: function (e) {
             e.preventDefault();
-            
+
             var $button = $(e.currentTarget);
             var providerId = $button.data('provider');
-            
+
             if (!providerId) {
                 console.error('Provider ID not found');
                 return;
             }
-            
+
             var $input = $('[data-provider="' + providerId + '"][data-field="api-key"]');
             var $message = $('[data-provider="' + providerId + '"][data-field="validation-message"]');
-            
+
             if ($input.length === 0) {
                 console.error('API key input not found for provider: ' + providerId);
                 return;
             }
-            
+
             var apiKey = $input.val().trim();
-            
+
             if (!apiKey) {
                 this.showMessage($message, 'error', this.i18n('please_enter_api_key', 'Please enter an API key'));
                 return;
             }
-            
+
             var originalText = $button.text();
             $button.prop('disabled', true).text(this.i18n('validating', 'Validating...'));
             $message.empty();
-            
+
             var ajaxUrl = this.getAjaxUrl();
             var nonce = this.getNonce();
-            
+
             $.ajax({
                 url: ajaxUrl,
                 type: 'POST',
@@ -151,24 +151,24 @@
          */
         toggleApiKeyVisibility: function (e) {
             e.preventDefault();
-            
+
             var $button = $(e.currentTarget);
             var providerId = $button.data('provider');
-            
+
             if (!providerId) {
                 console.error('Provider ID not found');
                 return;
             }
-            
+
             var $input = $('[data-provider="' + providerId + '"][data-field="api-key"]');
-            
+
             if ($input.length === 0) {
                 console.error('API key input not found for provider: ' + providerId);
                 return;
             }
-            
+
             var currentType = $input.attr('type');
-            
+
             if (currentType === 'password') {
                 $input.attr('type', 'text');
                 $button.text('🔒');
@@ -183,18 +183,18 @@
          */
         loadModels: function (providerId) {
             var $select = $('[data-provider="' + providerId + '"][data-field="model"]');
-            
+
             if ($select.length === 0) {
                 return; // No model select for this provider
             }
-            
+
             // Get selected model
             var selectedModel = $select.val() || $select.data('selected-model') || '';
-            
+
             // Get API key
             var $apiKeyInput = $('[data-provider="' + providerId + '"][data-field="api-key"]');
             var apiKey = $apiKeyInput.length > 0 ? $apiKeyInput.val() : '';
-            
+
             // Fetch models
             this.fetchModels(providerId, apiKey, selectedModel, function (models) {
                 this.updateModelSelect($select, models, selectedModel);
@@ -210,7 +210,7 @@
         fetchModels: function (providerId, apiKey, selectedModel, callback) {
             var ajaxUrl = this.getAjaxUrl();
             var nonce = this.getNonce();
-            
+
             $.ajax({
                 url: ajaxUrl,
                 type: 'POST',
@@ -242,47 +242,56 @@
             if (!$select.length) {
                 return;
             }
-            
-            // Clear existing options except "Loading models..."
-            var $loadingOption = $select.find('option[value=""]');
+
+            // Clear all existing options
             $select.empty();
-            if ($loadingOption.length > 0) {
-                $select.append($loadingOption);
+
+            // Always add empty "None selected" option first
+            var $emptyOption = $('<option></option>')
+                .attr('value', '')
+                .text(this.i18n('none_selected', 'None selected'));
+
+            // Select empty option if no model is selected
+            if (!selectedModel || selectedModel === '') {
+                $emptyOption.prop('selected', true);
             }
-            
+
+            $select.append($emptyOption);
+
             // Check if we have models
             if (!groupedModels || Object.keys(groupedModels).length === 0) {
-                // No models - add default option
-                $select.append($('<option></option>').attr('value', '').text(this.i18n('no_models', 'No models available')));
+                // No models - add "No models available" option
+                $select.append($('<option></option>').attr('value', '').attr('disabled', true).text(this.i18n('no_models', 'No models available')));
                 return;
             }
-            
+
             // Add models grouped by category
             for (var groupName in groupedModels) {
                 if (!groupedModels.hasOwnProperty(groupName)) {
                     continue;
                 }
-                
+
                 var $optgroup = $('<optgroup></optgroup>').attr('label', groupName);
                 var models = groupedModels[groupName];
-                
+
                 for (var modelId in models) {
                     if (!models.hasOwnProperty(modelId)) {
                         continue;
                     }
-                    
+
                     var modelLabel = models[modelId];
                     var $option = $('<option></option>')
                         .attr('value', modelId)
                         .text(modelLabel);
-                    
+
+                    // Select if matches selectedModel
                     if (selectedModel && modelId === selectedModel) {
                         $option.prop('selected', true);
                     }
-                    
+
                     $optgroup.append($option);
                 }
-                
+
                 $select.append($optgroup);
             }
         },
@@ -292,38 +301,38 @@
          */
         refreshModels: function (e) {
             e.preventDefault();
-            
+
             var $button = $(e.currentTarget);
             var providerId = $button.data('provider');
-            
+
             if (!providerId) {
                 console.error('Provider ID not found');
                 return;
             }
-            
+
             var $select = $('[data-provider="' + providerId + '"][data-field="model"]');
             var $message = $('[data-provider="' + providerId + '"][data-field="model-message"]');
-            
+
             if ($select.length === 0) {
                 return;
             }
-            
+
             var selectedModel = $select.val() || '';
             var $apiKeyInput = $('[data-provider="' + providerId + '"][data-field="api-key"]');
             var apiKey = $apiKeyInput.length > 0 ? $apiKeyInput.val() : '';
-            
+
             var originalText = $button.text();
             $button.prop('disabled', true).text(this.i18n('refreshing', 'Refreshing...'));
-            
+
             this.fetchModels(providerId, apiKey, selectedModel, function (models) {
                 this.updateModelSelect($select, models, selectedModel);
                 $button.prop('disabled', false).text(originalText);
-                
+
                 // Show success message
                 if ($message.length > 0) {
                     this.showMessage($message, 'success', this.i18n('models_refreshed', 'Models refreshed'));
                 }
-                
+
                 if (this.providers[providerId]) {
                     this.providers[providerId].modelsLoaded = true;
                 }
@@ -337,17 +346,17 @@
             if (!$container || !$container.length) {
                 return;
             }
-            
+
             var className = type === 'success' ? 'notice-success' : 'notice-error';
             var dismissText = this.i18n('dismiss_notice', 'Dismiss this notice');
-            var html = '<div class="notice ' + className + ' is-dismissible inline"><p>' + 
-                       this.escapeHtml(message) + 
-                       '</p><button type="button" class="notice-dismiss"><span class="screen-reader-text">' +
-                       dismissText + 
-                       '</span></button></div>';
-            
+            var html = '<div class="notice ' + className + ' is-dismissible inline"><p>' +
+                this.escapeHtml(message) +
+                '</p><button type="button" class="notice-dismiss"><span class="screen-reader-text">' +
+                dismissText +
+                '</span></button></div>';
+
             $container.html(html);
-            
+
             // Initialize dismiss functionality
             $container.find('.notice-dismiss').on('click', function (e) {
                 e.preventDefault();
@@ -394,8 +403,8 @@
          * Internationalization helper
          */
         i18n: function (key, defaultValue) {
-            if (typeof PolyTransAjax !== 'undefined' && 
-                PolyTransAjax.i18n && 
+            if (typeof PolyTransAjax !== 'undefined' &&
+                PolyTransAjax.i18n &&
                 PolyTransAjax.i18n[key]) {
                 return PolyTransAjax.i18n[key];
             }

@@ -143,10 +143,11 @@ class AssistantsMenu
                     'label' => __('OpenAI', 'polytrans'),
                     'models' => ['gpt-4', 'gpt-4-turbo-preview', 'gpt-3.5-turbo']
                 ],
-                'claude' => [
-                    'label' => __('Claude (Anthropic)', 'polytrans'),
-                    'models' => ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']
-                ],
+                // Claude support ready for 1.6.2:
+                // 'claude' => [
+                //     'label' => __('Claude (Anthropic)', 'polytrans'),
+                //     'models' => ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']
+                // ],
                 'gemini' => [
                     'label' => __('Gemini (Google)', 'polytrans'),
                     'models' => ['gemini-pro', 'gemini-pro-vision']
@@ -374,9 +375,11 @@ class AssistantsMenu
                                             // Managed assistants can use 'chat' or 'assistants' capability
                                             if (in_array('chat', $capabilities) || in_array('assistants', $capabilities)) {
                                                 $available_assistant_providers[$provider_id] = $provider;
-                                                // Store manifest for JavaScript (supports_system_prompt info)
+                                                // Store manifest for JavaScript (system_prompt capability info)
+                                                $capabilities = $manifest['capabilities'] ?? [];
                                                 $provider_manifests[$provider_id] = [
-                                                    'supports_system_prompt' => $manifest['supports_system_prompt'] ?? true, // Default to true for backward compatibility
+                                                    'capabilities' => $capabilities, // Store full capabilities array
+                                                    'supports_system_prompt' => in_array('system_prompt', $capabilities), // Check system_prompt capability (for backward compatibility)
                                                 ];
                                             }
                                         }
@@ -566,10 +569,12 @@ class AssistantsMenu
             $settings_provider_class = $provider_obj->get_settings_provider_class();
             if ($settings_provider_class && class_exists($settings_provider_class)) {
                 $settings_provider = new $settings_provider_class();
-                if (method_exists($settings_provider, 'get_provider_manifest')) {
-                    $manifest = $settings_provider->get_provider_manifest($settings);
-                    $supports_system_prompt = $manifest['supports_system_prompt'] ?? true; // Default to true
-                }
+                    if (method_exists($settings_provider, 'get_provider_manifest')) {
+                        $manifest = $settings_provider->get_provider_manifest($settings);
+                        $capabilities = $manifest['capabilities'] ?? [];
+                        // Check for system_prompt capability, fallback to supports_system_prompt for backward compatibility
+                        $supports_system_prompt = in_array('system_prompt', $capabilities) || ($manifest['supports_system_prompt'] ?? true);
+                    }
             }
         }
         
@@ -786,33 +791,59 @@ class AssistantsMenu
         
         try {
             $settings_provider = new $settings_provider_class();
+            $settings = get_option('polytrans_settings', []);
             
-            // Check if provider has get_grouped_models method
-            if (method_exists($settings_provider, 'get_grouped_models')) {
-                return $settings_provider->get_grouped_models($selected_model);
+            // Check if provider implements SettingsProviderInterface and has load_models method
+            if ($settings_provider instanceof \PolyTrans\Providers\SettingsProviderInterface) {
+                if (method_exists($settings_provider, 'load_models')) {
+                    $models = $settings_provider->load_models($settings);
+                    if (!empty($models) && is_array($models)) {
+                        return $models;
+                    }
+                }
             }
             
-            // Fallback: try to get models via manifest
-            $settings = get_option('polytrans_settings', []);
-            if (method_exists($settings_provider, 'get_provider_manifest')) {
-                $manifest = $settings_provider->get_provider_manifest($settings);
-                // If provider has models_endpoint, we could fetch models here
-                // For now, return fallback
+            // Legacy: Check if provider has get_grouped_models method (for backward compatibility)
+            if (method_exists($settings_provider, 'get_grouped_models')) {
+                return $settings_provider->get_grouped_models($selected_model);
             }
         } catch (\Exception $e) {
             error_log("[PolyTrans] Failed to get models for provider $provider_id: " . $e->getMessage());
         }
         
-        return $this->get_fallback_models();
+        // Provider-specific fallback based on provider_id
+        return $this->get_fallback_models($provider_id);
     }
 
     /**
      * Get fallback model options
      * 
+     * @param string|null $provider_id Provider ID to get provider-specific fallback
      * @return array Fallback model options
      */
-    private function get_fallback_models()
+    private function get_fallback_models($provider_id = null)
     {
+        // Provider-specific fallbacks
+        // Claude support ready for 1.6.2:
+        // if ($provider_id === 'claude') {
+        //     return [
+        //         'Claude 3.5 Models' => [
+        //             'claude-3-5-sonnet-20241022' => 'Claude 3.5 Sonnet (Latest)',
+        //             'claude-3-5-haiku-20241022' => 'Claude 3.5 Haiku (Fast)',
+        //         ],
+        //         'Claude 3 Opus Models' => [
+        //             'claude-3-opus-20240229' => 'Claude 3 Opus',
+        //         ],
+        //         'Claude 3 Sonnet Models' => [
+        //             'claude-3-sonnet-20240229' => 'Claude 3 Sonnet',
+        //         ],
+        //         'Claude 3 Haiku Models' => [
+        //             'claude-3-haiku-20240307' => 'Claude 3 Haiku',
+        //         ],
+        //     ];
+        // }
+        
+        // Default: OpenAI fallback (for backward compatibility)
         return [
             'GPT-4o Models' => [
                 'gpt-4o' => 'GPT-4o (Latest)',

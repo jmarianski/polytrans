@@ -300,8 +300,18 @@ class AssistantExecutor
 		switch ($provider) {
 			case 'openai':
 				return $response['choices'][0]['message']['content'] ?? null;
-			case 'claude':
-				return $response['content'][0]['text'] ?? null;
+			// Claude support ready for 1.6.2:
+			// case 'claude':
+			//     // Claude format: content[0].text (for text blocks)
+			//     if (!isset($response['content']) || !is_array($response['content'])) {
+			//         return null;
+			//     }
+			//     foreach ($response['content'] as $block) {
+			//         if (isset($block['type']) && $block['type'] === 'text' && isset($block['text'])) {
+			//             return $block['text'];
+			//         }
+			//     }
+			//     return null;
 			default:
 				return null;
 		}
