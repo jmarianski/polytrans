@@ -8,6 +8,8 @@
 
 namespace PolyTrans\Menu;
 
+use PolyTrans\Assistants\AssistantManager;
+
 if (!defined('ABSPATH')) {
     exit;
 }

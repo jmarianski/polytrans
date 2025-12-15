@@ -134,7 +134,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
                 <p style="margin: 0;">
                     <strong><?php esc_html_e('Note:', 'polytrans'); ?></strong>
                     <?php esc_html_e('Assistant Mapping and Translation Path Rules have been moved to the', 'polytrans'); ?>
-                    <a href="<?php echo admin_url('admin.php?page=polytrans-settings#language-pairs-settings'); ?>">
+                    <a href="<?php echo admin_url('admin.php?page=polytrans-settings#language-paths-settings'); ?>">
                         <?php esc_html_e('Language Paths', 'polytrans'); ?>
                     </a>
                     <?php esc_html_e('tab for better organization.', 'polytrans'); ?>
@@ -338,11 +338,11 @@ class OpenAISettingsProvider implements SettingsProviderInterface
                 'callback' => [$this, 'ajax_validate_openai_key'],
                 'is_static' => false
             ],
-            'polytrans_load_openai_assistants' => [
+            'polytrans_load_assistants' => [
                 'callback' => [$this, 'ajax_load_openai_assistants'],
                 'is_static' => false
             ],
-            'polytrans_get_openai_models' => [
+            'polytrans_get_ai_models' => [
                 'callback' => [$this, 'ajax_get_openai_models'],
                 'is_static' => false
             ]
@@ -836,7 +836,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
     }
 
     /**
-     * AJAX handler for loading OpenAI assistants (both Managed and OpenAI API)
+     * AJAX handler for loading assistants (both Managed and OpenAI API)
      */
     public function ajax_load_openai_assistants()
     {

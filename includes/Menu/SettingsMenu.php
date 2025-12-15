@@ -91,6 +91,7 @@ class SettingsMenu
             wp_localize_script('polytrans-settings', 'PolyTransAjax', [
                 'ajaxurl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('polytrans_nonce'),
+                'openai_nonce' => wp_create_nonce('polytrans_openai_nonce'),
                 'settings' => $settings,
                 'translation_receiver_endpoint' => $settings['translation_receiver_endpoint'] ?? '',
                 'i18n' => [

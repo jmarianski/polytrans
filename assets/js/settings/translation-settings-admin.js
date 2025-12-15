@@ -17,9 +17,13 @@
                 $(targetId).addClass('active').show();
 
                 // Trigger Language Paths filtering when switching to Language Paths tab
-                if (targetId === '#language-pairs-settings') {
+                if (targetId === '#language-paths-settings') {
                     if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
                         window.PolyTransLanguagePaths.updateLanguagePairVisibility();
+                    }
+                    // Load assistants when Language Paths tab is shown
+                    if (window.PolyTransAssistants && window.PolyTransAssistants.loadAssistants) {
+                        window.PolyTransAssistants.loadAssistants();
                     }
                 }
 
@@ -66,10 +70,6 @@
 
         $('input[name="allowed_targets[]"]').on('change', function () {
             updateLangConfigVisibility();
-            // Also trigger OpenAI language pair filtering if available
-            if (window.OpenAIManager && window.OpenAIManager.updateLanguagePairVisibility) {
-                window.OpenAIManager.updateLanguagePairVisibility();
-            }
             // Trigger Language Paths filtering
             if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
                 window.PolyTransLanguagePaths.updateLanguagePairVisibility();
@@ -77,10 +77,6 @@
         });
 
         $('input[name="allowed_sources[]"]').on('change', function () {
-            // Trigger OpenAI language pair filtering if available
-            if (window.OpenAIManager && window.OpenAIManager.updateLanguagePairVisibility) {
-                window.OpenAIManager.updateLanguagePairVisibility();
-            }
             // Trigger Language Paths filtering
             if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
                 window.PolyTransLanguagePaths.updateLanguagePairVisibility();
@@ -93,7 +89,7 @@
         window.PolyTransLanguagePaths = {
             updateLanguagePairVisibility: function () {
                 // Only run if we're on Language Paths tab
-                if (!$('#language-pairs-settings').is(':visible')) {
+                if (!$('#language-paths-settings').is(':visible')) {
                     return;
                 }
 
@@ -212,8 +208,218 @@
             }
         };
 
+        // Assistant loading for Language Paths tab
+        window.PolyTransAssistants = {
+            assistants: [],
+            assistantsLoaded: false,
+
+            loadAssistants: function () {
+                // Only load if we're on Language Paths tab and assistants not already loaded
+                if (!$('#language-paths-settings').is(':visible')) {
+                    return;
+                }
+
+                if (this.assistantsLoaded) {
+                    this.populateAssistantSelects();
+                    return;
+                }
+
+                var $loading = $('#assistants-loading');
+                var $error = $('#assistants-error');
+
+                $loading.show();
+                $error.hide();
+
+                var apiKey = $('#openai-api-key').val() || '';
+
+                // Get ajax_url from multiple possible sources
+                var ajaxUrl = null;
+                if (typeof polytrans_openai !== 'undefined' && polytrans_openai.ajax_url) {
+                    ajaxUrl = polytrans_openai.ajax_url;
+                } else if (typeof PolyTransAjax !== 'undefined' && PolyTransAjax.ajaxurl) {
+                    ajaxUrl = PolyTransAjax.ajaxurl;
+                } else if (typeof ajaxurl !== 'undefined') {
+                    ajaxUrl = ajaxurl;
+                } else {
+                    ajaxUrl = admin_url('admin-ajax.php'); // WordPress global
+                }
+
+                // Get nonce - OpenAI uses 'polytrans_openai_nonce'
+                var nonce = null;
+                if (typeof polytrans_openai !== 'undefined' && polytrans_openai.nonce) {
+                    nonce = polytrans_openai.nonce;
+                } else if (typeof PolyTransAjax !== 'undefined' && PolyTransAjax.openai_nonce) {
+                    nonce = PolyTransAjax.openai_nonce;
+                } else {
+                    // Fallback: try form nonce (may not work for OpenAI endpoint)
+                    var $nonceInput = $('input[name="_wpnonce"]');
+                    if ($nonceInput.length) {
+                        nonce = $nonceInput.val();
+                    }
+                }
+
+                if (!ajaxUrl) {
+                    console.error('ajaxurl is not available');
+                    $error.show().find('p').text('AJAX URL not available');
+                    $loading.hide();
+                    return;
+                }
+
+                var self = this;
+                $.ajax({
+                    url: ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'polytrans_load_assistants',
+                        api_key: apiKey,
+                        nonce: nonce
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            self.assistants = response.data;
+                            self.assistantsLoaded = true;
+                            self.populateAssistantSelects();
+                        } else {
+                            console.error('Assistant loading failed:', response.data);
+                            $error.show().find('p').text(response.data || 'Unknown error');
+                            self.handleAssistantLoadingError(response.data || 'Failed to load assistants');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('AJAX error loading assistants:', {
+                            xhr: xhr,
+                            status: status,
+                            error: error,
+                            responseText: xhr.responseText
+                        });
+                        $error.show().find('p').text('Network error: ' + error);
+                        self.handleAssistantLoadingError('Network error: ' + error);
+                    },
+                    complete: function () {
+                        $loading.hide();
+                    }
+                });
+            },
+
+            populateAssistantSelects: function () {
+                var groupedAssistants = this.assistants || {};
+
+                // Use a slight delay to ensure DOM is ready
+                var self = this;
+                setTimeout(function () {
+                    var $selects = $('.openai-assistant-select');
+
+                    if ($selects.length === 0) {
+                        return;
+                    }
+
+                    $selects.each(function () {
+                        var $select = $(this);
+                        var pairKey = $select.data('pair');
+                        var currentValue = $select.data('selected') || '';
+                        var $hiddenInput = $('.openai-assistant-hidden[data-pair="' + pairKey + '"]');
+
+                        // Clear existing options
+                        $select.empty();
+                        $select.append($('<option></option>')
+                            .attr('value', '')
+                            .text('No assistant selected'));
+
+                        // Add Managed Assistants group
+                        if (groupedAssistants.managed && groupedAssistants.managed.length > 0) {
+                            var $managedGroup = $('<optgroup label="Managed Assistants"></optgroup>');
+                            groupedAssistants.managed.forEach(function (assistant) {
+                                var option = $('<option></option>')
+                                    .attr('value', assistant.id)
+                                    .text(assistant.name + ' (' + assistant.model + ')');
+                                $managedGroup.append(option);
+                            });
+                            $select.append($managedGroup);
+                        }
+
+                        // Add OpenAI API Assistants group
+                        if (groupedAssistants.openai && groupedAssistants.openai.length > 0) {
+                            var $openaiGroup = $('<optgroup label="OpenAI API Assistants"></optgroup>');
+                            groupedAssistants.openai.forEach(function (assistant) {
+                                var option = $('<option></option>')
+                                    .attr('value', assistant.id)
+                                    .text(assistant.name + ' (' + assistant.model + ')');
+                                $openaiGroup.append(option);
+                            });
+                            $select.append($openaiGroup);
+                        }
+
+                        // Add Claude Projects group (future)
+                        if (groupedAssistants.claude && groupedAssistants.claude.length > 0) {
+                            var $claudeGroup = $('<optgroup label="Claude Projects"></optgroup>');
+                            groupedAssistants.claude.forEach(function (assistant) {
+                                var option = $('<option></option>')
+                                    .attr('value', assistant.id)
+                                    .text(assistant.name + ' (' + assistant.model + ')');
+                                $claudeGroup.append(option);
+                            });
+                            $select.append($claudeGroup);
+                        }
+
+                        // Add Gemini Tuned Models group (future)
+                        if (groupedAssistants.gemini && groupedAssistants.gemini.length > 0) {
+                            var $geminiGroup = $('<optgroup label="Gemini Tuned Models"></optgroup>');
+                            groupedAssistants.gemini.forEach(function (assistant) {
+                                var option = $('<option></option>')
+                                    .attr('value', assistant.id)
+                                    .text(assistant.name + ' (' + assistant.model + ')');
+                                $geminiGroup.append(option);
+                            });
+                            $select.append($geminiGroup);
+                        }
+
+                        // Set the selected value
+                        if (currentValue) {
+                            $select.val(currentValue);
+                        }
+
+                        // Handle selection changes - update the hidden input
+                        $select.off('change.assistants').on('change.assistants', function () {
+                            var newValue = $(this).val();
+                            if ($hiddenInput.length) {
+                                $hiddenInput.val(newValue);
+                            }
+                        });
+                    });
+                }, 100);
+            },
+
+            handleAssistantLoadingError: function (errorMessage) {
+                $('.openai-assistant-select').each(function () {
+                    var $select = $(this);
+                    var pairKey = $select.data('pair');
+                    var currentValue = $select.data('selected') || '';
+                    var $hiddenInput = $('.openai-assistant-hidden[data-pair="' + pairKey + '"]');
+
+                    // Clear and show error option
+                    $select.empty();
+                    $select.append($('<option></option>')
+                        .attr('value', '')
+                        .text('⚠ Failed to load assistants'));
+
+                    // If there was a current value, add it as an option so it's preserved
+                    if (currentValue) {
+                        $select.append($('<option></option>')
+                            .attr('value', currentValue)
+                            .text('Current: ' + currentValue)
+                            .prop('selected', true));
+                    }
+                });
+            }
+        };
+
         // Initialize tabs
         initTabs();
+
+        // Load assistants if Language Paths tab is already visible on page load
+        if ($('#language-paths-settings').is(':visible')) {
+            window.PolyTransAssistants.loadAssistants();
+        }
 
         // Secret generator button logic
         var btn = document.getElementById('generate-translation-secret');

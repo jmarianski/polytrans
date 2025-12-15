@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.7] - 2025-12-11
+
+### Fixed
+- **Model Refresh**: Fixed issue where model select dropdown disappeared after clicking "Refresh" button
+- Added dedicated message container for refresh notifications to prevent UI replacement
+- Refresh success message is now dismissible with close button
+
+### Changed
+- **UI Naming**: Renamed "Language Pairs" tab to "Language Paths" for better clarity
+- Updated tab IDs and selectors from `language-pairs-*` to `language-paths-*` to match new naming
+
 ## [1.5.6] - 2025-12-11
 
 ### Removed
