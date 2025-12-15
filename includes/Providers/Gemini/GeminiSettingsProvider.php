@@ -308,9 +308,10 @@ class GeminiSettingsProvider implements SettingsProviderInterface
                     continue;
                 }
                 
-                // Filter out image/video generation models - only include models that support GENERATE_CONTENT
-                // Gemini API returns supportedGenerationMethods array (e.g., ['GENERATE_CONTENT', 'GENERATE_IMAGE'])
-                // We only want models that support GENERATE_CONTENT (text/chat)
+                // Filter out image/video generation models - only include models that support generateContent
+                // Gemini API returns supportedGenerationMethods array (e.g., ['generateContent', 'generateImage'])
+                // Note: Gemini uses camelCase, not UPPER_SNAKE_CASE like some other APIs
+                // We only want models that support generateContent (text/chat)
                 $supported_methods = $model['supportedGenerationMethods'] ?? [];
                 
                 // Log supported methods for debugging
@@ -320,15 +321,28 @@ class GeminiSettingsProvider implements SettingsProviderInterface
                     is_array($supported_methods) ? json_encode($supported_methods) : 'not set or not array'
                 ));
                 
-                if (!is_array($supported_methods) || !in_array('GENERATE_CONTENT', $supported_methods)) {
+                // Check for generateContent (camelCase) - Gemini API format
+                $has_generate_content = false;
+                if (is_array($supported_methods)) {
+                    // Check both camelCase (Gemini) and UPPER_SNAKE_CASE (for compatibility)
+                    $has_generate_content = in_array('generateContent', $supported_methods) || 
+                                           in_array('GENERATE_CONTENT', $supported_methods);
+                }
+                
+                if (!$has_generate_content) {
                     // Skip models that don't support text generation (image/video only models)
                     error_log(sprintf(
-                        'PolyTrans: Skipping Gemini model "%s" - does not support GENERATE_CONTENT (methods: %s)',
+                        'PolyTrans: Skipping Gemini model "%s" - does not support generateContent (methods: %s)',
                         $model_id,
                         is_array($supported_methods) ? json_encode($supported_methods) : 'not set'
                     ));
                     continue;
                 }
+                
+                error_log(sprintf(
+                    'PolyTrans: Including Gemini model "%s" - supports generateContent',
+                    $model_id
+                ));
                 
                 // Additional filter: exclude known image/video model patterns
                 // Nano Banana, Nano Banana Pro, and similar are image generation models
