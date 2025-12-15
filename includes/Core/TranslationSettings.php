@@ -148,7 +148,7 @@ class TranslationSettings
             <div class="nav-tab-wrapper">
                 <a href="#provider-settings" class="nav-tab nav-tab-active" id="provider-tab"><?php esc_html_e('Translation Provider', 'polytrans'); ?></a>
                 <a href="#basic-settings" class="nav-tab" id="basic-tab"><?php esc_html_e('Basic Settings', 'polytrans'); ?></a>
-                <a href="#language-pairs-settings" class="nav-tab" id="language-pairs-tab"><?php esc_html_e('Language Paths', 'polytrans'); ?></a>
+                <a href="#language-paths-settings" class="nav-tab" id="language-paths-tab"><?php esc_html_e('Language Paths', 'polytrans'); ?></a>
                 <a href="#tag-settings" class="nav-tab" id="tag-tab"><?php esc_html_e('Tag Settings', 'polytrans'); ?></a>
                 <a href="#email-settings" class="nav-tab" id="email-tab"><?php esc_html_e('Email Settings', 'polytrans'); ?></a>
                 <?php foreach ($settings_providers as $provider_id => $settings_provider): ?>
@@ -207,7 +207,7 @@ class TranslationSettings
                 </div>
 
                 <!-- Language Paths Tab -->
-                <div id="language-pairs-settings" class="tab-content" style="display:none;">
+                <div id="language-paths-settings" class="tab-content" style="display:none;">
                     <?php $this->render_language_pairs_settings($settings); ?>
                 </div>
 
@@ -494,7 +494,7 @@ class TranslationSettings
             <small>
                 <?php esc_html_e('Choose how to handle translation transport:', 'polytrans'); ?><br>
                 <strong><?php esc_html_e('External Server:', 'polytrans'); ?></strong> <?php esc_html_e('Sends data to the external endpoints specified below and expects the server to send data back to the specified receiver endpoint.', 'polytrans'); ?><br>
-                <strong><?php esc_html_e('Internal:', 'polytrans'); ?></strong> <?php esc_html_e('Uses local endpoints via the site URL, bypassing the need for external services. Data will be sent to self via the site\'s WordPress REST API.', 'polytrans'); ?>
+                <strong><?php esc_html_e('Internal:', 'polytrans'); ?></strong> <?php esc_html_e('Uses spawned processes to stay in the same server and achieve asynchronity. May not work in certain environments.', 'polytrans'); ?>
             </small>
         </div><br><br>
 
@@ -542,7 +542,7 @@ class TranslationSettings
                 <label for="enable-db-logging"><strong><?php esc_html_e('Enable Database Logging', 'polytrans'); ?></strong></label>
             </p>
             <small>
-                <?php esc_html_e('When enabled, logs will be stored in the database table. When disabled, logs will only be written to the WordPress error log and post meta. Disabling database logging can improve performance and reduce database size, but makes viewing logs from the admin panel more limited.', 'polytrans'); ?>
+                <?php esc_html_e('When enabled, logs will be stored in the database table. When disabled, logs will only be written to the WordPress error log and post meta. Disabling database logging can improve performance and reduce database size, but makes viewing logs from the admin panel more limited. Warning: Logs from internal processes can only log to database, will never show up in stderr.', 'polytrans'); ?>
             </small>
         </div><br>
     <?php
