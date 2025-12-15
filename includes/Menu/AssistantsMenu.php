@@ -873,6 +873,17 @@ class AssistantsMenu
     }
 
     /**
+     * Get API key setting key for provider
+     * 
+     * @param string $provider_id Provider ID
+     * @return string API key setting key
+     */
+    private function get_api_key_setting_key($provider_id)
+    {
+        return $provider_id . '_api_key';
+    }
+    
+    /**
      * Get fallback model options
      * 
      * @param string|null $provider_id Provider ID to get provider-specific fallback
