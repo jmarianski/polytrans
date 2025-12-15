@@ -55,13 +55,17 @@ class AssistantManager
 					continue;
 				}
 				
-				// Check if provider supports assistants via manifest
+				// Check if provider supports chat or assistants via manifest
+				// Managed assistants can use providers with 'chat' capability (via system prompt)
+				// or providers with 'assistants' capability (via dedicated API)
 				$settings_provider_class = $provider->get_settings_provider_class();
 				if ($settings_provider_class && class_exists($settings_provider_class)) {
 					$settings_provider = new $settings_provider_class();
 					if (method_exists($settings_provider, 'get_provider_manifest')) {
 						$manifest = $settings_provider->get_provider_manifest($settings);
-						if (in_array('assistants', $manifest['capabilities'] ?? [])) {
+						$capabilities = $manifest['capabilities'] ?? [];
+						// Managed assistants can use 'chat' or 'assistants' capability
+						if (in_array('chat', $capabilities) || in_array('assistants', $capabilities)) {
 							$valid_providers[] = $provider_id;
 						}
 					}

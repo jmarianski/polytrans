@@ -89,6 +89,9 @@ class PolyTrans
         PolyTrans_Postprocessing_Menu::get_instance();
         PolyTrans_Assistants_Menu::get_instance();
         
+        // Initialize SettingsMenu early to register AJAX endpoints before requests
+        PolyTrans_Settings_Menu::get_instance();
+        
         // Initialize debug menu (admin only)
         if (is_admin()) {
             \PolyTrans\Debug\WorkflowDebugMenu::get_instance();

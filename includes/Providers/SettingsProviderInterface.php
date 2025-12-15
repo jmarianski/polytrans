@@ -51,6 +51,10 @@ interface SettingsProviderInterface
 
     /**
      * Render the provider settings UI
+     * 
+     * If not implemented or returns empty output, universal UI will be used
+     * based on provider manifest (API key + model selection if applicable).
+     * 
      * @param array $settings Current settings
      * @param array $languages Available languages
      * @param array $language_names Language display names
@@ -108,14 +112,46 @@ interface SettingsProviderInterface
      * Get provider manifest with capabilities and configuration
      * @param array $settings Current settings (for API keys, etc.)
      * @return array Manifest array with:
-     *   - capabilities: ['translation', 'assistants'] - what this provider can do
-     *   - assistants_endpoint: URL to fetch assistants (if supports assistants)
-     *   - chat_endpoint: URL for chat/completion (if supports assistants)
-     *   - models_endpoint: URL to fetch available models (if supports assistants)
+     *   - capabilities: array of strings - what this provider can do:
+     *     * 'translation' - direct translation API (e.g., Google Translate)
+     *     * 'chat' - chat/completion API (all AI models, can be used for managed assistants)
+     *     * 'assistants' - dedicated Assistants API (e.g., OpenAI Assistants, Claude Projects, Gemini Tuned Models)
+     *   - assistants_endpoint: URL to fetch assistants (if supports 'assistants' capability)
+     *   - chat_endpoint: URL for chat/completion (if supports 'chat' or 'assistants' capability)
+     *   - models_endpoint: URL to fetch available models (if supports 'chat' or 'assistants' capability)
      *   - auth_type: 'bearer', 'api_key', 'none'
      *   - auth_header: header name for auth (e.g., 'Authorization')
      *   - api_key_setting: setting key for API key (e.g., 'openai_api_key')
      *   - api_key_configured: bool - whether API key is set (for admin only)
+     *   - supports_system_prompt: bool - whether provider supports system prompt in chat API (default: true)
+     *     * If false, managed assistants can only use user_message_template, not system_prompt
+     * 
+     * Examples:
+     *   - Google: ['translation'], supports_system_prompt: false (no chat API)
+     *   - OpenAI: ['assistants', 'chat'], supports_system_prompt: true
+     *   - DeepSeek: ['chat'], supports_system_prompt: false (only user message supported)
+     *   - Claude: ['assistants', 'chat'], supports_system_prompt: true
      */
     public function get_provider_manifest(array $settings);
+    
+    /**
+     * Validate API key for this provider
+     * @param string $api_key API key to validate
+     * @return bool True if valid, false otherwise
+     */
+    public function validate_api_key(string $api_key): bool;
+    
+    /**
+     * Load assistants from provider API
+     * @param array $settings Current settings (for API keys, etc.)
+     * @return array Array of assistants [['id' => 'asst_xxx', 'name' => '...', 'model' => '...', 'provider' => '...'], ...]
+     */
+    public function load_assistants(array $settings): array;
+    
+    /**
+     * Load available models from provider API (optional)
+     * @param array $settings Current settings (for API keys, etc.)
+     * @return array Grouped models ['Group Name' => ['model_id' => 'Model Name', ...], ...] or empty array if not supported
+     */
+    public function load_models(array $settings): array;
 }

@@ -1027,6 +1027,82 @@ class OpenAISettingsProvider implements SettingsProviderInterface
     }
 
     /**
+     * Validate API key for this provider
+     * @param string $api_key API key to validate
+     * @return bool True if valid, false otherwise
+     */
+    public function validate_api_key(string $api_key): bool
+    {
+        return $this->validate_openai_api_key($api_key);
+    }
+    
+    /**
+     * Load assistants from provider API
+     * @param array $settings Current settings (for API keys, etc.)
+     * @return array Array of assistants [['id' => 'asst_xxx', 'name' => '...', 'model' => '...', 'provider' => '...'], ...]
+     */
+    public function load_assistants(array $settings): array
+    {
+        $api_key = $settings['openai_api_key'] ?? '';
+        
+        if (empty($api_key)) {
+            return [];
+        }
+        
+        try {
+            $client = new OpenAIClient($api_key);
+            $assistants_data = $client->get_all_assistants();
+            
+            if (empty($assistants_data) || !is_array($assistants_data)) {
+                return [];
+            }
+            
+            $assistants = [];
+            foreach ($assistants_data as $assistant) {
+                $assistants[] = [
+                    'id' => $assistant['id'] ?? '',
+                    'name' => $assistant['name'] ?? 'Unnamed Assistant',
+                    'description' => $assistant['description'] ?? '',
+                    'model' => $assistant['model'] ?? 'gpt-4o-mini',
+                    'provider' => 'openai',
+                ];
+            }
+            
+            return $assistants;
+        } catch (\Exception $e) {
+            \PolyTrans\Core\LogsManager::log(
+                "Failed to load OpenAI assistants: " . $e->getMessage(),
+                "error",
+                ['exception' => $e->getMessage()]
+            );
+            return [];
+        }
+    }
+    
+    /**
+     * Load available models from provider API
+     * @param array $settings Current settings (for API keys, etc.)
+     * @return array Grouped models ['Group Name' => ['model_id' => 'Model Name', ...], ...] or empty array if not supported
+     */
+    public function load_models(array $settings): array
+    {
+        $api_key = $settings['openai_api_key'] ?? '';
+        
+        if (empty($api_key)) {
+            return $this->get_fallback_models();
+        }
+        
+        $models = $this->fetch_models_from_api($api_key);
+        
+        // If API fetch failed, return fallback models
+        if (empty($models)) {
+            return $this->get_fallback_models();
+        }
+        
+        return $models;
+    }
+    
+    /**
      * Get provider manifest with capabilities and configuration
      */
     public function get_provider_manifest(array $settings)
@@ -1035,7 +1111,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
         
         return [
             'provider_id' => 'openai',
-            'capabilities' => ['assistants'], // OpenAI provides assistants, not direct translation
+            'capabilities' => ['assistants', 'chat'], // OpenAI provides both Assistants API and Chat API
             'assistants_endpoint' => 'https://api.openai.com/v1/assistants',
             'chat_endpoint' => 'https://api.openai.com/v1/chat/completions',
             'models_endpoint' => 'https://api.openai.com/v1/models',
@@ -1044,6 +1120,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
             'api_key_setting' => 'openai_api_key',
             'api_key_configured' => !empty($api_key) && current_user_can('manage_options'), // Only show to admins
             'base_url' => 'https://api.openai.com/v1',
+            'supports_system_prompt' => true, // OpenAI supports system prompt in chat API
         ];
     }
 

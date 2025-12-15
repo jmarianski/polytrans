@@ -266,7 +266,7 @@
                 const $optgroup = $('<optgroup></optgroup>').attr('label', groupLabel);
                 
                 providerAssistants.forEach(function (assistant) {
-                    const isSelected = assistant.id === selectedAssistantId ? 'selected' : '';
+                const isSelected = assistant.id === selectedAssistantId ? 'selected' : '';
                     const label = assistant.name + ' (' + assistant.model + ')';
                     $optgroup.append(`<option value="${assistant.id}" ${isSelected}>${label}</option>`);
                 });

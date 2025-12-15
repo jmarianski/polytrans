@@ -15,6 +15,7 @@ namespace PolyTrans\Assistants;
 
 use PolyTrans\Assistants\AssistantManager;
 use PolyTrans\Core\LogsManager;
+use PolyTrans\Core\ChatClientFactory;
 
 if (! defined('ABSPATH')) {
 	exit;
@@ -142,7 +143,8 @@ class AssistantExecutor
 	}
 
 	/**
-	 * Call provider API (OpenAI, Claude, Gemini)
+	 * Call provider API using ChatClientFactory
+	 * Supports all providers that implement ChatClientInterface
 	 *
 	 * @param array $config  Assistant configuration.
 	 * @param array $prompts Interpolated prompts.
@@ -151,47 +153,22 @@ class AssistantExecutor
 	public static function call_provider_api($config, $prompts)
 	{
 		$provider = $config['provider'] ?? 'openai';
-
-		switch ($provider) {
-			case 'openai':
-				return self::call_openai_chat($config, $prompts);
-
-			case 'claude':
-				// TODO: Implement Claude API in Phase 1 follow-up
-				return new \WP_Error('unsupported_provider', __('Claude provider not yet implemented', 'polytrans'));
-
-			case 'gemini':
-				// TODO: Implement Gemini API in Phase 1 follow-up
-				return new \WP_Error('unsupported_provider', __('Gemini provider not yet implemented', 'polytrans'));
-
-			default:
-				return new \WP_Error('unsupported_provider', __('Provider not supported', 'polytrans'));
-		}
-	}
-
-	/**
-	 * Call OpenAI Chat Completions API
-	 *
-	 * @param array $config  Assistant configuration.
-	 * @param array $prompts Interpolated prompts.
-	 * @return array|WP_Error API response or error.
-	 */
-	private static function call_openai_chat($config, $prompts)
-	{
-		// Get OpenAI API key from settings
 		$settings = get_option('polytrans_settings', array());
-		$api_key  = $settings['openai_api_key'] ?? '';
-
-		if (empty($api_key)) {
-			return new \WP_Error('missing_api_key', __('OpenAI API key not configured', 'polytrans'));
+		
+		// Create chat client using factory
+		$client = ChatClientFactory::create($provider, $settings);
+		
+		if (!$client) {
+			return new \WP_Error(
+				'unsupported_provider',
+				sprintf(
+					// translators: %s is the provider name
+					__('Provider "%s" is not supported or API key is not configured', 'polytrans'),
+					$provider
+				)
+			);
 		}
-
-		// Get model - use assistant's model or fall back to global setting
-		$model = $config['api_parameters']['model'] ?? '';
-		if (empty($model)) {
-			$model = $settings['openai_model'] ?? 'gpt-4o-mini';
-		}
-
+		
 		// Build messages array
 		$messages = array(
 			array(
@@ -199,64 +176,44 @@ class AssistantExecutor
 				'content' => $prompts['system_prompt'],
 			),
 		);
-
-		if (! empty($prompts['user_message'])) {
+		
+		if (!empty($prompts['user_message'])) {
 			$messages[] = array(
 				'role'    => 'user',
 				'content' => $prompts['user_message'],
 			);
 		}
-
-		// Build API request body
-		$body = array_merge(
-			array(
-				'model'    => $model,
-				'messages' => $messages,
-			),
-			$config['api_parameters']
-		);
-
-		// Ensure model is set correctly (api_parameters might override)
-		$body['model'] = $model;
-
-		// Make API request
-		$response = wp_remote_post(
-			'https://api.openai.com/v1/chat/completions',
-			array(
-				'headers' => array(
-					'Content-Type'  => 'application/json',
-					'Authorization' => 'Bearer ' . $api_key,
-				),
-				'body'    => wp_json_encode($body),
-				'timeout' => 120,
-			)
-		);
-
-		// Handle errors
-		if (is_wp_error($response)) {
-			return new \WP_Error('api_error', $response->get_error_message());
+		
+		// Get model - use assistant's model or fall back to global setting
+		$model = $config['api_parameters']['model'] ?? '';
+		if (empty($model)) {
+			// Try to get default model from settings based on provider
+			$model_setting_key = $provider . '_model';
+			$model = $settings[$model_setting_key] ?? '';
 		}
-
-		$status_code = wp_remote_retrieve_response_code($response);
-		$body_data   = json_decode(wp_remote_retrieve_body($response), true);
-
-		// Handle API errors
-		if ($status_code !== 200) {
-			$error_message = $body_data['error']['message'] ?? 'Unknown API error';
-			$error_code    = $status_code === 429 ? 'rate_limit' : 'api_error';
-
+		
+		// Build API parameters
+		$parameters = array_merge(
+			$config['api_parameters'] ?? array(),
+			array('model' => $model)
+		);
+		
+		// Call chat completion API
+		$result = $client->chat_completion($messages, $parameters);
+		
+		if (!$result['success']) {
+			$error_code = $result['error_code'] ?? 'api_error';
 			return new \WP_Error(
 				$error_code,
-				$error_message,
+				$result['error'] ?? __('API request failed', 'polytrans'),
 				array(
-					'status'        => $status_code,
-					'retry_after'   => wp_remote_retrieve_header($response, 'retry-after'),
-					'error_details' => $body_data,
+					'status' => $result['status'] ?? null,
+					'retry_after' => $result['retry_after'] ?? null,
 				)
 			);
 		}
-
-		return $body_data;
+		
+		return $result['data'];
 	}
 
 	/**
@@ -291,7 +248,7 @@ class AssistantExecutor
 	}
 
 	/**
-	 * Extract content from API response (handle different providers)
+	 * Extract content from API response using ChatClient
 	 *
 	 * @param array  $response API response.
 	 * @param string $provider Provider name.
@@ -299,34 +256,52 @@ class AssistantExecutor
 	 */
 	private static function extract_content_from_response($response, $provider)
 	{
+		$settings = get_option('polytrans_settings', array());
+		
+		// Create chat client using factory
+		$client = ChatClientFactory::create($provider, $settings);
+		
+		if (!$client) {
+			// Fallback to manual extraction for backward compatibility
+			return self::extract_content_fallback($response, $provider);
+		}
+		
+		// Use client's extract_content method
+		$content = $client->extract_content($response);
+		
+		// Log truncation warnings for OpenAI (backward compatibility)
+		if ($provider === 'openai' && isset($response['choices'][0]['finish_reason'])) {
+			$finish_reason = $response['choices'][0]['finish_reason'];
+			if ($finish_reason === 'length') {
+				LogsManager::log(
+					'OpenAI response truncated due to max_tokens limit',
+					'warning',
+					array(
+						'finish_reason' => $finish_reason,
+						'content_length' => strlen($content ?? ''),
+						'usage' => $response['usage'] ?? null,
+					)
+				);
+			}
+		}
+		
+		return $content;
+	}
+	
+	/**
+	 * Fallback content extraction (for backward compatibility)
+	 *
+	 * @param array  $response API response.
+	 * @param string $provider Provider name.
+	 * @return string|null Content or null if not found.
+	 */
+	private static function extract_content_fallback($response, $provider)
+	{
 		switch ($provider) {
 			case 'openai':
-				$content = $response['choices'][0]['message']['content'] ?? null;
-				$finish_reason = $response['choices'][0]['finish_reason'] ?? 'unknown';
-
-				// Log if response was truncated due to max_tokens
-				if ($finish_reason === 'length') {
-					LogsManager::log(
-						'OpenAI response truncated due to max_tokens limit',
-						'warning',
-						array(
-							'finish_reason' => $finish_reason,
-							'content_length' => strlen($content),
-							'usage' => $response['usage'] ?? null,
-						)
-					);
-				}
-
-				return $content;
-
+				return $response['choices'][0]['message']['content'] ?? null;
 			case 'claude':
-				// Claude format: content[0].text
 				return $response['content'][0]['text'] ?? null;
-
-			case 'gemini':
-				// TODO: Add Gemini response format
-				return null;
-
 			default:
 				return null;
 		}

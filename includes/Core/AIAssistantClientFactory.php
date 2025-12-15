@@ -25,7 +25,13 @@ class AIAssistantClientFactory
      */
     public static function create($assistant_id, $settings)
     {
-        // Detect provider from assistant ID format
+        // Allow external plugins to provide their own clients via filter
+        $client = apply_filters('polytrans_assistant_client_factory_create', null, $assistant_id, $settings);
+        if ($client instanceof AIAssistantClientInterface) {
+            return $client;
+        }
+        
+        // Built-in providers
         if (strpos($assistant_id, 'asst_') === 0) {
             // OpenAI assistant
             $api_key = $settings['openai_api_key'] ?? '';
@@ -64,6 +70,13 @@ class AIAssistantClientFactory
      */
     public static function get_provider_id($assistant_id)
     {
+        // Allow external plugins to provide their own provider ID detection
+        $provider_id = apply_filters('polytrans_assistant_client_factory_get_provider_id', null, $assistant_id);
+        if ($provider_id !== null) {
+            return $provider_id;
+        }
+        
+        // Built-in providers
         if (strpos($assistant_id, 'asst_') === 0) {
             return 'openai';
         }

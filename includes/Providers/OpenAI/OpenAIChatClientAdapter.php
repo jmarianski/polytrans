@@ -1,0 +1,103 @@
+<?php
+
+namespace PolyTrans\Providers\OpenAI;
+
+use PolyTrans\Providers\ChatClientInterface;
+
+/**
+ * OpenAI Chat Client Adapter
+ * Implements ChatClientInterface for OpenAI Chat Completions API
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class OpenAIChatClientAdapter implements ChatClientInterface
+{
+    private $api_key;
+    private $base_url;
+    
+    public function __construct($api_key, $base_url = 'https://api.openai.com/v1')
+    {
+        $this->api_key = $api_key;
+        $this->base_url = rtrim($base_url, '/');
+    }
+    
+    public function get_provider_id()
+    {
+        return 'openai';
+    }
+    
+    public function chat_completion($messages, $parameters)
+    {
+        // Build request body
+        $body = array_merge(
+            [
+                'messages' => $messages,
+            ],
+            $parameters
+        );
+        
+        // Ensure model is set
+        if (empty($body['model'])) {
+            $body['model'] = 'gpt-4o-mini';
+        }
+        
+        // Make API request
+        $response = wp_remote_post(
+            $this->base_url . '/chat/completions',
+            [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $this->api_key,
+                ],
+                'body' => wp_json_encode($body),
+                'timeout' => 120,
+            ]
+        );
+        
+        // Handle errors
+        if (is_wp_error($response)) {
+            return [
+                'success' => false,
+                'data' => null,
+                'error' => $response->get_error_message()
+            ];
+        }
+        
+        $status_code = wp_remote_retrieve_response_code($response);
+        $body_data = json_decode(wp_remote_retrieve_body($response), true);
+        
+        // Handle API errors
+        if ($status_code !== 200) {
+            $error_message = $body_data['error']['message'] ?? 'Unknown API error';
+            $error_code = $status_code === 429 ? 'rate_limit' : 'api_error';
+            
+            return [
+                'success' => false,
+                'data' => null,
+                'error' => $error_message,
+                'error_code' => $error_code,
+                'status' => $status_code,
+                'retry_after' => wp_remote_retrieve_header($response, 'retry-after'),
+            ];
+        }
+        
+        return [
+            'success' => true,
+            'data' => $body_data,
+            'error' => null
+        ];
+    }
+    
+    public function extract_content($response)
+    {
+        if (!isset($response['choices'][0]['message']['content'])) {
+            return null;
+        }
+        
+        return $response['choices'][0]['message']['content'];
+    }
+}
+

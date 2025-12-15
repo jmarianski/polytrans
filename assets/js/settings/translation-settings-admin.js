@@ -112,11 +112,11 @@
 
                 // 2. Get all rules from the DOM
                 var rules = [];
-                $('#path-rules-container .openai-path-rule, #path-rules-table .openai-path-rule').each(function (i) {
+                $('#path-rules-container .path-rule-row, #path-rules-table .path-rule-row').each(function (i) {
                     var $rule = $(this);
-                    var source = $rule.find('.openai-path-source').val();
-                    var target = $rule.find('.openai-path-target').val();
-                    var intermediate = $rule.find('.openai-path-intermediate').val() || '';
+                    var source = $rule.find('.path-rule-source').val();
+                    var target = $rule.find('.path-rule-target').val();
+                    var intermediate = $rule.find('.path-rule-intermediate').val() || '';
                     if (source && target) {
                         rules.push({
                             source: source,

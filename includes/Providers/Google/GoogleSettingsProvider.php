@@ -92,12 +92,39 @@ class GoogleSettingsProvider implements SettingsProviderInterface
     {
         return [
             'provider_id' => 'google',
-            'capabilities' => ['translation'], // Google provides translation, not assistants
+            'capabilities' => ['translation'], // Google provides direct translation, no chat/assistants
             'auth_type' => 'none', // Public API, no auth needed
             'api_key_setting' => null,
             'api_key_configured' => true, // Always available
             'base_url' => 'https://translate.googleapis.com',
         ];
+    }
+    
+    /**
+     * Validate API key for Google (not applicable - Google doesn't require API key)
+     */
+    public function validate_api_key(string $api_key): bool
+    {
+        // Google Translate doesn't require API key
+        return true;
+    }
+    
+    /**
+     * Load assistants from Google (not applicable - Google doesn't have assistants)
+     */
+    public function load_assistants(array $settings): array
+    {
+        // Google doesn't provide assistants
+        return [];
+    }
+    
+    /**
+     * Load models from Google (not applicable - Google doesn't have models)
+     */
+    public function load_models(array $settings): array
+    {
+        // Google doesn't have models
+        return [];
     }
 }
 

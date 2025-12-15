@@ -204,3 +204,99 @@ select {
     color: #666;
     font-style: italic;
 }
+
+/* Universal Provider Settings Styles */
+/* These styles work for all providers, not just OpenAI */
+
+.provider-settings-content {
+    /* Container for provider settings tabs */
+}
+
+.universal-provider-config-section,
+.provider-config-section {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 20px 0;
+    background: #f9f9f9;
+}
+
+.universal-provider-config-section h2,
+.provider-config-section h2 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+
+.universal-provider-config-section h3,
+.provider-config-section h3 {
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.provider-api-key-section,
+.provider-model-section,
+.provider-source-language-section,
+.provider-assistants-section {
+    margin-bottom: 30px;
+}
+
+/* Validation message styles (works with data-field="validation-message") */
+[data-field="validation-message"] .notice {
+    margin: 5px 0;
+    padding: 8px 12px;
+    border-left-width: 4px;
+    border-left-style: solid;
+}
+
+[data-field="validation-message"] .notice-success {
+    background: #fff;
+    border-left-color: #46b450;
+    color: #032e20;
+}
+
+[data-field="validation-message"] .notice-error {
+    background: #fff;
+    border-left-color: #dc3232;
+    color: #3c434a;
+}
+
+/* Model message styles (works with data-field="model-message") */
+[data-field="model-message"] .notice {
+    margin: 5px 0;
+    padding: 8px 12px;
+    border-left-width: 4px;
+    border-left-style: solid;
+}
+
+[data-field="model-message"] .notice-success {
+    background: #fff;
+    border-left-color: #46b450;
+    color: #032e20;
+}
+
+[data-field="model-message"] .notice-error {
+    background: #fff;
+    border-left-color: #dc3232;
+    color: #3c434a;
+}
+
+/* Responsive design for provider settings */
+@media (max-width: 768px) {
+    .universal-provider-config-section,
+    .provider-config-section {
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .provider-api-key-section > div {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    .provider-api-key-section button {
+        margin-left: 0 !important;
+        margin-top: 0.5em;
+    }
+}

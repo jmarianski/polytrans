@@ -29,8 +29,9 @@ class TranslationPathExecutor
      */
     public static function execute($content, $source_lang, $target_lang, $settings)
     {
-        $path_rules = $settings['openai_path_rules'] ?? [];
-        $assistants_mapping = $settings['openai_assistants'] ?? [];
+        // Use universal names with backward compatibility
+        $path_rules = $settings['translation_path_rules'] ?? $settings['openai_path_rules'] ?? [];
+        $assistants_mapping = $settings['assistants_mapping'] ?? $settings['openai_assistants'] ?? [];
         
         // Resolve translation path
         $path = self::resolve_path($source_lang, $target_lang, $path_rules);

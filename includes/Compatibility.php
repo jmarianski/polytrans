@@ -69,7 +69,7 @@ class_alias('PolyTrans\Providers\Google\GoogleProvider', 'PolyTrans_Google_Provi
 class_alias('PolyTrans\Providers\OpenAI\OpenAIClient', 'PolyTrans_OpenAI_Client');
 class_alias('PolyTrans\Providers\OpenAI\OpenAIProvider', 'PolyTrans_OpenAI_Provider');
 class_alias('PolyTrans\Providers\OpenAI\OpenAISettingsProvider', 'PolyTrans_OpenAI_Settings_Provider');
-class_alias('PolyTrans\Providers\OpenAI\OpenAISettingsUI', 'PolyTrans_OpenAI_Settings_UI');
+// OpenAISettingsUI removed - replaced by OpenAISettingsProvider
 
 // ============================================================================
 // SCHEDULER MODULE

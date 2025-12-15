@@ -40,14 +40,13 @@ class ProviderRegistry
 
     /**
      * Load default providers (Google and OpenAI)
+     * These are now registered via hook for consistency with external plugins
      */
     public function load_default_providers()
     {
-        // All interfaces and classes are now PSR-4 autoloaded
-
-        // Register default providers (using backward-compatible aliases)
-        $this->register_provider(new \PolyTrans_Google_Provider());
-        $this->register_provider(new \PolyTrans_OpenAI_Provider());
+        // Default providers are now registered via 'polytrans_register_providers' hook
+        // This ensures consistent behavior and allows external plugins to override them
+        // See polytrans.php for registration
     }
 
     /**

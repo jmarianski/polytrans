@@ -27,6 +27,16 @@ class SettingsMenu
         return self::$instance;
     }
 
+    /**
+     * Constructor - register AJAX endpoints early
+     */
+    public function __construct()
+    {
+        // Register universal AJAX endpoints early (before page render)
+        // This ensures endpoints are available for AJAX requests
+        add_action('wp_ajax_polytrans_validate_provider_key', [\PolyTrans\Core\TranslationSettings::class, 'ajax_validate_provider_key_static']);
+    }
+
 
     public function add_admin_menu()
     {
@@ -68,6 +78,7 @@ class SettingsMenu
         if ($hook === 'toplevel_page_polytrans' || $hook === 'polytrans_page_polytrans-settings') {
             $plugin_url = POLYTRANS_PLUGIN_URL;
             wp_enqueue_script('polytrans-settings', $plugin_url . 'assets/js/settings/translation-settings-admin.js', ['jquery'], POLYTRANS_VERSION, true);
+            wp_enqueue_script('polytrans-provider-settings-universal', $plugin_url . 'assets/js/settings/provider-settings-universal.js', ['jquery'], POLYTRANS_VERSION, true);
             wp_enqueue_script('polytrans-user-autocomplete', $plugin_url . 'assets/js/core/user-autocomplete.js', ['jquery-ui-autocomplete'], POLYTRANS_VERSION, true);
 
             wp_enqueue_style('polytrans-settings', $plugin_url . 'assets/css/settings/translation-settings-admin.css', [], POLYTRANS_VERSION);
@@ -88,7 +99,7 @@ class SettingsMenu
 
             // Localize script for main settings
             $settings = get_option('polytrans_settings', []);
-            wp_localize_script('polytrans-settings', 'PolyTransAjax', [
+            $localization_data = [
                 'ajaxurl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('polytrans_nonce'),
                 'openai_nonce' => wp_create_nonce('polytrans_openai_nonce'),
@@ -98,6 +109,16 @@ class SettingsMenu
                     'loading' => esc_html__('Loading...', 'polytrans'),
                     'saving' => esc_html__('Saving...', 'polytrans'),
                     'saved' => esc_html__('Settings saved successfully!', 'polytrans'),
+                    // Universal provider manager i18n
+                    'please_enter_api_key' => esc_html__('Please enter an API key', 'polytrans'),
+                    'validating' => esc_html__('Validating...', 'polytrans'),
+                    'api_key_valid' => esc_html__('API key is valid!', 'polytrans'),
+                    'api_key_invalid' => esc_html__('Invalid API key', 'polytrans'),
+                    'validation_failed' => esc_html__('Failed to validate API key. Please try again.', 'polytrans'),
+                    'refreshing' => esc_html__('Refreshing...', 'polytrans'),
+                    'models_refreshed' => esc_html__('Models refreshed', 'polytrans'),
+                    'no_models' => esc_html__('No models available', 'polytrans'),
+                    'dismiss_notice' => esc_html__('Dismiss this notice', 'polytrans'),
                     'error' => esc_html__('An error occurred. Please try again.', 'polytrans'),
                     'confirm_delete' => esc_html__('Are you sure you want to delete this item?', 'polytrans'),
                     'test_connection' => esc_html__('Testing connection...', 'polytrans'),
@@ -106,7 +127,10 @@ class SettingsMenu
                     'invalid_url' => esc_html__('Please enter a valid URL.', 'polytrans'),
                     'required_field' => esc_html__('This field is required.', 'polytrans'),
                 ]
-            ]);
+            ];
+            
+            wp_localize_script('polytrans-settings', 'PolyTransAjax', $localization_data);
+            wp_localize_script('polytrans-provider-settings-universal', 'PolyTransAjax', $localization_data);
         }
     }
 

@@ -16,6 +16,24 @@ class TranslationSettings
     private $langs;
     private $lang_names;
     private $statuses;
+    
+    /**
+     * Get translation path rules with backward compatibility
+     * Checks for 'translation_path_rules' first, falls back to 'openai_path_rules'
+     */
+    private static function get_path_rules($settings)
+    {
+        return $settings['translation_path_rules'] ?? $settings['openai_path_rules'] ?? [];
+    }
+    
+    /**
+     * Get assistants mapping with backward compatibility
+     * Checks for 'assistants_mapping' first, falls back to 'openai_assistants'
+     */
+    private static function get_assistants_mapping($settings)
+    {
+        return $settings['assistants_mapping'] ?? $settings['openai_assistants'] ?? [];
+    }
 
     /**
      * Constructor
@@ -30,6 +48,119 @@ class TranslationSettings
             'pending' => __('Pending Review', 'polytrans'),
             'source' => __('Same as source', 'polytrans'),
         ];
+        
+        // Register universal AJAX endpoints
+        // Note: Also registered in SettingsMenu::__construct() for early availability
+        add_action('wp_ajax_polytrans_validate_provider_key', [$this, 'ajax_validate_provider_key']);
+    }
+    
+    /**
+     * Static wrapper for AJAX handler (called from SettingsMenu)
+     */
+    public static function ajax_validate_provider_key_static()
+    {
+        $instance = new self();
+        $instance->ajax_validate_provider_key();
+    }
+    
+    /**
+     * Universal AJAX handler for validating provider API keys
+     */
+    public function ajax_validate_provider_key()
+    {
+        // Check nonce - accept multiple nonce types for compatibility
+        $nonce_check = false;
+        if (isset($_POST['nonce'])) {
+            $nonce = sanitize_text_field($_POST['nonce']);
+            // Try different nonce types (in order of preference):
+            // 1. polytrans_nonce (from SettingsMenu - Universal JS)
+            // 2. polytrans_settings (form nonce)
+            // 3. polytrans_openai_nonce (backward compatibility)
+            // 4. polytrans_workflows_nonce (backward compatibility)
+            $nonce_check = wp_verify_nonce($nonce, 'polytrans_nonce') ||
+                          wp_verify_nonce($nonce, 'polytrans_settings') ||
+                          wp_verify_nonce($nonce, 'polytrans_openai_nonce') ||
+                          wp_verify_nonce($nonce, 'polytrans_workflows_nonce');
+        }
+        
+        if (!$nonce_check) {
+            // Log for debugging
+            error_log("PolyTrans: Nonce check failed. Nonce: " . ($_POST['nonce'] ?? 'not set') . ", Action: " . ($_POST['action'] ?? 'not set'));
+            wp_send_json_error(__('Security check failed.', 'polytrans'));
+            return;
+        }
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('You do not have sufficient permissions to access this page.', 'polytrans'));
+            return;
+        }
+        
+        $provider_id = sanitize_text_field($_POST['provider_id'] ?? '');
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        
+        if (empty($provider_id)) {
+            wp_send_json_error(__('Provider ID is required.', 'polytrans'));
+            return;
+        }
+        
+        if (empty($api_key)) {
+            wp_send_json_error(__('API key is required.', 'polytrans'));
+            return;
+        }
+        
+        // Get provider from registry
+        $registry = \PolyTrans_Provider_Registry::get_instance();
+        $provider = $registry->get_provider($provider_id);
+        
+        if (!$provider) {
+            wp_send_json_error(sprintf(__('Provider "%s" not found.', 'polytrans'), $provider_id));
+            return;
+        }
+        
+        // Get settings provider
+        $settings_provider_class = $provider->get_settings_provider_class();
+        if (!$settings_provider_class || !class_exists($settings_provider_class)) {
+            wp_send_json_error(sprintf(__('Settings provider not found for "%s".', 'polytrans'), $provider_id));
+            return;
+        }
+        
+        $settings_provider = new $settings_provider_class();
+        
+        // Try to validate using method or hook
+        $is_valid = false;
+        $error_message = '';
+        
+        // Method 1: Use validate_api_key() method if available
+        if (method_exists($settings_provider, 'validate_api_key')) {
+            try {
+                $is_valid = $settings_provider->validate_api_key($api_key);
+                if (!$is_valid) {
+                    $error_message = __('Invalid API key.', 'polytrans');
+                }
+            } catch (\Exception $e) {
+                error_log("PolyTrans: Failed to validate API key for {$provider_id}: " . $e->getMessage());
+                $error_message = __('Validation failed due to an error: ', 'polytrans') . $e->getMessage();
+                wp_send_json_error($error_message);
+                return;
+            }
+        } else {
+            // Method 2: Use hook for external plugins
+            $is_valid = apply_filters("polytrans_validate_api_key_{$provider_id}", false, $api_key);
+            
+            // Fallback: basic check (not empty)
+            if ($is_valid === false) {
+                $is_valid = !empty($api_key);
+                if (!$is_valid) {
+                    $error_message = __('API key cannot be empty.', 'polytrans');
+                }
+            }
+        }
+        
+        if ($is_valid) {
+            wp_send_json_success(__('API key is valid!', 'polytrans'));
+        } else {
+            wp_send_json_error($error_message ?: __('Invalid API key.', 'polytrans'));
+        }
     }
 
     /**
@@ -81,24 +212,46 @@ class TranslationSettings
         $settings['base_tags'] = sanitize_textarea_field(wp_unslash($_POST['base_tags'] ?? ''));
 
         // Handle provider-specific settings
+        // IMPORTANT: Save settings for ALL providers with settings UI, not just the selected provider
+        // This allows users to configure multiple providers (e.g., OpenAI for assistants, Google for default translation)
         $selected_provider = $registry->get_provider($settings['translation_provider']);
+        $providers = $registry->get_providers();
         
-        // Always validate OpenAI settings (for path rules and assistant mappings) regardless of selected provider
-        // These are used by TranslationPathExecutor even when Google is the default provider
-        $openai_provider = $registry->get_provider('openai');
-        if ($openai_provider && $openai_provider !== $selected_provider) {
-            $openai_settings_provider_class = $openai_provider->get_settings_provider_class();
-            if ($openai_settings_provider_class && class_exists($openai_settings_provider_class)) {
-                $openai_settings_provider = new $openai_settings_provider_class();
-                $openai_settings = $openai_settings_provider->validate_settings($_POST);
-                // Only merge path rules and assistants (not API key, model, etc. if OpenAI is not selected)
-                if (isset($openai_settings['openai_path_rules'])) {
-                    $settings['openai_path_rules'] = $openai_settings['openai_path_rules'];
+        // Process settings for all providers that have settings UI
+        foreach ($providers as $provider_id => $provider) {
+            $settings_provider_class = $provider->get_settings_provider_class();
+            if (!$settings_provider_class || !class_exists($settings_provider_class)) {
+                continue;
+            }
+            
+            $settings_provider = new $settings_provider_class();
+            $provider_settings = $settings_provider->validate_settings($_POST);
+            
+            // For OpenAI: always save path rules and assistants (used by TranslationPathExecutor)
+            // Also save API key and model if provided (needed for assistants and managed assistants)
+            if ($provider_id === 'openai') {
+                // Save all OpenAI settings (API key, model, path rules, assistants)
+                if (isset($provider_settings['openai_api_key'])) {
+                    $settings['openai_api_key'] = $provider_settings['openai_api_key'];
                 }
-                if (isset($openai_settings['openai_assistants'])) {
+                if (isset($provider_settings['openai_model'])) {
+                    $settings['openai_model'] = $provider_settings['openai_model'];
+                }
+                
+                // Save path rules in both formats (new universal + old OpenAI-specific for backward compatibility)
+                if (isset($provider_settings['openai_path_rules'])) {
+                    $path_rules = $provider_settings['openai_path_rules'];
+                    $settings['translation_path_rules'] = $path_rules; // New universal name
+                    $settings['openai_path_rules'] = $path_rules; // Old name for backward compatibility
+                }
+                
+                // Save assistants mapping in both formats (new universal + old OpenAI-specific for backward compatibility)
+                if (isset($provider_settings['openai_assistants'])) {
+                    $assistants_mapping = $provider_settings['openai_assistants'];
+                    
                     // Validate assistants using PathValidator before saving
                     $validation = \PolyTrans\Core\PathValidator::validate_assistants_mapping(
-                        $openai_settings['openai_assistants'],
+                        $assistants_mapping,
                         $settings
                     );
                     
@@ -117,18 +270,11 @@ class TranslationSettings
                     }
                     
                     // Save even if there are errors (user can fix them later)
-                    $settings['openai_assistants'] = $openai_settings['openai_assistants'];
+                    $settings['assistants_mapping'] = $assistants_mapping; // New universal name
+                    $settings['openai_assistants'] = $assistants_mapping; // Old name for backward compatibility
                 }
-            }
-        }
-        
-        // Handle settings for the selected provider (for API keys, models, etc.)
-        if ($selected_provider) {
-            $settings_provider_class = $selected_provider->get_settings_provider_class();
-            if ($settings_provider_class && class_exists($settings_provider_class)) {
-                $settings_provider = new $settings_provider_class();
-                $provider_settings = $settings_provider->validate_settings($_POST);
-                // Merge all settings from selected provider
+            } else {
+                // For other providers: merge all settings
                 $settings = array_merge($settings, $provider_settings);
             }
         }
@@ -244,7 +390,7 @@ class TranslationSettings
                             <?php endforeach; ?>
                         </div>
                         <p class="description">
-                            <?php esc_html_e('Enable providers to make them available in Language Paths. Google Translate provides direct translation, while OpenAI provides AI assistants.', 'polytrans'); ?>
+                            <?php esc_html_e('Enable providers to make them available in Language Paths. Translation providers (like Google Translate) provide direct translation, while AI providers (like OpenAI, Claude, Gemini) provide AI assistants.', 'polytrans'); ?>
                         </p>
                     </div>
                 </div>
@@ -294,7 +440,28 @@ class TranslationSettings
                 <!-- Dynamic Provider Settings Tabs -->
                 <?php foreach ($settings_providers as $provider_id => $settings_provider): ?>
                     <div id="<?php echo esc_attr($provider_id); ?>-settings" class="tab-content provider-settings-content" style="display:none;">
-                        <?php $settings_provider->render_settings_ui($settings, $this->langs, $this->lang_names); ?>
+                        <?php 
+                        // Try to use provider's custom UI, fallback to universal UI
+                        ob_start();
+                        try {
+                            $settings_provider->render_settings_ui($settings, $this->langs, $this->lang_names);
+                        } catch (\Exception $e) {
+                            // Provider doesn't have custom UI or error occurred
+                            ob_end_clean();
+                            ob_start();
+                        }
+                        $custom_ui = ob_get_clean();
+                        
+                        // Check if provider returned meaningful output
+                        // Empty string or just whitespace means use universal UI
+                        if (!empty(trim($custom_ui))) {
+                            // Provider has custom UI
+                            echo $custom_ui;
+                        } else {
+                            // Use universal UI based on manifest
+                            $this->render_universal_provider_ui($provider_id, $settings_provider, $settings);
+                        }
+                        ?>
                     </div>
                 <?php endforeach; ?>
 
@@ -648,8 +815,8 @@ class TranslationSettings
      */
     private function render_language_pairs_settings($settings)
     {
-        $openai_assistants = $settings['openai_assistants'] ?? [];
-        $openai_path_rules = $settings['openai_path_rules'] ?? [];
+        $assistants_mapping = self::get_assistants_mapping($settings);
+        $path_rules = self::get_path_rules($settings);
 
         ?>
         <h2><?php esc_html_e('Translation Path Rules', 'polytrans'); ?></h2>
@@ -658,7 +825,7 @@ class TranslationSettings
         </p>
 
         <div id="path-rules-container">
-            <?php $this->render_path_rules_table($openai_path_rules); ?>
+            <?php $this->render_path_rules_table($path_rules); ?>
         </div>
 
         <button type="button" id="add-path-rule" class="button" style="margin-top: 10px;">
@@ -669,7 +836,7 @@ class TranslationSettings
 
         <h2><?php esc_html_e('Provider/Assistant Mapping', 'polytrans'); ?></h2>
         <p class="description">
-            <?php esc_html_e('Select which translation provider or assistant to use for each language pair. You can choose from translation providers (like Google Translate) or AI assistants (Managed or OpenAI API).', 'polytrans'); ?>
+            <?php esc_html_e('Select which translation provider or assistant to use for each language pair. You can choose from translation providers (like Google Translate) or AI assistants (Managed or Provider API assistants).', 'polytrans'); ?>
         </p>
 
         <div id="assistants-loading" style="display:none; padding: 10px; background: #f0f0f1; margin: 10px 0;">
@@ -677,24 +844,24 @@ class TranslationSettings
         </div>
 
         <div id="assistants-error" style="display:none; padding: 10px; background: #f8d7da; color: #721c24; margin: 10px 0;">
-            <p><?php esc_html_e('Unable to load providers and assistants. Please check your OpenAI API key in OpenAI Configuration tab if you want to use OpenAI assistants.', 'polytrans'); ?></p>
+            <p><?php esc_html_e('Unable to load providers and assistants. Please check your API keys in provider configuration tabs if you want to use AI assistants.', 'polytrans'); ?></p>
         </div>
 
         <div id="assistants-mapping-container">
-            <?php $this->render_assistant_mapping_table($openai_assistants); ?>
+            <?php $this->render_assistant_mapping_table($assistants_mapping); ?>
         </div>
 
         <script type="text/javascript">
         jQuery(document).ready(function($) {
             // Function to update visual representation of path rule
             function updatePathRuleVisual($row) {
-                var source = $row.find('.openai-path-source').val();
-                var target = $row.find('.openai-path-target').val();
-                var intermediate = $row.find('.openai-path-intermediate').val() || '';
+                var source = $row.find('.path-rule-source').val();
+                var target = $row.find('.path-rule-target').val();
+                var intermediate = $row.find('.path-rule-intermediate').val() || '';
                 
-                var sourceText = source === 'all' ? '<?php echo esc_js(__('All', 'polytrans')); ?>' : $row.find('.openai-path-source option:selected').text();
-                var targetText = target === 'all' ? '<?php echo esc_js(__('All', 'polytrans')); ?>' : $row.find('.openai-path-target option:selected').text();
-                var intermediateText = intermediate === '' ? '<?php echo esc_js(__('None (Direct)', 'polytrans')); ?>' : $row.find('.openai-path-intermediate option:selected').text();
+                var sourceText = source === 'all' ? '<?php echo esc_js(__('All', 'polytrans')); ?>' : $row.find('.path-rule-source option:selected').text();
+                var targetText = target === 'all' ? '<?php echo esc_js(__('All', 'polytrans')); ?>' : $row.find('.path-rule-target option:selected').text();
+                var intermediateText = intermediate === '' ? '<?php echo esc_js(__('None (Direct)', 'polytrans')); ?>' : $row.find('.path-rule-intermediate option:selected').text();
                 
                 var $visual = $row.find('.path-rule-visual');
                 if (intermediate === '') {
@@ -711,13 +878,13 @@ class TranslationSettings
             }
             
             // Update visual for existing rules on change
-            $(document).on('change', '.openai-path-source, .openai-path-target, .openai-path-intermediate', function() {
-                var $row = $(this).closest('.openai-path-rule');
+            $(document).on('change', '.path-rule-source, .path-rule-target, .path-rule-intermediate', function() {
+                var $row = $(this).closest('.path-rule-row');
                 updatePathRuleVisual($row);
             });
             
             // Initialize visuals for existing rules
-            $('.openai-path-rule').each(function() {
+            $('.path-rule-row').each(function() {
                 updatePathRuleVisual($(this));
             });
             
@@ -725,9 +892,9 @@ class TranslationSettings
             $('#add-path-rule').on('click', function() {
                 var ruleIndex = $('#path-rules-container tbody tr').length;
                 var newRow = `
-                    <tr class="openai-path-rule">
+                    <tr class="path-rule-row">
                         <td>
-                            <select name="openai_path_rules[${ruleIndex}][source]" class="openai-path-source path-rule-select" required>
+                            <select name="openai_path_rules[${ruleIndex}][source]" class="path-rule-source path-rule-select" required>
                                 <option value="all"><?php esc_html_e('All', 'polytrans'); ?></option>
                                 <?php foreach ($this->langs as $i => $lang): ?>
                                 <option value="<?php echo esc_attr($lang); ?>">
@@ -737,7 +904,7 @@ class TranslationSettings
                             </select>
                         </td>
                         <td>
-                            <select name="openai_path_rules[${ruleIndex}][target]" class="openai-path-target path-rule-select" required>
+                            <select name="openai_path_rules[${ruleIndex}][target]" class="path-rule-target path-rule-select" required>
                                 <option value="all"><?php esc_html_e('All', 'polytrans'); ?></option>
                                 <?php foreach ($this->langs as $i => $lang): ?>
                                 <option value="<?php echo esc_attr($lang); ?>">
@@ -747,7 +914,7 @@ class TranslationSettings
                             </select>
                         </td>
                         <td>
-                            <select name="openai_path_rules[${ruleIndex}][intermediate]" class="openai-path-intermediate path-rule-select">
+                            <select name="openai_path_rules[${ruleIndex}][intermediate]" class="path-rule-intermediate path-rule-select">
                                 <option value=""><?php esc_html_e('None (Direct)', 'polytrans'); ?></option>
                                 <?php foreach ($this->langs as $i => $lang): ?>
                                 <option value="<?php echo esc_attr($lang); ?>">
@@ -784,7 +951,7 @@ class TranslationSettings
             });
 
             // Trigger filtering when path rule values change
-            $(document).on('change', '.openai-path-source, .openai-path-target, .openai-path-intermediate', function() {
+            $(document).on('change', '.path-rule-source, .path-rule-target, .path-rule-intermediate', function() {
                 if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
                     window.PolyTransLanguagePaths.updateLanguagePairVisibility();
                 }
@@ -802,7 +969,7 @@ class TranslationSettings
     /**
      * Render assistant mapping table
      */
-    private function render_assistant_mapping_table($openai_assistants)
+    private function render_assistant_mapping_table($assistants_mapping)
     {
         if (empty($this->langs)) {
             echo '<p><em>' . esc_html__('No languages configured. Please configure languages in Basic Settings first.', 'polytrans') . '</em></p>';
@@ -830,7 +997,7 @@ class TranslationSettings
                     $source_name = $this->get_language_name($pair['source']);
                     $target_name = $this->get_language_name($pair['target']);
                     $assistant_key = $pair['key'];
-                    $selected_assistant = $openai_assistants[$assistant_key] ?? '';
+                    $selected_assistant = $assistants_mapping[$assistant_key] ?? '';
                     ?>
                     <tr class="language-pair-row"
                         data-source="<?php echo esc_attr($pair['source']); ?>"
@@ -896,13 +1063,13 @@ class TranslationSettings
                 padding: 15px;
                 vertical-align: middle;
             }
-            #path-rules-table .openai-path-rule {
+            #path-rules-table .path-rule-row {
                 border-bottom: 1px solid #e5e5e5;
             }
-            #path-rules-table .openai-path-rule:last-child {
+            #path-rules-table .path-rule-row:last-child {
                 border-bottom: none;
             }
-            #path-rules-table .openai-path-rule:hover {
+            #path-rules-table .path-rule-row:hover {
                 background: #f9f9f9;
             }
             .path-rule-select {
@@ -983,9 +1150,9 @@ class TranslationSettings
                             $target_name = $target_val === 'all' ? __('All', 'polytrans') : ($this->lang_names[array_search($target_val, $this->langs)] ?? strtoupper($target_val));
                             $intermediate_name = empty($intermediate_val) ? __('None (Direct)', 'polytrans') : ($this->lang_names[array_search($intermediate_val, $this->langs)] ?? strtoupper($intermediate_val));
                             ?>
-                            <tr class="openai-path-rule">
+                            <tr class="path-rule-row">
                                 <td>
-                                    <select name="openai_path_rules[<?php echo esc_attr($index); ?>][source]" class="openai-path-source path-rule-select" required>
+                                    <select name="openai_path_rules[<?php echo esc_attr($index); ?>][source]" class="path-rule-source path-rule-select" required>
                                         <option value="all" <?php selected($source_val, 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
                                         <?php foreach ($this->langs as $i => $lang): ?>
                                             <option value="<?php echo esc_attr($lang); ?>" <?php selected($source_val, $lang); ?>>
@@ -995,7 +1162,7 @@ class TranslationSettings
                                     </select>
                                 </td>
                                 <td>
-                                    <select name="openai_path_rules[<?php echo esc_attr($index); ?>][target]" class="openai-path-target path-rule-select" required>
+                                    <select name="openai_path_rules[<?php echo esc_attr($index); ?>][target]" class="path-rule-target path-rule-select" required>
                                         <option value="all" <?php selected($target_val, 'all'); ?>><?php esc_html_e('All', 'polytrans'); ?></option>
                                         <?php foreach ($this->langs as $i => $lang): ?>
                                             <option value="<?php echo esc_attr($lang); ?>" <?php selected($target_val, $lang); ?>>
@@ -1005,7 +1172,7 @@ class TranslationSettings
                                     </select>
                                 </td>
                                 <td>
-                                    <select name="openai_path_rules[<?php echo esc_attr($index); ?>][intermediate]" class="openai-path-intermediate path-rule-select">
+                                    <select name="openai_path_rules[<?php echo esc_attr($index); ?>][intermediate]" class="path-rule-intermediate path-rule-select">
                                         <option value="" <?php selected(empty($intermediate_val)); ?>><?php esc_html_e('None (Direct)', 'polytrans'); ?></option>
                                         <?php foreach ($this->langs as $i => $lang): ?>
                                             <option value="<?php echo esc_attr($lang); ?>" <?php selected($intermediate_val, $lang); ?>>
@@ -1073,5 +1240,106 @@ class TranslationSettings
             return $this->lang_names[$index];
         }
         return strtoupper($code);
+    }
+    
+    /**
+     * Render universal provider settings UI based on manifest
+     * This is used when provider doesn't implement custom render_settings_ui()
+     * 
+     * @param string $provider_id Provider ID
+     * @param \PolyTrans\Providers\SettingsProviderInterface $settings_provider Settings provider instance
+     * @param array $settings Current settings
+     */
+    private function render_universal_provider_ui($provider_id, $settings_provider, $settings)
+    {
+        $manifest = $settings_provider->get_provider_manifest($settings);
+        $capabilities = $manifest['capabilities'] ?? [];
+        $api_key_setting = $manifest['api_key_setting'] ?? null;
+        $has_chat_or_assistants = in_array('chat', $capabilities) || in_array('assistants', $capabilities);
+        
+        // Get API key value if setting key is defined
+        $api_key = '';
+        if ($api_key_setting) {
+            $api_key = $settings[$api_key_setting] ?? '';
+        }
+        
+        // Get default model setting key (provider_id + '_model')
+        $model_setting_key = $provider_id . '_model';
+        $default_model = $settings[$model_setting_key] ?? '';
+        
+        ?>
+        <div class="universal-provider-config-section" data-provider-id="<?php echo esc_attr($provider_id); ?>">
+            <h2><?php echo esc_html($settings_provider->get_tab_label()); ?></h2>
+            <?php if ($settings_provider->get_tab_description()): ?>
+                <p><?php echo esc_html($settings_provider->get_tab_description()); ?></p>
+            <?php endif; ?>
+            
+            <?php if ($api_key_setting): ?>
+                <!-- API Key Section -->
+                <div class="provider-api-key-section" style="margin-top:2em;">
+                    <h3><?php esc_html_e('API Key', 'polytrans'); ?></h3>
+                    <div style="display:flex;gap:0.5em;align-items:center;max-width:600px;">
+                        <input type="password"
+                               data-provider="<?php echo esc_attr($provider_id); ?>"
+                               data-field="api-key"
+                               id="<?php echo esc_attr($provider_id); ?>-api-key"
+                               name="<?php echo esc_attr($api_key_setting); ?>"
+                               value="<?php echo esc_attr($api_key); ?>"
+                               style="width:100%"
+                               placeholder="<?php esc_attr_e('Enter your API key', 'polytrans'); ?>"
+                               autocomplete="off" />
+                        <button type="button"
+                                data-provider="<?php echo esc_attr($provider_id); ?>"
+                                data-action="validate-key"
+                                class="button"><?php esc_html_e('Validate', 'polytrans'); ?></button>
+                        <button type="button"
+                                data-provider="<?php echo esc_attr($provider_id); ?>"
+                                data-action="toggle-visibility"
+                                class="button">👁</button>
+                    </div>
+                    <div data-provider="<?php echo esc_attr($provider_id); ?>" data-field="validation-message" style="margin-top:0.5em;"></div>
+                    <small><?php 
+                        printf(
+                            esc_html__('Enter your %s API key. It will be validated before saving.', 'polytrans'),
+                            esc_html($settings_provider->get_tab_label())
+                        ); 
+                    ?></small>
+                </div>
+            <?php endif; ?>
+            
+            <?php if ($has_chat_or_assistants): ?>
+                <!-- Model Selection Section -->
+                <div class="provider-model-section" style="margin-top:2em;">
+                    <h3><?php esc_html_e('Default Model', 'polytrans'); ?></h3>
+                    <div style="display:flex;gap:0.5em;align-items:center;max-width:600px;">
+                        <select data-provider="<?php echo esc_attr($provider_id); ?>"
+                                data-field="model"
+                                data-selected-model="<?php echo esc_attr($default_model); ?>"
+                                id="<?php echo esc_attr($provider_id); ?>-model"
+                                name="<?php echo esc_attr($model_setting_key); ?>"
+                                style="flex:1;">
+                            <option value=""><?php esc_html_e('Loading models...', 'polytrans'); ?></option>
+                        </select>
+                        <button type="button"
+                                data-provider="<?php echo esc_attr($provider_id); ?>"
+                                data-action="refresh-models"
+                                class="button"><?php esc_html_e('Refresh', 'polytrans'); ?></button>
+                    </div>
+                    <div data-provider="<?php echo esc_attr($provider_id); ?>" data-field="model-message" style="margin-top:0.5em;"></div>
+                    <small><?php 
+                        printf(
+                            esc_html__('Default %s model to use for translations and AI Assistant steps.', 'polytrans'),
+                            esc_html($settings_provider->get_tab_label())
+                        ); 
+                    ?></small>
+                </div>
+            <?php endif; ?>
+            
+            <?php
+            // Allow providers to add custom fields via filter
+            do_action("polytrans_render_provider_settings_{$provider_id}", $settings, $manifest);
+            ?>
+        </div>
+        <?php
     }
 }

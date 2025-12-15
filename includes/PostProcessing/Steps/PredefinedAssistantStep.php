@@ -287,25 +287,25 @@ class PredefinedAssistantStep implements WorkflowStepInterface
     private function call_openai_assistant_api($assistant_id, $user_message, $settings)
     {
         try {
-            $api_key = $settings['openai_api_key'] ?? '';
+        $api_key = $settings['openai_api_key'] ?? '';
             $base_url = $settings['openai_base_url'] ?? 'https://api.openai.com/v1';
-            
-            if (empty($api_key)) {
-                return [
+
+        if (empty($api_key)) {
+        return [
                     'success' => false,
                     'error' => 'OpenAI API key not configured'
-                ];
-            }
-            
+        ];
+    }
+
             // Create OpenAI client
             $client = new \PolyTrans_OpenAI_Client($api_key, $base_url);
 
             // Create thread with initial message
             $thread_response = $client->create_thread([
-                [
-                    'role' => 'user',
-                    'content' => $user_message
-                ]
+                    [
+                        'role' => 'user',
+                        'content' => $user_message
+                    ]
             ]);
             
             if (!$thread_response['success']) {

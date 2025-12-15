@@ -7,10 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned for 1.6.0
-- **Multi-Provider Support**: Add Claude and Gemini as full providers with assistants support
-- **Universal Provider JS System**: Unified JavaScript for all provider settings tabs
-- **Universal Endpoints**: Refactor provider-specific endpoints to universal ones
+## [1.6.0] - 2025-12-11
+
+### Added
+- **Universal Provider JS System**: Complete universal JavaScript system for all provider settings tabs using data attributes
+- **Universal Chat Client Factory**: Factory pattern for chat API clients, allowing easy addition of new providers without modifying core code
+- **ChatClientInterface**: New interface for chat/completion API clients (OpenAI, Claude, Gemini, etc.)
+- **Provider Extensibility**: Full extensibility system allowing external plugins to add custom providers via hooks and filters
+- **Universal Provider Settings UI**: Automatic UI generation based on provider manifest (API key + model selection)
+- **Provider Capabilities System**: Clear distinction between `translation`, `chat`, and `assistants` capabilities
+- **System Prompt Support Detection**: Dynamic UI that hides/shows system prompt field based on provider capabilities
+- **Backward Compatibility**: Settings saved in both old (OpenAI-specific) and new (universal) formats with fallback reading
+- **Provider Registry via Hooks**: All providers (including OpenAI) now register via hooks for consistency
+- **Documentation**: Complete developer guides (`PROVIDER_EXTENSIBILITY_GUIDE.md`, `PROVIDER_CAPABILITIES.md`)
+- **Example Plugin**: Full DeepSeek provider example (`docs/examples/polytrans-deepseek/`)
+- **Quick Start Guides**: `QUICK_START_ADD_PROVIDER.md` and `EXTERNAL_PLUGIN_QUICK_START.md`
+
+### Changed
+- **OpenAI Integration**: OpenAI now uses universal JS/CSS system instead of custom `openai-integration.js/css`
+- **AssistantExecutor**: Refactored to use `ChatClientFactory` instead of hardcoded switch statements
+- **Provider Settings**: All providers now use universal CSS classes (`.provider-config-section`, `.provider-api-key-section`, etc.)
+- **Settings Saving**: Settings are now saved for all providers with UI, not just the selected default provider
+- **Nonce Handling**: Universal endpoints now accept multiple nonce types for broader compatibility
+- **OpenAI Registration**: OpenAI provider and chat client now register via hooks/filters like external plugins
+
+### Fixed
+- **Settings Persistence**: Fixed issue where saving settings (e.g., default model) didn't persist changes
+- **Provider Key Validation**: Fixed 400 error on `polytrans_validate_provider_key` by accepting multiple nonce types
+- **Language Paths Filtering**: Fixed filtering logic to correctly show only language pairs based on defined paths
+- **System Prompt Validation**: Conditional validation for system prompt based on provider's `supports_system_prompt` capability
+- **Interface Implementation**: Added missing `validate_api_key()`, `load_assistants()`, and `load_models()` methods to `OpenAISettingsProvider`
+
+### Removed
+- **OpenAISettingsUI.php**: Removed deprecated class (replaced by universal UI system)
+- **Hardcoded Provider Logic**: Removed hardcoded switch statements in favor of factory pattern
+
+### Technical
+- **Factory Pattern**: Implemented factory pattern for chat clients, making it easy to add new providers
+- **Data Attributes**: Universal JS system uses data attributes (`data-provider`, `data-field`, `data-action`) for all interactions
+- **Event Delegation**: Universal JS uses event delegation for better performance and extensibility
+- **Filter System**: All providers register via filters (`polytrans_chat_client_factory_create`, `polytrans_register_providers`)
+- **Manifest System**: Provider manifests define capabilities, endpoints, and configuration details
+- **Backward Compatibility**: Settings read with fallback mechanism (new format → old format)
 
 ## [1.5.8] - 2025-12-11
 

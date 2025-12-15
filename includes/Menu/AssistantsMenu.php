@@ -355,20 +355,29 @@ class AssistantsMenu
                                 $all_providers = $registry->get_providers();
                                 
                                 $available_assistant_providers = [];
+                                $provider_manifests = []; // Store manifests for JS
                                 foreach ($all_providers as $provider_id => $provider) {
                                     // Check if provider is enabled
                                     if (!in_array($provider_id, $enabled_providers)) {
                                         continue;
                                     }
                                     
-                                    // Check if provider supports assistants via manifest
+                                    // Check if provider supports chat or assistants via manifest
+                                    // Managed assistants can use providers with 'chat' capability (via system prompt)
+                                    // or providers with 'assistants' capability (via dedicated API)
                                     $settings_provider_class = $provider->get_settings_provider_class();
                                     if ($settings_provider_class && class_exists($settings_provider_class)) {
                                         $settings_provider = new $settings_provider_class();
                                         if (method_exists($settings_provider, 'get_provider_manifest')) {
                                             $manifest = $settings_provider->get_provider_manifest($settings);
-                                            if (in_array('assistants', $manifest['capabilities'] ?? [])) {
+                                            $capabilities = $manifest['capabilities'] ?? [];
+                                            // Managed assistants can use 'chat' or 'assistants' capability
+                                            if (in_array('chat', $capabilities) || in_array('assistants', $capabilities)) {
                                                 $available_assistant_providers[$provider_id] = $provider;
+                                                // Store manifest for JavaScript (supports_system_prompt info)
+                                                $provider_manifests[$provider_id] = [
+                                                    'supports_system_prompt' => $manifest['supports_system_prompt'] ?? true, // Default to true for backward compatibility
+                                                ];
                                             }
                                         }
                                     }
@@ -434,14 +443,18 @@ class AssistantsMenu
                             </td>
                         </tr>
 
-                        <tr>
+                        <tr id="system-prompt-row" class="system-prompt-field-row">
                             <th scope="row">
-                                <label for="assistant-system-prompt"><?php esc_html_e('System Instructions', 'polytrans'); ?> <span class="required">*</span></label>
+                                <label for="assistant-system-prompt"><?php esc_html_e('System Instructions', 'polytrans'); ?> <span class="required system-prompt-required">*</span></label>
                             </th>
                             <td class="workflow-field-with-variables">
                                 <div id="system-prompt-editor-container"></div>
                                 <p class="description"><?php esc_html_e('Instructions that define how the assistant should behave. This is static and doesn\'t change between requests.', 'polytrans'); ?></p>
                                 <p class="description"><strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> "You are a content quality expert. Analyze posts for grammar, SEO, and readability. Always respond in JSON format."</p>
+                                <p class="description system-prompt-not-supported" style="display:none; color: #d63638;">
+                                    <strong><?php esc_html_e('Note:', 'polytrans'); ?></strong> 
+                                    <?php esc_html_e('This provider does not support system prompts. Only the User Message Template will be used.', 'polytrans'); ?>
+                                </p>
                             </td>
                         </tr>
 
@@ -544,9 +557,34 @@ class AssistantsMenu
         $expected_output_schema = isset($_POST['expected_output_schema']) ? wp_unslash($_POST['expected_output_schema']) : null;
         $config = isset($_POST['config']) ? wp_unslash($_POST['config']) : [];
 
+        // Check if provider supports system prompt
+        $supports_system_prompt = true; // Default to true for backward compatibility
+        $settings = get_option('polytrans_settings', []);
+        $registry = \PolyTrans_Provider_Registry::get_instance();
+        $provider_obj = $registry->get_provider($provider);
+        if ($provider_obj) {
+            $settings_provider_class = $provider_obj->get_settings_provider_class();
+            if ($settings_provider_class && class_exists($settings_provider_class)) {
+                $settings_provider = new $settings_provider_class();
+                if (method_exists($settings_provider, 'get_provider_manifest')) {
+                    $manifest = $settings_provider->get_provider_manifest($settings);
+                    $supports_system_prompt = $manifest['supports_system_prompt'] ?? true; // Default to true
+                }
+            }
+        }
+        
         // Validate required fields
-        if (empty($name) || empty($provider) || empty($system_prompt)) {
+        // System prompt is only required if provider supports it
+        if (empty($name) || empty($provider)) {
             wp_send_json_error(['message' => __('Required fields are missing.', 'polytrans')]);
+        }
+        
+        // If provider doesn't support system prompt, ensure it's empty
+        if (!$supports_system_prompt) {
+            $system_prompt = ''; // Clear system prompt if provider doesn't support it
+        } elseif (empty($system_prompt)) {
+            // Only require system prompt if provider supports it
+            wp_send_json_error(['message' => __('System Instructions are required for this provider.', 'polytrans')]);
         }
 
         // Prepare API parameters
@@ -795,13 +833,28 @@ class AssistantsMenu
      */
     public function ajax_get_provider_models()
     {
-        // Check nonce
-        if (!check_ajax_referer('polytrans_assistants', 'nonce', false)) {
+        // Check nonce - accept multiple nonce types for compatibility
+        // Universal JS uses polytrans_nonce, AssistantsMenu uses polytrans_assistants
+        $nonce_check = false;
+        if (isset($_POST['nonce'])) {
+            $nonce = sanitize_text_field($_POST['nonce']);
+            // Try different nonce types:
+            // 1. polytrans_assistants (from AssistantsMenu)
+            // 2. polytrans_nonce (from SettingsMenu - Universal JS)
+            // 3. polytrans_openai_nonce (backward compatibility)
+            $nonce_check = wp_verify_nonce($nonce, 'polytrans_assistants') ||
+                          wp_verify_nonce($nonce, 'polytrans_nonce') ||
+                          wp_verify_nonce($nonce, 'polytrans_openai_nonce');
+        }
+        
+        if (!$nonce_check) {
             wp_send_json_error(__('Security check failed.', 'polytrans'));
+            return;
         }
         
         if (!current_user_can('manage_options')) {
-            wp_die(__('You do not have sufficient permissions to access this page.', 'polytrans'));
+            wp_send_json_error(__('You do not have sufficient permissions to access this page.', 'polytrans'));
+            return;
         }
         
         $provider_id = sanitize_text_field($_POST['provider_id'] ?? 'openai');

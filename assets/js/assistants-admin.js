@@ -54,14 +54,23 @@
             // Initialize schema field visibility based on response format
             this.handleResponseFormatChange();
 
+            // Initialize system prompt visibility based on current provider
+            const currentProvider = window.polytransAssistantData?.provider || $('#assistant-provider').val() || 'openai';
+            this.updateSystemPromptVisibility(currentProvider);
+
             // Create system prompt textarea with variable sidebar
             const systemContainer = document.getElementById('system-prompt-editor-container');
             if (systemContainer) {
+                // Check if provider supports system prompt
+                const providerManifests = polytransAssistants.providerManifests || {};
+                const manifest = providerManifests[currentProvider];
+                const supportsSystemPrompt = manifest ? (manifest.supports_system_prompt !== false) : true; // Default to true for backward compatibility
+                
                 const systemTextarea = $('<textarea>')
                     .attr('id', 'assistant-system-prompt')
                     .attr('name', 'system_prompt')
                     .attr('rows', 8)
-                    .attr('required', true)
+                    .attr('required', supportsSystemPrompt) // Only required if provider supports it
                     .addClass('large-text code prompt-editor-textarea')
                     .css('width', '100%')
                     .val(window.polytransAssistantData.system_prompt || '');
@@ -144,12 +153,15 @@
         },
 
         /**
-         * Handle provider change - load models dynamically
+         * Handle provider change - load models dynamically and update system prompt visibility
          */
         handleProviderChange: function(e) {
             const provider = $(e.target).val();
             const $modelField = $('#assistant-model');
             const currentModel = $modelField.data('selected-model') || $modelField.val();
+
+            // Update system prompt visibility based on provider support
+            this.updateSystemPromptVisibility(provider);
 
             // Show loading state
             $modelField.prop('disabled', true);
@@ -181,6 +193,37 @@
                     $modelField.prop('disabled', false);
                 }
             });
+        },
+
+        /**
+         * Update system prompt field visibility based on provider support
+         */
+        updateSystemPromptVisibility: function(provider) {
+            const $systemPromptRow = $('#system-prompt-row');
+            const $systemPromptField = $('#assistant-system-prompt');
+            const $requiredStar = $('.system-prompt-required');
+            
+            // Check if provider supports system prompt
+            const providerManifests = polytransAssistants.providerManifests || {};
+            const manifest = providerManifests[provider];
+            const supportsSystemPrompt = manifest ? (manifest.supports_system_prompt !== false) : true; // Default to true for backward compatibility
+            
+            if (supportsSystemPrompt) {
+                // Show system prompt field
+                $systemPromptRow.show();
+                if ($systemPromptField.length) {
+                    $systemPromptField.prop('required', true);
+                }
+                $requiredStar.show();
+            } else {
+                // Hide system prompt field (provider doesn't support it)
+                $systemPromptRow.hide();
+                if ($systemPromptField.length) {
+                    $systemPromptField.prop('required', false);
+                    $systemPromptField.val(''); // Clear value since it won't be used
+                }
+                $requiredStar.hide();
+            }
         },
 
         /**

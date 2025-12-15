@@ -1042,7 +1042,7 @@ class PostprocessingMenu
                 ];
             }
         }
-        
+
         // Load Managed Assistants
         $managed_assistants = \PolyTrans\Assistants\AssistantManager::get_all_assistants();
         if (!empty($managed_assistants)) {
@@ -1064,7 +1064,7 @@ class PostprocessingMenu
                         : $assistant['api_parameters'];
                     if (is_array($api_params) && !empty($api_params['model'])) {
                         $model_display = $api_params['model'];
-                    }
+        }
                 }
                 if ($model_display === 'No model' || empty($model_display)) {
                     $model_display = 'Global Setting';
@@ -1089,12 +1089,12 @@ class PostprocessingMenu
             if (!empty($openai_assistants)) {
                 foreach ($openai_assistants as $assistant) {
                     $grouped_assistants['openai'][] = [
-                        'id' => $assistant['id'],
-                        'name' => $assistant['name'] ?? 'Unnamed Assistant',
-                        'description' => $assistant['description'] ?? '',
+                'id' => $assistant['id'],
+                'name' => $assistant['name'] ?? 'Unnamed Assistant',
+                'description' => $assistant['description'] ?? '',
                         'model' => $assistant['model'] ?? 'gpt-4',
                         'provider' => 'openai'
-                    ];
+            ];
                 }
             }
         }
@@ -1115,7 +1115,7 @@ class PostprocessingMenu
                 }
             }
         }
-        
+
         wp_send_json_success($flattened);
     }
 
