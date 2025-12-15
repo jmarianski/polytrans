@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.4] - 2025-12-15
+
+### Fixed
+- **Model Selection UI**: Fixed "None selected" option disappearing after automatic model refresh
+  - Added "None selected" option preservation in universal provider settings JavaScript
+  - Option is now always available in model dropdown, even after AJAX refresh
+  - Improved detection of PHP-rendered models to prevent unnecessary AJAX calls
+
+### Removed
+- **Deprecated Files**: Removed deprecated OpenAI-specific JavaScript and CSS files
+  - Removed `assets/js/translator/openai-integration.js` (replaced by universal system)
+  - Removed `assets/css/translator/openai-integration.css` (replaced by universal CSS)
+  - OpenAI now fully uses universal provider settings system
+
+### Technical
+- **Code Cleanup**: Disabled `enqueue_assets()` in `OpenAISettingsProvider`
+  - OpenAI settings now handled entirely by universal provider system
+  - Reduces code duplication and improves maintainability
+
 ## [1.6.3] - 2025-12-15
 
 ### Changed

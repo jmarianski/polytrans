@@ -335,6 +335,11 @@ class TranslationSettings
                     continue;
                 }
                 
+                // Check if provider is used (enabled OR has API key configured)
+                if (!$this->is_provider_used($provider_id, $settings_provider_instance, $settings, $enabled_providers)) {
+                    continue; // Skip unused providers
+                }
+                
                 $settings_providers[$provider_id] = $settings_provider_instance;
                 // Always enqueue OpenAI assets since they're used in workflows regardless of main provider
                 // For other providers, only enqueue if they're the selected provider
@@ -1240,6 +1245,22 @@ class TranslationSettings
             return $this->lang_names[$index];
         }
         return strtoupper($code);
+    }
+    
+    /**
+     * Check if provider settings should be shown (only if enabled)
+     * 
+     * @param string $provider_id Provider ID
+     * @param \PolyTrans\Providers\SettingsProviderInterface $settings_provider Settings provider instance
+     * @param array $settings Current settings
+     * @param array $enabled_providers List of enabled provider IDs
+     * @return bool True if provider settings should be shown
+     */
+    private function is_provider_used($provider_id, $settings_provider, $settings, $enabled_providers)
+    {
+        // Show settings only if provider is enabled
+        // If disabled, settings are hidden even if provider is used in paths/assistants
+        return in_array($provider_id, $enabled_providers);
     }
     
     /**

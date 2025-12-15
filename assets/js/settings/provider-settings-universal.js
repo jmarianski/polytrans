@@ -67,7 +67,28 @@
                 // Load models if model select exists
                 var $modelSelect = $section.find('[data-provider="' + providerId + '"][data-field="model"]');
                 if ($modelSelect.length > 0) {
-                    self.loadModels(providerId);
+                    // Always ensure "None selected" option exists
+                    var $noneOption = $modelSelect.find('option[value=""]');
+                    if ($noneOption.length === 0) {
+                        // Add "None selected" if it doesn't exist
+                        var $emptyOption = $('<option></option>')
+                            .attr('value', '')
+                            .text(self.i18n('none_selected', 'None selected'));
+                        $modelSelect.prepend($emptyOption);
+                    }
+
+                    // Check if select already has models (optgroups indicate PHP-rendered models)
+                    var hasOptgroups = $modelSelect.find('optgroup').length > 0;
+
+                    // Only auto-load if select doesn't have optgroups (empty or only placeholder)
+                    if (!hasOptgroups) {
+                        self.loadModels(providerId);
+                    } else {
+                        // Select already has models - mark as loaded
+                        if (self.providers[providerId]) {
+                            self.providers[providerId].modelsLoaded = true;
+                        }
+                    }
                 }
             });
         },
@@ -188,8 +209,32 @@
                 return; // No model select for this provider
             }
 
-            // Get selected model
-            var selectedModel = $select.val() || $select.data('selected-model') || '';
+            // Check if select already has models - if so, skip loading
+            var hasOptgroups = $select.find('optgroup').length > 0;
+            var modelCount = 0;
+            $select.find('option').each(function () {
+                var $option = $(this);
+                var value = $option.val();
+                var text = $option.text().trim();
+                if (value !== '' && text !== 'Loading models...' && text !== 'None selected') {
+                    modelCount++;
+                }
+            });
+
+            // If select already has models, don't load again
+            if (hasOptgroups || modelCount > 0) {
+                if (typeof console !== 'undefined' && console.debug) {
+                    console.debug('[PolyTrans] Skipping loadModels for ' + providerId + ' - already has models (hasOptgroups: ' + hasOptgroups + ', modelCount: ' + modelCount + ')');
+                }
+                if (this.providers[providerId]) {
+                    this.providers[providerId].modelsLoaded = true;
+                }
+                return;
+            }
+
+            // Get selected model - prioritize data attribute over current value
+            // This ensures we preserve the server-rendered selection
+            var selectedModel = $select.data('selected-model') || $select.val() || '';
 
             // Get API key
             var $apiKeyInput = $('[data-provider="' + providerId + '"][data-field="api-key"]');
@@ -243,6 +288,9 @@
                 return;
             }
 
+            // Normalize selectedModel - ensure it's a string
+            selectedModel = selectedModel || '';
+
             // Clear all existing options
             $select.empty();
 
@@ -251,49 +299,53 @@
                 .attr('value', '')
                 .text(this.i18n('none_selected', 'None selected'));
 
-            // Select empty option if no model is selected
-            if (!selectedModel || selectedModel === '') {
-                $emptyOption.prop('selected', true);
-            }
-
             $select.append($emptyOption);
 
+            // Track if we found and selected a model
+            var modelSelected = false;
+
             // Check if we have models
-            if (!groupedModels || Object.keys(groupedModels).length === 0) {
-                // No models - add "No models available" option
-                $select.append($('<option></option>').attr('value', '').attr('disabled', true).text(this.i18n('no_models', 'No models available')));
-                return;
-            }
-
-            // Add models grouped by category
-            for (var groupName in groupedModels) {
-                if (!groupedModels.hasOwnProperty(groupName)) {
-                    continue;
-                }
-
-                var $optgroup = $('<optgroup></optgroup>').attr('label', groupName);
-                var models = groupedModels[groupName];
-
-                for (var modelId in models) {
-                    if (!models.hasOwnProperty(modelId)) {
+            if (groupedModels && Object.keys(groupedModels).length > 0) {
+                // Add models grouped by category
+                for (var groupName in groupedModels) {
+                    if (!groupedModels.hasOwnProperty(groupName)) {
                         continue;
                     }
 
-                    var modelLabel = models[modelId];
-                    var $option = $('<option></option>')
-                        .attr('value', modelId)
-                        .text(modelLabel);
+                    var $optgroup = $('<optgroup></optgroup>').attr('label', groupName);
+                    var models = groupedModels[groupName];
 
-                    // Select if matches selectedModel
-                    if (selectedModel && modelId === selectedModel) {
-                        $option.prop('selected', true);
+                    for (var modelId in models) {
+                        if (!models.hasOwnProperty(modelId)) {
+                            continue;
+                        }
+
+                        var modelLabel = models[modelId];
+                        var $option = $('<option></option>')
+                            .attr('value', modelId)
+                            .text(modelLabel);
+
+                        // Select if matches selectedModel (exact match)
+                        if (selectedModel && modelId === selectedModel) {
+                            $option.prop('selected', true);
+                            modelSelected = true;
+                        }
+
+                        $optgroup.append($option);
                     }
 
-                    $optgroup.append($option);
+                    $select.append($optgroup);
                 }
-
-                $select.append($optgroup);
             }
+
+            // Select "None selected" if no model was selected or selectedModel is empty
+            if (!modelSelected || !selectedModel) {
+                $emptyOption.prop('selected', true);
+            }
+
+            // Update data attribute to reflect current selection
+            var currentValue = $select.val() || '';
+            $select.data('selected-model', currentValue);
         },
 
         /**
@@ -317,7 +369,8 @@
                 return;
             }
 
-            var selectedModel = $select.val() || '';
+            // Get selected model - prioritize data attribute over current value
+            var selectedModel = $select.data('selected-model') || $select.val() || '';
             var $apiKeyInput = $('[data-provider="' + providerId + '"][data-field="api-key"]');
             var apiKey = $apiKeyInput.length > 0 ? $apiKeyInput.val() : '';
 
@@ -407,6 +460,11 @@
                 PolyTransAjax.i18n &&
                 PolyTransAjax.i18n[key]) {
                 return PolyTransAjax.i18n[key];
+            }
+            // Fallback to window object if available
+            if (typeof window.polytransI18n !== 'undefined' &&
+                window.polytransI18n[key]) {
+                return window.polytransI18n[key];
             }
             return defaultValue;
         },

@@ -187,6 +187,28 @@ class AssistantsMenu
     {
         $assistants = AssistantManager::get_all_assistants();
         $migration_status = AssistantMigration::get_migration_status();
+        
+        // Get enabled providers to check if provider is disabled
+        $settings = get_option('polytrans_settings', []);
+        $enabled_providers = $settings['enabled_translation_providers'] ?? ['google'];
+        
+        // Map assistant data for display
+        foreach ($assistants as &$assistant) {
+            // Extract model from api_parameters
+            $assistant['model'] = $assistant['api_parameters']['model'] ?? '';
+            // Map expected_format to response_format
+            $assistant['response_format'] = $assistant['expected_format'] ?? 'text';
+            
+            // Check if model is empty and if there's a default model in settings
+            $assistant['has_default_model'] = false;
+            if (empty($assistant['model'])) {
+                $provider_id = $assistant['provider'];
+                $model_setting_key = $provider_id . '_model';
+                $default_model = $settings[$model_setting_key] ?? '';
+                $assistant['has_default_model'] = !empty($default_model);
+            }
+        }
+        unset($assistant); // Break reference
 
 ?>
         <div class="wrap">
@@ -247,13 +269,38 @@ class AssistantsMenu
                                     </strong>
                                 </td>
                                 <td class="column-provider">
-                                    <?php echo esc_html(ucfirst($assistant['provider'])); ?>
+                                    <?php 
+                                    $provider_name = ucfirst($assistant['provider']);
+                                    $is_provider_enabled = in_array($assistant['provider'], $enabled_providers);
+                                    if (!$is_provider_enabled) {
+                                        echo '<span style="color: #dc3232; font-weight: bold;">' . esc_html($provider_name) . '</span>';
+                                    } else {
+                                        echo esc_html($provider_name);
+                                    }
+                                    ?>
                                 </td>
                                 <td class="column-model">
-                                    <?php echo esc_html($assistant['model']); ?>
+                                    <?php 
+                                    if (!empty($assistant['model'])) {
+                                        echo esc_html($assistant['model']);
+                                    } else {
+                                        // Show "default" or red warning if no default model
+                                        if ($assistant['has_default_model']) {
+                                            echo '<span style="color: #666; font-style: italic;">' . esc_html__('default', 'polytrans') . '</span>';
+                                        } else {
+                                            echo '<span style="color: #dc3232; font-weight: bold;">' . esc_html__('default', 'polytrans') . '</span>';
+                                        }
+                                    }
+                                    ?>
                                 </td>
                                 <td class="column-format">
-                                    <?php echo esc_html($assistant['response_format']); ?>
+                                    <?php 
+                                    if (!empty($assistant['response_format'])) {
+                                        echo esc_html(ucfirst($assistant['response_format']));
+                                    } else {
+                                        echo '<span style="color: #666; font-style: italic;">' . esc_html__('default', 'polytrans') . '</span>';
+                                    }
+                                    ?>
                                 </td>
                                 <td class="column-created">
                                     <?php
@@ -818,43 +865,13 @@ class AssistantsMenu
      * Get fallback model options
      * 
      * @param string|null $provider_id Provider ID to get provider-specific fallback
-     * @return array Fallback model options
+     * @return array Fallback model options (empty - no hardcoded models)
      */
     private function get_fallback_models($provider_id = null)
     {
-        // Provider-specific fallbacks
-        if ($provider_id === 'claude') {
-            return [
-                'Claude 3.5 Models' => [
-                    'claude-3-5-sonnet-20241022' => 'Claude 3.5 Sonnet (Latest)',
-                    'claude-3-5-haiku-20241022' => 'Claude 3.5 Haiku (Fast)',
-                ],
-                'Claude 3 Opus Models' => [
-                    'claude-3-opus-20240229' => 'Claude 3 Opus',
-                ],
-                'Claude 3 Sonnet Models' => [
-                    'claude-3-sonnet-20240229' => 'Claude 3 Sonnet',
-                ],
-                'Claude 3 Haiku Models' => [
-                    'claude-3-haiku-20240307' => 'Claude 3 Haiku',
-                ],
-            ];
-        }
-        
-        // Default: OpenAI fallback (for backward compatibility)
-        return [
-            'GPT-4o Models' => [
-                'gpt-4o' => 'GPT-4o (Latest)',
-                'gpt-4o-mini' => 'GPT-4o Mini (Fast & Cost-effective)',
-            ],
-            'GPT-4 Models' => [
-                'gpt-4-turbo' => 'GPT-4 Turbo',
-                'gpt-4' => 'GPT-4',
-            ],
-            'GPT-3.5 Models' => [
-                'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
-            ]
-        ];
+        // No fallback models - return empty array
+        // Models must be loaded from API
+        return [];
     }
     
     /**

@@ -88,7 +88,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
                 'intermediate' => 'en',
             ]
         ];
-        $openai_model = $settings['openai_model'] ?? 'gpt-4o-mini';
+        $openai_model = $settings['openai_model'] ?? '';
 ?>
         <script>
             window.POLYTRANS_LANGS = <?php echo json_encode(array_values($languages)); ?>;
@@ -100,7 +100,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
                                             echo json_encode($lang_name_map);
                                             ?>;
         </script>
-        <div class="openai-config-section">
+        <div class="openai-config-section universal-provider-config-section" data-provider-id="openai">
             <h2><?php echo esc_html($this->get_tab_label()); ?></h2>
             <p><?php echo esc_html($this->get_tab_description()); ?></p>
 
@@ -111,14 +111,16 @@ class OpenAISettingsProvider implements SettingsProviderInterface
                     <input type="password"
                         id="openai-api-key"
                         name="openai_api_key"
+                        data-provider="openai"
+                        data-field="api-key"
                         value="<?php echo esc_attr($openai_api_key); ?>"
                         style="width:100%"
                         placeholder="sk-..."
                         autocomplete="off" />
-                    <button type="button" id="validate-openai-key" class="button"><?php esc_html_e('Validate', 'polytrans'); ?></button>
-                    <button type="button" id="toggle-openai-key-visibility" class="button">👁</button>
+                    <button type="button" data-provider="openai" data-action="validate-key" id="validate-openai-key" class="button"><?php esc_html_e('Validate', 'polytrans'); ?></button>
+                    <button type="button" data-provider="openai" data-action="toggle-visibility" id="toggle-openai-key-visibility" class="button">👁</button>
                 </div>
-                <div id="openai-validation-message" style="margin-top:0.5em;"></div>
+                <div data-provider="openai" data-field="validation-message" id="openai-validation-message" style="margin-top:0.5em;"></div>
                 <small><?php esc_html_e('Enter your OpenAI API key. It will be validated before saving.', 'polytrans'); ?></small>
             </div>
 
@@ -126,7 +128,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
             <div class="openai-model-section" style="margin-top:2em;">
                 <h3><?php esc_html_e('Default Model', 'polytrans'); ?></h3>
                 <?php $this->render_model_selection($openai_model); ?>
-                <div id="openai-model-message" style="margin-top:0.5em;"></div>
+                <div data-provider="openai" data-field="model-message" id="openai-model-message" style="margin-top:0.5em;"></div>
                 <br><small><?php esc_html_e('Default OpenAI model to use for translations and AI Assistant steps. This can be overridden per workflow step.', 'polytrans'); ?></small>
             </div>
 
@@ -218,8 +220,8 @@ class OpenAISettingsProvider implements SettingsProviderInterface
                 if (in_array($model, $allowed_models)) {
                     $validated['openai_model'] = $model;
                 } else {
-                    // Invalid model - use default instead
-                    $validated['openai_model'] = 'gpt-4o-mini';
+                    // Invalid model - set to empty (user must select valid model)
+                    $validated['openai_model'] = '';
                 }
             }
         }
@@ -292,46 +294,11 @@ class OpenAISettingsProvider implements SettingsProviderInterface
      */
     public function enqueue_assets()
     {
-
-        // OpenAI AJAX handlers - register early
-        // Enqueue JavaScript
-        foreach ($this->get_required_js_files() as $js_file) {
-            $handle = 'polytrans-openai-' . basename($js_file, '.js');
-            if (file_exists(POLYTRANS_PLUGIN_DIR . $js_file)) {
-                wp_enqueue_script($handle, POLYTRANS_PLUGIN_URL . $js_file, ['jquery'], POLYTRANS_VERSION, true);
-            }
-        }
-
-        // Enqueue CSS
-        foreach ($this->get_required_css_files() as $css_file) {
-            $handle = 'polytrans-openai-' . basename($css_file, '.css');
-            if (file_exists(POLYTRANS_PLUGIN_DIR . $css_file)) {
-                wp_enqueue_style($handle, POLYTRANS_PLUGIN_URL . $css_file, [], POLYTRANS_VERSION);
-            }
-        }
-
-        // Add AJAX URL and nonce for JavaScript
-        $settings = get_option('polytrans_settings', []);
-        $selected_model = $settings['openai_model'] ?? '';
-        $js_handle = 'polytrans-openai-' . basename($this->get_required_js_files()[0], '.js');
-        wp_localize_script($js_handle, 'polytrans_openai', [
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('polytrans_openai_nonce'),
-            'models' => $this->get_grouped_models($selected_model),
-            'selected_model' => $selected_model,
-            'strings' => [
-                'validating' => __('Validating...', 'polytrans'),
-                'valid' => __('API key is valid', 'polytrans'),
-                'invalid' => __('API key is invalid', 'polytrans'),
-                'error' => __('Error validating API key', 'polytrans'),
-                'testing' => __('Testing translation...', 'polytrans'),
-                'test_success' => __('Translation successful!', 'polytrans'),
-                'test_failed' => __('Translation failed', 'polytrans'),
-                'refreshing_models' => __('Refreshing models...', 'polytrans'),
-                'models_refreshed' => __('Models refreshed', 'polytrans'),
-                'refresh_failed' => __('Failed to refresh models', 'polytrans'),
-            ]
-        ]);
+        // OpenAI now uses the universal provider settings system
+        // No need to enqueue openai-integration.js/css anymore
+        // The universal system (provider-settings-universal.js) handles everything
+        // This method is kept for interface compatibility but does nothing
+        return;
     }
 
     /**
@@ -760,7 +727,11 @@ class OpenAISettingsProvider implements SettingsProviderInterface
     {
         $grouped_models = $this->get_grouped_models($selected_model);
 
-        echo '<select name="openai_model" id="openai-model" style="max-width:300px;" data-selected-model="' . esc_attr($selected_model ?? '') . '">';
+        echo '<select name="openai_model" id="openai-model" style="max-width:300px;" data-provider="openai" data-field="model" data-selected-model="' . esc_attr($selected_model ?? '') . '">';
+        
+        // Always add "None selected" option first
+        $none_selected = empty($selected_model) ? 'selected' : '';
+        echo '<option value="" ' . $none_selected . '>' . esc_html__('None selected', 'polytrans') . '</option>';
 
         foreach ($grouped_models as $group_name => $models) {
             echo '<optgroup label="' . esc_attr($group_name) . '">';
@@ -772,7 +743,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
         }
 
         echo '</select>';
-        echo '<button type="button" id="refresh-openai-models" class="button" style="margin-left: 0.5em;" title="' . esc_attr__('Refresh models from OpenAI API', 'polytrans') . '">' . esc_html__('Refresh', 'polytrans') . '</button>';
+        echo '<button type="button" data-provider="openai" data-action="refresh-models" id="refresh-openai-models" class="button" style="margin-left: 0.5em;" title="' . esc_attr__('Refresh models from OpenAI API', 'polytrans') . '">' . esc_html__('Refresh', 'polytrans') . '</button>';
     }
 
     /**
