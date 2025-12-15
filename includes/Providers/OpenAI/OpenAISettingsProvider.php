@@ -126,6 +126,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
             <div class="openai-model-section" style="margin-top:2em;">
                 <h3><?php esc_html_e('Default Model', 'polytrans'); ?></h3>
                 <?php $this->render_model_selection($openai_model); ?>
+                <div id="openai-model-message" style="margin-top:0.5em;"></div>
                 <br><small><?php esc_html_e('Default OpenAI model to use for translations and AI Assistant steps. This can be overridden per workflow step.', 'polytrans'); ?></small>
             </div>
 
@@ -134,7 +135,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
                     <strong><?php esc_html_e('Note:', 'polytrans'); ?></strong>
                     <?php esc_html_e('Assistant Mapping and Translation Path Rules have been moved to the', 'polytrans'); ?>
                     <a href="<?php echo admin_url('admin.php?page=polytrans-settings#language-pairs-settings'); ?>">
-                        <?php esc_html_e('Language Pairs', 'polytrans'); ?>
+                        <?php esc_html_e('Language Paths', 'polytrans'); ?>
                     </a>
                     <?php esc_html_e('tab for better organization.', 'polytrans'); ?>
                 </p>

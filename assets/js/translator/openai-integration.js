@@ -16,7 +16,7 @@
             this.checkInitialApiKey();
             this.loadModels(); // Load models on init
             this.initialized = true;
-        },         bindEvents: function () {
+        }, bindEvents: function () {
             // API Key validation - use event delegation since elements might not exist yet
             $(document).on('click', '#validate-openai-key', this.validateApiKey.bind(this));
             $(document).on('click', '#toggle-openai-key-visibility', this.toggleApiKeyVisibility.bind(this));
@@ -33,9 +33,9 @@
             $(document).on('click', '#toggle-basic-settings', this.toggleSection.bind(this, '#basic-settings-section'));
             $(document).on('click', '#toggle-email-settings', this.toggleSection.bind(this, '#email-settings-section'));
 
-            // Tab switching - load assistants when Language Pairs tab is shown
+            // Tab switching - load assistants when Language Paths tab is shown
             $(document).on('click', '#language-pairs-tab', this.onLanguagePairsTabClick.bind(this));
-        },         checkInitialApiKey: function () {
+        }, checkInitialApiKey: function () {
             var apiKey = $('#openai-api-key').val();
 
             // Show/hide assistant mapping section based on API key (temporary testing override)
@@ -49,7 +49,7 @@
         },
 
         onLanguagePairsTabClick: function () {
-            // Load assistants if not already loaded when Language Pairs tab is clicked
+            // Load assistants if not already loaded when Language Paths tab is clicked
             if (!this.assistantsLoaded) {
                 this.loadAssistants();
             }
@@ -302,11 +302,11 @@
                     if (groupedAssistants.gemini && groupedAssistants.gemini.length > 0) {
                         var $geminiGroup = $('<optgroup label="Gemini Tuned Models"></optgroup>');
                         groupedAssistants.gemini.forEach(function (assistant) {
-                        var option = $('<option></option>')
-                            .attr('value', assistant.id)
-                            .text(assistant.name + ' (' + assistant.model + ')');
+                            var option = $('<option></option>')
+                                .attr('value', assistant.id)
+                                .text(assistant.name + ' (' + assistant.model + ')');
                             $geminiGroup.append(option);
-                    });
+                        });
                         $select.append($geminiGroup);
                     }
 
@@ -332,7 +332,7 @@
                         if (managedCount > 0) parts.push(managedCount + ' Managed');
                         if (openaiCount > 0) parts.push(openaiCount + ' OpenAI API');
                         message += parts.join(', ');
-                        
+
                         $section.prepend('<div class="assistants-loading-message" style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:8px 12px;border-radius:4px;margin-bottom:15px;font-size:13px;">' + message + '</div>');
                     }
                     setTimeout(function () {
@@ -368,7 +368,7 @@
 
         updateLanguagePairVisibility: function () {
             // Only run if we're on OpenAI Settings tab AND path rules list exists
-            // (Path rules were moved to Language Pairs tab, so this may not exist)
+            // (Path rules were moved to Language Paths tab, so this may not exist)
             if (!$('#openai-settings').is(':visible') || $('#openai-path-rules-list').length === 0) {
                 return;
             }
@@ -491,8 +491,19 @@
 
         showMessage: function ($container, type, message) {
             var className = type === 'success' ? 'notice-success' : 'notice-error';
-            var html = '<div class="notice ' + className + ' inline"><p>' + message + '</p></div>';
+            var dismissText = (typeof polytrans_openai !== 'undefined' && polytrans_openai.strings && polytrans_openai.strings.dismiss_notice) ?
+                polytrans_openai.strings.dismiss_notice : 'Dismiss this notice';
+            var html = '<div class="notice ' + className + ' is-dismissible inline"><p>' + message + '</p><button type="button" class="notice-dismiss"><span class="screen-reader-text">' +
+                dismissText + '</span></button></div>';
             $container.html(html);
+
+            // Initialize dismiss functionality
+            $container.find('.notice-dismiss').on('click', function (e) {
+                e.preventDefault();
+                $(this).closest('.notice').fadeOut(function () {
+                    $(this).remove();
+                });
+            });
         },
 
         handleAssistantLoadingError: function (errorMessage) {
@@ -663,11 +674,14 @@
                 this.updateModelSelect($select, models, selectedModel);
                 $button.prop('disabled', false).text(originalText);
 
-                // Show success message
-                var message = (typeof polytrans_openai !== 'undefined' && polytrans_openai.strings && polytrans_openai.strings.models_refreshed) ?
-                    polytrans_openai.strings.models_refreshed :
-                    'Models refreshed';
-                this.showMessage($('#openai-model').closest('.openai-model-section'), 'success', message);
+                // Show success message in dedicated message container
+                var $messageContainer = $('#openai-model-message');
+                if ($messageContainer.length) {
+                    var message = (typeof polytrans_openai !== 'undefined' && polytrans_openai.strings && polytrans_openai.strings.models_refreshed) ?
+                        polytrans_openai.strings.models_refreshed :
+                        'Models refreshed';
+                    this.showMessage($messageContainer, 'success', message);
+                }
             }.bind(this));
         }
     };

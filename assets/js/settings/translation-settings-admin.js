@@ -16,10 +16,10 @@
                 var targetId = $(this).attr('href');
                 $(targetId).addClass('active').show();
 
-                // Trigger Language Pairs filtering when switching to Language Pairs tab
+                // Trigger Language Paths filtering when switching to Language Paths tab
                 if (targetId === '#language-pairs-settings') {
-                    if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
-                        window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+                    if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
+                        window.PolyTransLanguagePaths.updateLanguagePairVisibility();
                     }
                 }
 
@@ -70,9 +70,9 @@
             if (window.OpenAIManager && window.OpenAIManager.updateLanguagePairVisibility) {
                 window.OpenAIManager.updateLanguagePairVisibility();
             }
-            // Trigger Language Pairs filtering
-            if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
-                window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+            // Trigger Language Paths filtering
+            if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
+                window.PolyTransLanguagePaths.updateLanguagePairVisibility();
             }
         });
 
@@ -81,18 +81,18 @@
             if (window.OpenAIManager && window.OpenAIManager.updateLanguagePairVisibility) {
                 window.OpenAIManager.updateLanguagePairVisibility();
             }
-            // Trigger Language Pairs filtering
-            if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
-                window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+            // Trigger Language Paths filtering
+            if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
+                window.PolyTransLanguagePaths.updateLanguagePairVisibility();
             }
         });
 
         updateLangConfigVisibility();
 
-        // Language Pairs filtering based on path rules
-        window.PolyTransLanguagePairs = {
+        // Language Paths filtering based on path rules
+        window.PolyTransLanguagePaths = {
             updateLanguagePairVisibility: function () {
-                // Only run if we're on Language Pairs tab
+                // Only run if we're on Language Paths tab
                 if (!$('#language-pairs-settings').is(':visible')) {
                     return;
                 }
@@ -122,11 +122,11 @@
                     var target = $rule.find('.openai-path-target').val();
                     var intermediate = $rule.find('.openai-path-intermediate').val() || '';
                     if (source && target) {
-                        rules.push({ 
-                            source: source, 
-                            target: target, 
-                            intermediate: intermediate === '' ? 'none' : intermediate, 
-                            index: i 
+                        rules.push({
+                            source: source,
+                            target: target,
+                            intermediate: intermediate === '' ? 'none' : intermediate,
+                            index: i
                         });
                     }
                 });
@@ -186,7 +186,7 @@
                     var $row = $(this);
                     var pairKey = $row.data('pair');
                     var matchingRules = pairToRules[pairKey] || [];
-                    
+
                     if (matchingRules.length > 0) {
                         $row.show();
                         visiblePairs++;

@@ -248,7 +248,7 @@ tr.pair-type-from-openai {
     font-size: 12px;
 }
 
-/* Translation Path Rules have been moved to Language Pairs tab */
+/* Translation Path Rules have been moved to Language Paths tab */
 /* Old styles removed - now handled in TranslationSettings.php */
 @media (max-width: 768px) {
     #openai-config-section {

@@ -148,7 +148,7 @@ class TranslationSettings
             <div class="nav-tab-wrapper">
                 <a href="#provider-settings" class="nav-tab nav-tab-active" id="provider-tab"><?php esc_html_e('Translation Provider', 'polytrans'); ?></a>
                 <a href="#basic-settings" class="nav-tab" id="basic-tab"><?php esc_html_e('Basic Settings', 'polytrans'); ?></a>
-                <a href="#language-pairs-settings" class="nav-tab" id="language-pairs-tab"><?php esc_html_e('Language Pairs', 'polytrans'); ?></a>
+                <a href="#language-pairs-settings" class="nav-tab" id="language-pairs-tab"><?php esc_html_e('Language Paths', 'polytrans'); ?></a>
                 <a href="#tag-settings" class="nav-tab" id="tag-tab"><?php esc_html_e('Tag Settings', 'polytrans'); ?></a>
                 <a href="#email-settings" class="nav-tab" id="email-tab"><?php esc_html_e('Email Settings', 'polytrans'); ?></a>
                 <?php foreach ($settings_providers as $provider_id => $settings_provider): ?>
@@ -206,7 +206,7 @@ class TranslationSettings
                     <?php $this->render_language_config_table($settings); ?>
                 </div>
 
-                <!-- Language Pairs Tab -->
+                <!-- Language Paths Tab -->
                 <div id="language-pairs-settings" class="tab-content" style="display:none;">
                     <?php $this->render_language_pairs_settings($settings); ?>
                 </div>
@@ -574,7 +574,7 @@ class TranslationSettings
     }
 
     /**
-     * Render Language Pairs settings tab
+     * Render Language Paths settings tab
      */
     private function render_language_pairs_settings($settings)
     {
@@ -699,8 +699,8 @@ class TranslationSettings
                 updatePathRuleVisual($newRow);
                 
                 // Trigger filtering after adding new rule
-                if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
-                    window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+                if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
+                    window.PolyTransLanguagePaths.updateLanguagePairVisibility();
                 }
             });
 
@@ -708,21 +708,21 @@ class TranslationSettings
             $(document).on('click', '.remove-rule', function() {
                 $(this).closest('tr').remove();
                 // Trigger filtering after removing rule
-                if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
-                    window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+                if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
+                    window.PolyTransLanguagePaths.updateLanguagePairVisibility();
                 }
             });
 
             // Trigger filtering when path rule values change
             $(document).on('change', '.openai-path-source, .openai-path-target, .openai-path-intermediate', function() {
-                if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
-                    window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+                if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
+                    window.PolyTransLanguagePaths.updateLanguagePairVisibility();
                 }
             });
 
             // Initial filtering on page load
-            if (window.PolyTransLanguagePairs && window.PolyTransLanguagePairs.updateLanguagePairVisibility) {
-                window.PolyTransLanguagePairs.updateLanguagePairVisibility();
+            if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
+                window.PolyTransLanguagePaths.updateLanguagePairVisibility();
             }
         });
         </script>

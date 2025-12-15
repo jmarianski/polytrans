@@ -69,7 +69,7 @@ This document outlines the implementation plan for two major enhancements to Pol
   - Zero Output Actions needed with auto-mapping
 
 - **UI/UX Improvements**:
-  - New "Language Pairs" tab in Settings (Assistant Mapping + Path Rules)
+  - New "Language Paths" tab in Settings (Assistant Mapping + Path Rules)
   - Reordered admin menu for better organization
   - Shared prompt editor component across plugin
   - Comprehensive error logging to database
