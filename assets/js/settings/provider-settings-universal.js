@@ -252,7 +252,7 @@
         /**
          * Fetch models from API
          */
-        fetchModels: function (providerId, apiKey, selectedModel, callback) {
+        fetchModels: function (providerId, apiKey, selectedModel, callback, forceRefresh) {
             var ajaxUrl = this.getAjaxUrl();
             var nonce = this.getNonce();
 
@@ -263,6 +263,7 @@
                     action: 'polytrans_get_provider_models',
                     provider_id: providerId,
                     selected_model: selectedModel || '',
+                    force_refresh: forceRefresh ? '1' : '0',
                     nonce: nonce
                 },
                 success: function (response) {
@@ -377,6 +378,7 @@
             var originalText = $button.text();
             $button.prop('disabled', true).text(this.i18n('refreshing', 'Refreshing...'));
 
+            // Force refresh when user clicks refresh button (clear cache)
             this.fetchModels(providerId, apiKey, selectedModel, function (models) {
                 this.updateModelSelect($select, models, selectedModel);
                 $button.prop('disabled', false).text(originalText);
@@ -389,7 +391,7 @@
                 if (this.providers[providerId]) {
                     this.providers[providerId].modelsLoaded = true;
                 }
-            }.bind(this));
+            }.bind(this), true); // Pass true to force refresh (clear cache)
         },
 
         /**

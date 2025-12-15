@@ -816,7 +816,7 @@ class AssistantsMenu
      * @param string|null $selected_model Currently selected model (for backward compatibility)
      * @return array Grouped model options
      */
-    private function get_model_options($provider_id = null, $selected_model = null)
+    private function get_model_options($provider_id = null, $selected_model = null, $force_refresh = false)
     {
         // Default to OpenAI for backward compatibility
         if (empty($provider_id)) {
@@ -842,6 +842,17 @@ class AssistantsMenu
             // Check if provider implements SettingsProviderInterface and has load_models method
             if ($settings_provider instanceof \PolyTrans\Providers\SettingsProviderInterface) {
                 if (method_exists($settings_provider, 'load_models')) {
+                    // Pass force_refresh parameter if method signature supports it
+                    // For now, we'll check if cache should be cleared before calling
+                    if ($force_refresh) {
+                        // Clear cache for this provider before loading
+                        $api_key_setting = $this->get_api_key_setting_key($provider_id);
+                        $api_key = $settings[$api_key_setting] ?? '';
+                        if (!empty($api_key)) {
+                            $cache_key = 'polytrans_' . $provider_id . '_models_' . md5($api_key);
+                            delete_transient($cache_key);
+                        }
+                    }
                     $models = $settings_provider->load_models($settings);
                     if (!empty($models) && is_array($models)) {
                         return $models;
@@ -905,9 +916,10 @@ class AssistantsMenu
         
         $provider_id = sanitize_text_field($_POST['provider_id'] ?? 'openai');
         $selected_model = sanitize_text_field($_POST['selected_model'] ?? '');
+        $force_refresh = isset($_POST['force_refresh']) && $_POST['force_refresh'] === '1';
         
         // Get models for the specified provider
-        $models = $this->get_model_options($provider_id, $selected_model);
+        $models = $this->get_model_options($provider_id, $selected_model, $force_refresh);
         
         wp_send_json_success([
             'models' => $models,
