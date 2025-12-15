@@ -30,8 +30,11 @@
             // Test assistant
             $('#test-assistant-btn').on('click', this.handleTest.bind(this));
 
-            // Provider change - update model suggestions
+            // Provider change - load models dynamically
             $('#assistant-provider').on('change', this.handleProviderChange.bind(this));
+            
+            // Refresh models button
+            $('#refresh-models').on('click', this.handleRefreshModels.bind(this));
 
             // Response format change - show/hide schema field
             $('#assistant-response-format').on('change', this.handleResponseFormatChange.bind(this));
@@ -141,22 +144,90 @@
         },
 
         /**
-         * Handle provider change
+         * Handle provider change - load models dynamically
          */
         handleProviderChange: function(e) {
             const provider = $(e.target).val();
             const $modelField = $('#assistant-model');
+            const currentModel = $modelField.data('selected-model') || $modelField.val();
 
-            // Get model suggestions from localized data
-            if (polytransAssistants.providers[provider]) {
-                const models = polytransAssistants.providers[provider].models;
-                if (models && models.length > 0) {
-                    // Set first model as default if field is empty
-                    if (!$modelField.val()) {
-                        $modelField.val(models[0]);
+            // Show loading state
+            $modelField.prop('disabled', true);
+            $modelField.html('<option value="">Loading models...</option>');
+
+            // Load models via AJAX
+            $.ajax({
+                url: polytransAssistants.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'polytrans_get_provider_models',
+                    provider_id: provider,
+                    selected_model: currentModel,
+                    nonce: polytransAssistants.nonce
+                },
+                success: (response) => {
+                    if (response.success && response.data && response.data.models) {
+                        this.populateModelSelect($modelField, response.data.models, currentModel);
+                    } else {
+                        // Fallback to empty select
+                        $modelField.html('<option value="">Use Global Setting</option>');
+                        console.error('Failed to load models:', response);
                     }
+                    $modelField.prop('disabled', false);
+                },
+                error: (xhr, status, error) => {
+                    console.error('AJAX error loading models:', error);
+                    $modelField.html('<option value="">Use Global Setting</option>');
+                    $modelField.prop('disabled', false);
                 }
+            });
+        },
+
+        /**
+         * Populate model select dropdown
+         */
+        populateModelSelect: function($select, groupedModels, selectedModel) {
+            $select.empty();
+            
+            // Add "Use Global Setting" option
+            const globalSelected = (!selectedModel || selectedModel === '') ? 'selected' : '';
+            $select.append($('<option></option>')
+                .attr('value', '')
+                .prop('selected', globalSelected)
+                .text('Use Global Setting'));
+
+            // Add grouped models
+            for (const [groupName, models] of Object.entries(groupedModels)) {
+                const $optgroup = $('<optgroup></optgroup>').attr('label', groupName);
+                
+                for (const [modelValue, modelLabel] of Object.entries(models)) {
+                    const isSelected = (selectedModel === modelValue) ? 'selected' : '';
+                    $optgroup.append($('<option></option>')
+                        .attr('value', modelValue)
+                        .prop('selected', isSelected)
+                        .text(modelLabel));
+                }
+                
+                $select.append($optgroup);
             }
+        },
+
+        /**
+         * Handle refresh models button click
+         */
+        handleRefreshModels: function(e) {
+            e.preventDefault();
+            const provider = $('#assistant-provider').val();
+            const $modelField = $('#assistant-model');
+            const currentModel = $modelField.val();
+
+            if (!provider) {
+                alert('Please select a provider first.');
+                return;
+            }
+
+            // Trigger provider change handler to reload models
+            $('#assistant-provider').trigger('change');
         },
 
         /**

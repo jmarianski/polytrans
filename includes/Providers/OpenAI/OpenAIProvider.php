@@ -162,8 +162,12 @@ class OpenAIProvider implements TranslationProviderInterface
                 }
                 \PolyTrans_Logs_Manager::log("OpenAI: translating step $step_source -> $step_target with assistant $assistant_id", "info");
 
-                // Detect assistant type and route accordingly
-                if (strpos($assistant_id, 'managed_') === 0) {
+                // Detect assistant/provider type and route accordingly
+                if (strpos($assistant_id, 'provider_') === 0) {
+                    // Translation Provider (e.g., provider_google)
+                    $provider_id = str_replace('provider_', '', $assistant_id);
+                    $result = $this->translate_with_provider($content_to_translate, $step_source, $step_target, $provider_id, $settings);
+                } elseif (strpos($assistant_id, 'managed_') === 0) {
                     // Managed Assistant (from local database)
                     $result = $this->translate_with_managed_assistant($content_to_translate, $step_source, $step_target, $assistant_id);
                 } else {
@@ -408,6 +412,44 @@ class OpenAIProvider implements TranslationProviderInterface
             'success' => true,
             'translated_content' => $translated_data
         ];
+    }
+
+    /**
+     * Translate using a translation provider (e.g., Google Translate)
+     *
+     * @param array $content Content to translate
+     * @param string $source_lang Source language code
+     * @param string $target_lang Target language code
+     * @param string $provider_id Provider ID (e.g., 'google')
+     * @param array $settings Translation settings
+     * @return array Translation result
+     */
+    private function translate_with_provider($content, $source_lang, $target_lang, $provider_id, $settings)
+    {
+        \PolyTrans_Logs_Manager::log("Using translation provider: $provider_id for step $source_lang -> $target_lang", "info");
+        
+        $registry = \PolyTrans_Provider_Registry::get_instance();
+        $provider = $registry->get_provider($provider_id);
+        
+        if (!$provider) {
+            return [
+                'success' => false,
+                'error' => "Translation provider '$provider_id' not found",
+                'error_code' => 'provider_not_found'
+            ];
+        }
+        
+        // Check if provider is configured
+        if (!$provider->is_configured($settings)) {
+            return [
+                'success' => false,
+                'error' => "Translation provider '$provider_id' is not properly configured",
+                'error_code' => 'provider_not_configured'
+            ];
+        }
+        
+        // Use the provider's translate method
+        return $provider->translate($content, $source_lang, $target_lang, $settings);
     }
 
     /**

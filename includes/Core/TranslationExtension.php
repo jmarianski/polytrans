@@ -117,37 +117,53 @@ class TranslationExtension
             \PolyTrans_Logs_Manager::log("External translation process started for post $original_post_id from $source_lang to $target_lang", "info");
         }
 
-        // Get settings and determine provider
+        // Get settings and check for translation paths
         $settings = get_option('polytrans_settings', []);
         $translation_provider = $settings['translation_provider'] ?? 'google';
+        $path_rules = $settings['openai_path_rules'] ?? [];
+        $assistants_mapping = $settings['openai_assistants'] ?? [];
+        $has_paths = !empty($path_rules) || !empty($assistants_mapping);
+        
+        if ($has_paths) {
+            // Use TranslationPathExecutor to respect path rules and provider/assistant mappings
+            \PolyTrans_Logs_Manager::log("Using TranslationPathExecutor with configured paths", "info");
+            
+            $result = \PolyTrans\Core\TranslationPathExecutor::execute(
+                $to_translate,
+                $source_lang,
+                $target_lang,
+                $settings
+            );
+        } else {
+            // Fallback to default provider if no paths configured
+            \PolyTrans_Logs_Manager::log("No paths configured, using default translation provider: $translation_provider", "info");
 
-        \PolyTrans_Logs_Manager::log("Using translation provider: $translation_provider", "info");
+            // Get the provider
+            $provider = $this->get_provider($translation_provider);
+            if (!$provider) {
+                // Update error status for external translation
+                if ($original_post_id) {
+                    $this->update_translation_failure($original_post_id, $target_lang, "Unknown translation provider: $translation_provider");
+                }
 
-        // Get the provider
-        $provider = $this->get_provider($translation_provider);
-        if (!$provider) {
-            // Update error status for external translation
-            if ($original_post_id) {
-                $this->update_translation_failure($original_post_id, $target_lang, "Unknown translation provider: $translation_provider");
+                \PolyTrans_Logs_Manager::log("Unknown translation provider: $translation_provider", "info");
+                return new WP_REST_Response(['error' => "Unknown translation provider: $translation_provider"], 400);
             }
 
-            \PolyTrans_Logs_Manager::log("Unknown translation provider: $translation_provider", "info");
-            return new WP_REST_Response(['error' => "Unknown translation provider: $translation_provider"], 400);
-        }
+            // Check if provider is configured
+            if (!$provider->is_configured($settings)) {
+                // Update error status for external translation
+                if ($original_post_id) {
+                    $this->update_translation_failure($original_post_id, $target_lang, "Translation provider $translation_provider is not properly configured");
+                }
 
-        // Check if provider is configured
-        if (!$provider->is_configured($settings)) {
-            // Update error status for external translation
-            if ($original_post_id) {
-                $this->update_translation_failure($original_post_id, $target_lang, "Translation provider $translation_provider is not properly configured");
+                \PolyTrans_Logs_Manager::log("Translation provider $translation_provider is not properly configured", "info");
+                return new WP_REST_Response(['error' => "Translation provider $translation_provider is not properly configured"], 400);
             }
 
-            \PolyTrans_Logs_Manager::log("Translation provider $translation_provider is not properly configured", "info");
-            return new WP_REST_Response(['error' => "Translation provider $translation_provider is not properly configured"], 400);
+            // Perform translation
+            $result = $provider->translate($to_translate, $source_lang, $target_lang, $settings);
         }
-
-        // Perform translation
-        $result = $provider->translate($to_translate, $source_lang, $target_lang, $settings);
 
         if (!$result['success']) {
             // Update error status for external translation

@@ -44,6 +44,7 @@ class AssistantsMenu
         add_action('wp_ajax_polytrans_get_assistant', [$this, 'ajax_get_assistant']);
         add_action('wp_ajax_polytrans_test_assistant', [$this, 'ajax_test_assistant']);
         add_action('wp_ajax_polytrans_migrate_workflows', [$this, 'ajax_migrate_workflows']);
+        add_action('wp_ajax_polytrans_get_provider_models', [$this, 'ajax_get_provider_models']);
     }
 
     /**
@@ -103,13 +104,19 @@ class AssistantsMenu
             POLYTRANS_VERSION
         );
 
-        // Get current model from assistant being edited (if any)
+        // Get current model and provider from assistant being edited (if any)
         $current_model = '';
+        $current_provider = 'openai';
         if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
             $assistant_id = intval($_GET['id']);
             $assistant = AssistantManager::get_assistant($assistant_id);
-            if ($assistant && !empty($assistant['model'])) {
-                $current_model = $assistant['model'];
+            if ($assistant) {
+                if (!empty($assistant['model'])) {
+                    $current_model = $assistant['model'];
+                }
+                if (!empty($assistant['provider'])) {
+                    $current_provider = $assistant['provider'];
+                }
             }
         }
         
@@ -117,8 +124,9 @@ class AssistantsMenu
         wp_localize_script('polytrans-assistants', 'polytransAssistants', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('polytrans_assistants'),
-            'models' => $this->get_model_options($current_model),
+            'models' => $this->get_model_options($current_provider, $current_model),
             'selected_model' => $current_model,
+            'current_provider' => $current_provider,
             'strings' => [
                 'confirmDelete' => __('Are you sure you want to delete this assistant?', 'polytrans'),
                 'saveSuccess' => __('Assistant saved successfully.', 'polytrans'),
@@ -339,12 +347,58 @@ class AssistantsMenu
                                 <label for="assistant-provider"><?php esc_html_e('Provider', 'polytrans'); ?> <span class="required">*</span></label>
                             </th>
                             <td>
+                                <?php
+                                // Get available providers that support assistants
+                                $registry = \PolyTrans_Provider_Registry::get_instance();
+                                $settings = get_option('polytrans_settings', []);
+                                $enabled_providers = $settings['enabled_translation_providers'] ?? ['google'];
+                                $all_providers = $registry->get_providers();
+                                
+                                $available_assistant_providers = [];
+                                foreach ($all_providers as $provider_id => $provider) {
+                                    // Check if provider is enabled
+                                    if (!in_array($provider_id, $enabled_providers)) {
+                                        continue;
+                                    }
+                                    
+                                    // Check if provider supports assistants via manifest
+                                    $settings_provider_class = $provider->get_settings_provider_class();
+                                    if ($settings_provider_class && class_exists($settings_provider_class)) {
+                                        $settings_provider = new $settings_provider_class();
+                                        if (method_exists($settings_provider, 'get_provider_manifest')) {
+                                            $manifest = $settings_provider->get_provider_manifest($settings);
+                                            if (in_array('assistants', $manifest['capabilities'] ?? [])) {
+                                                $available_assistant_providers[$provider_id] = $provider;
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // If no providers found, fallback to hardcoded list (for backward compatibility)
+                                if (empty($available_assistant_providers)) {
+                                    $available_assistant_providers = [
+                                        'openai' => $registry->get_provider('openai'),
+                                        'claude' => null, // Placeholder
+                                        'gemini' => null, // Placeholder
+                                    ];
+                                }
+                                ?>
                                 <select id="assistant-provider" name="provider" required>
-                                    <option value="openai" <?php selected($assistant['provider'], 'openai'); ?>><?php esc_html_e('OpenAI', 'polytrans'); ?></option>
-                                    <option value="claude" <?php selected($assistant['provider'], 'claude'); ?>><?php esc_html_e('Claude (Anthropic)', 'polytrans'); ?></option>
-                                    <option value="gemini" <?php selected($assistant['provider'], 'gemini'); ?>><?php esc_html_e('Gemini (Google)', 'polytrans'); ?></option>
+                                    <?php foreach ($available_assistant_providers as $provider_id => $provider): ?>
+                                        <?php if ($provider): ?>
+                                            <option value="<?php echo esc_attr($provider_id); ?>" <?php selected($assistant['provider'] ?? 'openai', $provider_id); ?>>
+                                                <?php echo esc_html($provider->get_name()); ?>
+                                            </option>
+                                        <?php else: ?>
+                                            <option value="<?php echo esc_attr($provider_id); ?>" disabled <?php selected($assistant['provider'] ?? 'openai', $provider_id); ?>>
+                                                <?php echo esc_html(ucfirst($provider_id)); ?> <?php esc_html_e('(Not Available)', 'polytrans'); ?>
+                                            </option>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
                                 </select>
-                                <p class="description"><?php esc_html_e('AI provider to use for this assistant.', 'polytrans'); ?></p>
+                                <p class="description">
+                                    <?php esc_html_e('AI provider to use for this assistant. Only enabled providers with assistant support are shown.', 'polytrans'); ?>
+                                </p>
                             </td>
                         </tr>
 
@@ -353,10 +407,11 @@ class AssistantsMenu
                                 <label for="assistant-model"><?php esc_html_e('AI Model', 'polytrans'); ?></label>
                             </th>
                             <td>
-                                <select id="assistant-model" name="model" class="regular-text" data-selected-model="<?php echo esc_attr($assistant['model'] ?? ''); ?>">
+                                <select id="assistant-model" name="model" class="regular-text" data-selected-model="<?php echo esc_attr($assistant['model'] ?? ''); ?>" data-provider="<?php echo esc_attr($assistant['provider'] ?? 'openai'); ?>">
                                     <?php
                                     $current_model = $assistant['model'] ?? '';
-                                    $models = $this->get_model_options($current_model);
+                                    $current_provider = $assistant['provider'] ?? 'openai';
+                                    $models = $this->get_model_options($current_provider, $current_model);
 
                                     // Add "Use Global Setting" option
                                     $selected = empty($current_model) ? 'selected' : '';
@@ -372,6 +427,9 @@ class AssistantsMenu
                                     }
                                     ?>
                                 </select>
+                                <button type="button" id="refresh-models" class="button" style="margin-left: 0.5em;" title="<?php esc_attr_e('Refresh models from provider API', 'polytrans'); ?>">
+                                    <?php esc_html_e('Refresh', 'polytrans'); ?>
+                                </button>
                                 <p class="description"><?php esc_html_e('Select the AI model to use for this assistant. "Use Global Setting" will use the default model from plugin settings.', 'polytrans'); ?></p>
                             </td>
                         </tr>
@@ -663,27 +721,51 @@ class AssistantsMenu
     }
 
     /**
-     * Get model options for select dropdown
+     * Get model options for select dropdown based on provider
      * 
+     * @param string|null $provider_id Provider ID (e.g., 'openai', 'claude')
      * @param string|null $selected_model Currently selected model (for backward compatibility)
      * @return array Grouped model options
      */
-    private function get_model_options($selected_model = null)
+    private function get_model_options($provider_id = null, $selected_model = null)
     {
-        // Check if OpenAI settings provider class exists
-        if (!class_exists('\PolyTrans_OpenAI_Settings_Provider')) {
+        // Default to OpenAI for backward compatibility
+        if (empty($provider_id)) {
+            $provider_id = 'openai';
+        }
+        
+        $registry = \PolyTrans_Provider_Registry::get_instance();
+        $provider = $registry->get_provider($provider_id);
+        
+        if (!$provider) {
             return $this->get_fallback_models();
         }
-
+        
+        $settings_provider_class = $provider->get_settings_provider_class();
+        if (!$settings_provider_class || !class_exists($settings_provider_class)) {
+            return $this->get_fallback_models();
+        }
+        
         try {
-            $provider = new \PolyTrans_OpenAI_Settings_Provider();
-            $reflection = new \ReflectionClass($provider);
-            $method = $reflection->getMethod('get_grouped_models');
-            $method->setAccessible(true);
-            return $method->invoke($provider, $selected_model);
+            $settings_provider = new $settings_provider_class();
+            
+            // Check if provider has get_grouped_models method
+            if (method_exists($settings_provider, 'get_grouped_models')) {
+                return $settings_provider->get_grouped_models($selected_model);
+            }
+            
+            // Fallback: try to get models via manifest
+            $settings = get_option('polytrans_settings', []);
+            if (method_exists($settings_provider, 'get_provider_manifest')) {
+                $manifest = $settings_provider->get_provider_manifest($settings);
+                // If provider has models_endpoint, we could fetch models here
+                // For now, return fallback
+            }
         } catch (\Exception $e) {
-            return $this->get_fallback_models();
+            error_log("[PolyTrans] Failed to get models for provider $provider_id: " . $e->getMessage());
         }
+        
+        return $this->get_fallback_models();
     }
 
     /**
@@ -706,5 +788,31 @@ class AssistantsMenu
                 'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
             ]
         ];
+    }
+    
+    /**
+     * AJAX handler for getting provider models
+     */
+    public function ajax_get_provider_models()
+    {
+        // Check nonce
+        if (!check_ajax_referer('polytrans_assistants', 'nonce', false)) {
+            wp_send_json_error(__('Security check failed.', 'polytrans'));
+        }
+        
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have sufficient permissions to access this page.', 'polytrans'));
+        }
+        
+        $provider_id = sanitize_text_field($_POST['provider_id'] ?? 'openai');
+        $selected_model = sanitize_text_field($_POST['selected_model'] ?? '');
+        
+        // Get models for the specified provider
+        $models = $this->get_model_options($provider_id, $selected_model);
+        
+        wp_send_json_success([
+            'models' => $models,
+            'selected_model' => $selected_model
+        ]);
     }
 }

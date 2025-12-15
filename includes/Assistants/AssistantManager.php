@@ -28,10 +28,57 @@ class AssistantManager
 
 	/**
 	 * Valid provider names
+	 * This is a fallback list - actual validation uses ProviderRegistry
 	 *
 	 * @var array
 	 */
 	private static $valid_providers = array('openai', 'claude', 'gemini');
+	
+	/**
+	 * Get valid providers from registry (providers that support assistants)
+	 *
+	 * @return array Array of provider IDs
+	 */
+	private static function get_valid_providers_from_registry()
+	{
+		$valid_providers = array();
+		
+		try {
+			$registry = \PolyTrans_Provider_Registry::get_instance();
+			$settings = get_option('polytrans_settings', []);
+			$enabled_providers = $settings['enabled_translation_providers'] ?? ['google'];
+			$all_providers = $registry->get_providers();
+			
+			foreach ($all_providers as $provider_id => $provider) {
+				// Check if provider is enabled
+				if (!in_array($provider_id, $enabled_providers)) {
+					continue;
+				}
+				
+				// Check if provider supports assistants via manifest
+				$settings_provider_class = $provider->get_settings_provider_class();
+				if ($settings_provider_class && class_exists($settings_provider_class)) {
+					$settings_provider = new $settings_provider_class();
+					if (method_exists($settings_provider, 'get_provider_manifest')) {
+						$manifest = $settings_provider->get_provider_manifest($settings);
+						if (in_array('assistants', $manifest['capabilities'] ?? [])) {
+							$valid_providers[] = $provider_id;
+						}
+					}
+				}
+			}
+		} catch (\Exception $e) {
+			// Fallback to hardcoded list if registry fails
+			error_log("[PolyTrans] Failed to get providers from registry: " . $e->getMessage());
+		}
+		
+		// Fallback to hardcoded list if no providers found
+		if (empty($valid_providers)) {
+			$valid_providers = self::$valid_providers;
+		}
+		
+		return $valid_providers;
+	}
 
 	/**
 	 * Valid status values
@@ -121,8 +168,11 @@ class AssistantManager
 		}
 
 		// Optional: provider (validate if present)
-		if (isset($data['provider']) && ! in_array($data['provider'], self::$valid_providers, true)) {
-			$errors['provider'] = __('Invalid provider', 'polytrans');
+		if (isset($data['provider'])) {
+			$valid_providers = self::get_valid_providers_from_registry();
+			if (!in_array($data['provider'], $valid_providers, true)) {
+				$errors['provider'] = sprintf(__('Invalid provider. Allowed providers: %s', 'polytrans'), implode(', ', $valid_providers));
+			}
 		}
 
 		// Optional: status (validate if present)

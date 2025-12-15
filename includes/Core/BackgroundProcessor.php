@@ -513,32 +513,55 @@ class BackgroundProcessor
                 'featured_image' => $featured_image_data // Array with image metadata (id, alt, title, caption, description, filename)
             ];
 
-            // Handle the translation based on provider
-            self::log("Loading translation provider: $translation_provider", "info", ['post_id' => $post_id]);
-
-            // Try namespaced class first, then legacy
-            if (class_exists('\PolyTrans\Providers\ProviderRegistry')) {
-                $registry = \PolyTrans\Providers\ProviderRegistry::get_instance();
-            } elseif (class_exists('PolyTrans_Provider_Registry')) {
-                $registry = PolyTrans_Provider_Registry::get_instance();
-            } else {
-                throw new Exception('ProviderRegistry class not found. Autoloader may not be initialized.');
-            }
+            // Check if translation paths are configured
+            $path_rules = $settings['openai_path_rules'] ?? [];
+            $assistants_mapping = $settings['openai_assistants'] ?? [];
+            $has_paths = !empty($path_rules) || !empty($assistants_mapping);
             
-            $provider = $registry->get_provider($translation_provider);
+            if ($has_paths) {
+                // Use TranslationPathExecutor to respect path rules and provider/assistant mappings
+                self::log("Using TranslationPathExecutor with configured paths", "info", [
+                    'post_id' => $post_id,
+                    'source_lang' => $source_lang,
+                    'target_lang' => $target_lang,
+                    'path_rules_count' => count($path_rules),
+                    'assistants_mapping_count' => count($assistants_mapping)
+                ]);
+                
+                $translation_result = \PolyTrans\Core\TranslationPathExecutor::execute(
+                    $content_to_translate,
+                    $source_lang,
+                    $target_lang,
+                    $settings
+                );
+            } else {
+                // Fallback to default provider if no paths configured
+                self::log("No paths configured, using default translation provider: $translation_provider", "info", ['post_id' => $post_id]);
 
-            if (!$provider) {
-                throw new Exception(sprintf(__('Translation provider %s not found.', 'polytrans'), $translation_provider));
+                // Try namespaced class first, then legacy
+                if (class_exists('\PolyTrans\Providers\ProviderRegistry')) {
+                    $registry = \PolyTrans\Providers\ProviderRegistry::get_instance();
+                } elseif (class_exists('PolyTrans_Provider_Registry')) {
+                    $registry = PolyTrans_Provider_Registry::get_instance();
+                } else {
+                    throw new Exception('ProviderRegistry class not found. Autoloader may not be initialized.');
+                }
+                
+                $provider = $registry->get_provider($translation_provider);
+
+                if (!$provider) {
+                    throw new Exception(sprintf(__('Translation provider %s not found.', 'polytrans'), $translation_provider));
+                }
+
+                // Use the provider to translate
+                self::log("Sending content to translation provider", "info", [
+                    'post_id' => $post_id,
+                    'provider' => $translation_provider,
+                    'content_length' => strlen($post->post_content)
+                ]);
+
+                $translation_result = $provider->translate($content_to_translate, $source_lang, $target_lang, $settings);
             }
-
-            // Use the provider to translate
-            self::log("Sending content to translation provider", "info", [
-                'post_id' => $post_id,
-                'provider' => $translation_provider,
-                'content_length' => strlen($post->post_content)
-            ]);
-
-            $translation_result = $provider->translate($content_to_translate, $source_lang, $target_lang, $settings);
 
             if (!$translation_result['success']) {
                 throw new Exception($translation_result['error'] ?? __('Unknown translation error.', 'polytrans'));

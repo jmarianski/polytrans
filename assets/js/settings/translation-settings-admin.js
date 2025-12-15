@@ -323,7 +323,19 @@
                         $select.empty();
                         $select.append($('<option></option>')
                             .attr('value', '')
-                            .text('No assistant selected'));
+                            .text('No provider/assistant selected'));
+
+                        // Add Translation Providers group
+                        if (groupedAssistants.providers && groupedAssistants.providers.length > 0) {
+                            var $providersGroup = $('<optgroup label="Translation Providers"></optgroup>');
+                            groupedAssistants.providers.forEach(function (provider) {
+                                var option = $('<option></option>')
+                                    .attr('value', provider.id)
+                                    .text(provider.name + (provider.description ? ' - ' + provider.description : ''));
+                                $providersGroup.append(option);
+                            });
+                            $select.append($providersGroup);
+                        }
 
                         // Add Managed Assistants group
                         if (groupedAssistants.managed && groupedAssistants.managed.length > 0) {

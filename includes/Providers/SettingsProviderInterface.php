@@ -103,4 +103,19 @@ interface SettingsProviderInterface
      * @return void
      */
     public function register_ajax_handlers();
+
+    /**
+     * Get provider manifest with capabilities and configuration
+     * @param array $settings Current settings (for API keys, etc.)
+     * @return array Manifest array with:
+     *   - capabilities: ['translation', 'assistants'] - what this provider can do
+     *   - assistants_endpoint: URL to fetch assistants (if supports assistants)
+     *   - chat_endpoint: URL for chat/completion (if supports assistants)
+     *   - models_endpoint: URL to fetch available models (if supports assistants)
+     *   - auth_type: 'bearer', 'api_key', 'none'
+     *   - auth_header: header name for auth (e.g., 'Authorization')
+     *   - api_key_setting: setting key for API key (e.g., 'openai_api_key')
+     *   - api_key_configured: bool - whether API key is set (for admin only)
+     */
+    public function get_provider_manifest(array $settings);
 }

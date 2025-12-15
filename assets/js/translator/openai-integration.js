@@ -157,23 +157,26 @@
         },
 
         /**
-         * Fetch models from API via AJAX
+         * Fetch models from API via AJAX (using universal endpoint)
          */
         fetchModels: function (apiKey, selectedModel, callback) {
             var ajaxUrl = (typeof polytrans_openai !== 'undefined' && polytrans_openai.ajax_url) ?
                 polytrans_openai.ajax_url :
                 (typeof ajaxurl !== 'undefined' ? ajaxurl : null);
 
-            var nonce = (typeof polytrans_openai !== 'undefined' && polytrans_openai.nonce) ?
-                polytrans_openai.nonce :
-                $('input[name="_wpnonce"]').val();
+            // Use universal endpoint - get nonce from AssistantsMenu (same as provider models)
+            var nonce = (typeof polytransAssistants !== 'undefined' && polytransAssistants.nonce) ?
+                polytransAssistants.nonce :
+                ((typeof polytrans_openai !== 'undefined' && polytrans_openai.nonce) ?
+                    polytrans_openai.nonce :
+                    $('input[name="_wpnonce"]').val());
 
             $.ajax({
                 url: ajaxUrl,
                 type: 'POST',
                 data: {
-                    action: 'polytrans_get_ai_models',
-                    api_key: apiKey,
+                    action: 'polytrans_get_provider_models',
+                    provider_id: 'openai', // Explicitly specify OpenAI provider
                     selected_model: selectedModel || '',
                     nonce: nonce
                 },
@@ -293,11 +296,12 @@
         },
 
         bindEvents: function () {
-            $('input[name="translation_provider"]').on('change', this.updateProviderSection.bind(this));
+            $('input[name="enabled_translation_providers[]"]').on('change', this.updateProviderSection.bind(this));
         },
 
         updateProviderSection: function () {
-            var provider = $('input[name="translation_provider"]:checked').val();
+            // Get first checked provider for backward compatibility
+            var provider = $('input[name="enabled_translation_providers[]"]:checked').first().val() || 'google';
 
             // Always show OpenAI settings since they're used in workflows regardless of main translation provider
             var $toggleButton = $('#toggle-openai-section');

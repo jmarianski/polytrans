@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned for 1.6.0
+- **Multi-Provider Support**: Add Claude and Gemini as full providers with assistants support
+- **Universal Provider JS System**: Unified JavaScript for all provider settings tabs
+- **Universal Endpoints**: Refactor provider-specific endpoints to universal ones
+
+## [1.5.8] - 2025-12-11
+
+### Added
+- **Workflow Predefined Assistants**: Predefined AI Assistant workflow step now supports all provider assistants (OpenAI API, Claude, Gemini) grouped by provider
+- **Universal Assistant Loading**: Endpoint `polytrans_load_assistants` now works for workflow editor with proper nonce handling
+- **Provider Grouping**: Assistants in workflow dropdown are now properly grouped by type (OpenAI API Assistants, Managed Assistants, etc.)
+
+### Fixed
+- **Workflow Nonce**: Fixed security check failure for `polytrans_load_assistants` in workflow editor by adding `openai_nonce` to workflow localization
+- **Assistant Grouping**: Fixed issue where OpenAI API assistants were incorrectly grouped with managed assistants in workflow dropdown
+- **Translation Providers in Workflow**: Excluded translation providers (Google Translate) from Predefined Assistant workflow step - only AI assistants are shown
+- **Managed Assistants Filtering**: Predefined Assistant workflow step now correctly excludes managed assistants (they have separate step type)
+- **CSS Selector**: Fixed `select[id*="assistant-id"] option:first-child` selector to only target direct children (not optgroup children) using `> option:first-child`
+- **Array Type Error**: Fixed `in_array()` error when `enabled_providers` was null by ensuring it's always an array
+
+### Changed
+- **PredefinedAssistantStep**: Refactored to support multiple provider types (managed assistants, OpenAI API assistants, future: Claude/Gemini)
+- **Endpoint Parameters**: `polytrans_load_assistants` now accepts `exclude_managed` and `exclude_providers` parameters for workflow context
+- **API Key Fallback**: Endpoint `polytrans_load_assistants` now falls back to settings API key if not provided in POST request
+
+### Technical
+- Improved error handling in `ajax_load_openai_assistants` with try-catch for API calls
+- Added provider field to assistant objects in grouped response
+- Enhanced assistant grouping logic to use both `group` and `provider` fields for proper categorization
+
 ## [1.5.7] - 2025-12-11
 
 ### Fixed

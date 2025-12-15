@@ -47,7 +47,7 @@
     }
 
     /**
-     * Load OpenAI assistants
+     * Load assistants from all providers (using universal endpoint)
      */
     function loadAssistants() {
         // Return cached promise if already loading
@@ -60,16 +60,123 @@
             return Promise.resolve(cachedAssistants);
         }
 
+        // Use universal endpoint that returns grouped assistants
+        var ajaxUrl = null;
+        if (typeof PolyTransAjax !== 'undefined' && PolyTransAjax.ajaxurl) {
+            ajaxUrl = PolyTransAjax.ajaxurl;
+        } else if (typeof polytransWorkflows !== 'undefined' && polytransWorkflows.ajaxUrl) {
+            ajaxUrl = polytransWorkflows.ajaxUrl;
+        } else if (typeof ajaxurl !== 'undefined') {
+            ajaxUrl = ajaxurl;
+        }
+
+        var nonce = null;
+        if (typeof polytransWorkflows !== 'undefined' && polytransWorkflows.openai_nonce) {
+            nonce = polytransWorkflows.openai_nonce;
+        } else if (typeof PolyTransAjax !== 'undefined' && PolyTransAjax.openai_nonce) {
+            nonce = PolyTransAjax.openai_nonce;
+        } else if (typeof polytransWorkflows !== 'undefined' && polytransWorkflows.nonce) {
+            nonce = polytransWorkflows.nonce;
+        }
+
+        var apiKey = '';
+        if (typeof polytrans_openai !== 'undefined' && polytrans_openai.api_key) {
+            apiKey = polytrans_openai.api_key;
+        } else {
+            // Try to get from OpenAI settings tab
+            var $apiKeyField = $('#openai-api-key');
+            if ($apiKeyField.length) {
+                apiKey = $apiKeyField.val() || '';
+            }
+        }
+
         assistantLoadPromise = $.ajax({
-            url: polytransWorkflows.ajaxUrl,
+            url: ajaxUrl,
             type: 'POST',
             data: {
-                action: 'polytrans_load_openai_assistants_for_workflow',
-                nonce: polytransWorkflows.nonce
+                action: 'polytrans_load_assistants',
+                api_key: apiKey,
+                nonce: nonce,
+                exclude_managed: 'true', // Exclude managed assistants for predefined assistant workflow step
+                exclude_providers: 'true' // Exclude translation providers (Google Translate, etc.) - only AI assistants
             }
         }).then(function (response) {
-            if (response.success) {
-                cachedAssistants = response.data;
+            if (response.success && response.data) {
+                // Transform grouped structure to flat array for backward compatibility
+                var flattened = [];
+                var grouped = response.data;
+                
+                // Add providers group
+                if (grouped.providers && Array.isArray(grouped.providers)) {
+                    grouped.providers.forEach(function(provider) {
+                        flattened.push({
+                            id: provider.id,
+                            name: provider.name,
+                            description: provider.description || '',
+                            model: provider.model || 'N/A',
+                            provider: provider.provider || 'unknown',
+                            group: 'providers'
+                        });
+                    });
+                }
+                
+                // Add managed assistants group
+                if (grouped.managed && Array.isArray(grouped.managed)) {
+                    grouped.managed.forEach(function(assistant) {
+                        flattened.push({
+                            id: assistant.id,
+                            name: assistant.name,
+                            description: assistant.description || '',
+                            model: assistant.model || 'N/A',
+                            provider: assistant.provider || 'openai',
+                            group: 'managed'
+                        });
+                    });
+                }
+                
+                // Add OpenAI API assistants group
+                if (grouped.openai && Array.isArray(grouped.openai)) {
+                    grouped.openai.forEach(function(assistant) {
+                        flattened.push({
+                            id: assistant.id,
+                            name: assistant.name,
+                            description: assistant.description || '',
+                            model: assistant.model || 'gpt-4',
+                            provider: 'openai',
+                            group: 'openai'
+                        });
+                    });
+                }
+                
+                // Add Claude assistants group (future)
+                if (grouped.claude && Array.isArray(grouped.claude)) {
+                    grouped.claude.forEach(function(assistant) {
+                        flattened.push({
+                            id: assistant.id,
+                            name: assistant.name,
+                            description: assistant.description || '',
+                            model: assistant.model || 'N/A',
+                            provider: 'claude',
+                            group: 'claude'
+                        });
+                    });
+                }
+                
+                // Add Gemini assistants group (future)
+                if (grouped.gemini && Array.isArray(grouped.gemini)) {
+                    grouped.gemini.forEach(function(assistant) {
+                        flattened.push({
+                            id: assistant.id,
+                            name: assistant.name,
+                            description: assistant.description || '',
+                            model: assistant.model || 'N/A',
+                            provider: 'gemini',
+                            group: 'gemini'
+                        });
+                    });
+                }
+                
+                cachedAssistants = flattened;
                 return cachedAssistants;
             } else {
                 throw new Error(response.data || 'Failed to load assistants');
@@ -82,7 +189,7 @@
     }
 
     /**
-     * Populate assistant dropdown for a specific step
+     * Populate assistant dropdown for a specific step (grouped by provider)
      */
     function populateAssistantDropdown(stepIndex, selectedAssistantId = '') {
         const $select = $(`#step-${stepIndex}-assistant-id`);
@@ -99,9 +206,72 @@
             $select.empty();
             $select.append('<option value="">Select an assistant...</option>');
 
+            // Group assistants by group type first, then by provider
+            const grouped = {};
             assistants.forEach(function (assistant) {
-                const isSelected = assistant.id === selectedAssistantId ? 'selected' : '';
-                $select.append(`<option value="${assistant.id}" ${isSelected}>${assistant.name} (${assistant.model})</option>`);
+                const group = assistant.group || 'unknown';
+                const provider = assistant.provider || 'unknown';
+                const groupKey = group + '_' + provider; // e.g., 'openai_openai', 'managed_openai'
+                
+                if (!grouped[groupKey]) {
+                    grouped[groupKey] = {
+                        group: group,
+                        provider: provider,
+                        assistants: []
+                    };
+                }
+                grouped[groupKey].assistants.push(assistant);
+            });
+
+            // Define group order and labels
+            const groupOrder = ['providers', 'managed', 'openai', 'claude', 'gemini'];
+            const groupLabels = {
+                'providers': 'Translation Providers',
+                'managed': function(provider) { return 'Managed Assistants (' + provider.charAt(0).toUpperCase() + provider.slice(1) + ')'; },
+                'openai': 'OpenAI API Assistants',
+                'claude': 'Claude Projects',
+                'gemini': 'Gemini Tuned Models'
+            };
+
+            // Sort groups by order
+            const sortedGroupKeys = Object.keys(grouped).sort(function(a, b) {
+                const groupA = grouped[a].group;
+                const groupB = grouped[b].group;
+                const indexA = groupOrder.indexOf(groupA);
+                const indexB = groupOrder.indexOf(groupB);
+                
+                if (indexA !== indexB) {
+                    return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+                }
+                
+                // If same group, sort by provider
+                return grouped[a].provider.localeCompare(grouped[b].provider);
+            });
+
+            // Add optgroups
+            sortedGroupKeys.forEach(function (groupKey) {
+                const groupData = grouped[groupKey];
+                const groupType = groupData.group;
+                const provider = groupData.provider;
+                const providerAssistants = groupData.assistants;
+                
+                // Determine group label
+                let groupLabel;
+                if (typeof groupLabels[groupType] === 'function') {
+                    groupLabel = groupLabels[groupType](provider);
+                } else {
+                    groupLabel = groupLabels[groupType] || (groupType.charAt(0).toUpperCase() + groupType.slice(1) + ' Assistants');
+                }
+
+                const $optgroup = $('<optgroup></optgroup>').attr('label', groupLabel);
+                
+                providerAssistants.forEach(function (assistant) {
+                    const isSelected = assistant.id === selectedAssistantId ? 'selected' : '';
+                    const label = assistant.name + ' (' + assistant.model + ')';
+                    $optgroup.append(`<option value="${assistant.id}" ${isSelected}>${label}</option>`);
+                });
+                
+                $select.append($optgroup);
             });
 
             $select.prop('disabled', false);
@@ -111,7 +281,7 @@
             $select.prop('disabled', false);
 
             // Show error notification
-            showNotification('Failed to load OpenAI assistants: ' + error.message, 'error');
+            showNotification('Failed to load assistants: ' + error.message, 'error');
         });
     }
 
@@ -546,7 +716,7 @@
                 <select id="step-${index}-assistant-id" name="steps[${index}][assistant_id]" required data-step-index="${index}">
                     <option value="">Loading assistants...</option>
                 </select>
-                <small>⚙️ Choose a predefined OpenAI assistant configured in your OpenAI account. The assistant's system prompt, temperature, and other settings are already configured.</small>
+                <small>⚙️ Choose a predefined AI assistant from any enabled provider. The assistant's system prompt, temperature, and other settings are already configured.</small>
             </div>
             <div class="workflow-step-field workflow-field-with-variables">
                 <label for="step-${index}-user-message">User Message Template</label>

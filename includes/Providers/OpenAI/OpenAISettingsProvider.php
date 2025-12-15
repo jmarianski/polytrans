@@ -345,6 +345,10 @@ class OpenAISettingsProvider implements SettingsProviderInterface
             'polytrans_get_ai_models' => [
                 'callback' => [$this, 'ajax_get_openai_models'],
                 'is_static' => false
+            ],
+            'polytrans_get_providers_config' => [
+                'callback' => [$this, 'ajax_get_providers_config'],
+                'is_static' => false
             ]
         ];
     }
@@ -840,10 +844,16 @@ class OpenAISettingsProvider implements SettingsProviderInterface
      */
     public function ajax_load_openai_assistants()
     {
-        // Check nonce
+        // Check nonce - accept both polytrans_openai_nonce and polytrans_workflows_nonce
         $nonce_check = false;
         if (isset($_POST['nonce'])) {
-            $nonce_check = wp_verify_nonce($_POST['nonce'], 'polytrans_openai_nonce');
+            $nonce = sanitize_text_field($_POST['nonce']);
+            // Try OpenAI nonce first (for settings page)
+            $nonce_check = wp_verify_nonce($nonce, 'polytrans_openai_nonce');
+            // If that fails, try workflows nonce (for workflow editor)
+            if (!$nonce_check) {
+                $nonce_check = wp_verify_nonce($nonce, 'polytrans_workflows_nonce');
+            }
         }
 
         if (!$nonce_check) {
@@ -854,20 +864,78 @@ class OpenAISettingsProvider implements SettingsProviderInterface
             wp_die(__('You do not have sufficient permissions to access this page.', 'polytrans'));
         }
 
+        // Get API key from POST or fallback to settings
         $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        $settings = get_option('polytrans_settings', []);
+        if (empty($api_key)) {
+            $api_key = $settings['openai_api_key'] ?? '';
+        }
 
-        // Prepare grouped assistants structure
+        // Check if managed assistants should be excluded (for workflow predefined assistant step)
+        $exclude_managed = isset($_POST['exclude_managed']) && $_POST['exclude_managed'] === 'true';
+        // Check if translation providers should be excluded (for workflow predefined assistant step)
+        $exclude_providers = isset($_POST['exclude_providers']) && $_POST['exclude_providers'] === 'true';
+
+        // Get enabled providers (needed for filtering managed assistants and OpenAI assistants)
+        $enabled_providers = $settings['enabled_translation_providers'] ?? ['google'];
+        if (!is_array($enabled_providers)) {
+            $enabled_providers = ['google']; // Fallback to default
+        }
+
+        // Prepare grouped assistants/providers structure
         $grouped_assistants = [
-            'managed' => [],
-            'openai' => [],
-            'claude' => [], // Future: Claude Projects
-            'gemini' => []  // Future: Gemini Tuned Models
+            'providers' => [],  // Translation providers (Google Translate, etc.) - only if not excluded
+            'managed' => [],    // Managed Assistants (only if not excluded)
+            'openai' => [],     // OpenAI API Assistants
+            'claude' => [],     // Future: Claude Projects
+            'gemini' => []      // Future: Gemini Tuned Models
         ];
 
-        // 1. Load Managed Assistants from local database
-        $managed_assistants = AssistantManager::get_all_assistants();
-        if (!empty($managed_assistants)) {
+        // 0. Load Enabled Translation Providers (only those that can translate directly)
+        // Skip if excluded (for workflow predefined assistant step - only AI assistants, not translation providers)
+        if (!$exclude_providers) {
+            // OpenAI is NOT included here - it only provides assistants, not direct translation
+            $registry = \PolyTrans_Provider_Registry::get_instance();
+            $all_providers = $registry->get_providers();
+            
+            foreach ($all_providers as $provider_id => $provider) {
+                // Only include enabled providers that can translate directly
+                // Skip OpenAI - it's assistant-only, not a translation provider
+                if ($provider_id === 'openai') {
+                    continue; // OpenAI doesn't have translation endpoints, only assistants
+                }
+                
+                if (in_array($provider_id, $enabled_providers)) {
+                    $grouped_assistants['providers'][] = [
+                        'id' => 'provider_' . $provider_id, // Prefix to distinguish from assistants
+                        'name' => $provider->get_name(),
+                        'description' => $provider->get_description(),
+                        'model' => 'N/A', // Providers don't have models
+                        'provider' => $provider_id
+                    ];
+                }
+            }
+        }
+
+        // 1. Load Managed Assistants from local database (only if not excluded)
+        // Filter: only show assistants from enabled providers
+        if (!$exclude_managed) {
+            $managed_assistants = AssistantManager::get_all_assistants();
+            if (!empty($managed_assistants)) {
             foreach ($managed_assistants as $assistant) {
+                $assistant_provider = $assistant['provider'] ?? 'openai';
+                
+                // Filter managed assistants based on enabled providers
+                // Check if the assistant's provider is enabled in enabled_translation_providers
+                if (!in_array($assistant_provider, $enabled_providers)) {
+                    continue; // Skip assistants from disabled providers
+                }
+                
+                // Additional check for OpenAI: also require API key to be configured
+                if ($assistant_provider === 'openai' && empty($api_key)) {
+                    continue; // Skip OpenAI assistants if API key not configured
+                }
+                
                 $model_display = 'No model';
                 
                 // Try to get model from api_parameters
@@ -891,25 +959,33 @@ class OpenAISettingsProvider implements SettingsProviderInterface
                     'name' => $assistant['name'],
                     'description' => $assistant['description'] ?? '',
                     'model' => $model_display,
-                    'provider' => $assistant['provider'] ?? 'openai'
+                    'provider' => $assistant_provider
                 ];
+            }
             }
         }
 
-        // 2. Load OpenAI API Assistants (if API key provided)
-        if (!empty($api_key)) {
-            $client = new OpenAIClient($api_key);
-            $openai_assistants = $client->get_all_assistants();
+        // 2. Load OpenAI API Assistants (if OpenAI is enabled AND API key provided)
+        $openai_enabled = in_array('openai', $enabled_providers);
+        if ($openai_enabled && !empty($api_key)) {
+            try {
+                $client = new OpenAIClient($api_key);
+                $openai_assistants = $client->get_all_assistants();
 
-            if (!empty($openai_assistants)) {
-                foreach ($openai_assistants as $assistant) {
-                    $grouped_assistants['openai'][] = [
-                        'id' => $assistant['id'], // Keep original asst_xxx format
-                'name' => $assistant['name'] ?? 'Unnamed Assistant',
-                'description' => $assistant['description'] ?? '',
-                'model' => $assistant['model'] ?? 'gpt-4'
-            ];
+                if (!empty($openai_assistants) && is_array($openai_assistants)) {
+                    foreach ($openai_assistants as $assistant) {
+                        $grouped_assistants['openai'][] = [
+                            'id' => $assistant['id'], // Keep original asst_xxx format
+                            'name' => $assistant['name'] ?? 'Unnamed Assistant',
+                            'description' => $assistant['description'] ?? '',
+                            'model' => $assistant['model'] ?? 'gpt-4',
+                            'provider' => 'openai'
+                        ];
+                    }
                 }
+            } catch (\Exception $e) {
+                // Log error but don't fail the entire request
+                error_log('PolyTrans: Failed to load OpenAI assistants: ' . $e->getMessage());
             }
         }
 
@@ -919,6 +995,8 @@ class OpenAISettingsProvider implements SettingsProviderInterface
 
     /**
      * AJAX handler for fetching OpenAI models
+     * @deprecated Use polytrans_get_provider_models with provider_id='openai' instead
+     * Kept for backward compatibility
      */
     public function ajax_get_openai_models()
     {
@@ -946,5 +1024,63 @@ class OpenAISettingsProvider implements SettingsProviderInterface
             'models' => $grouped_models,
             'selected_model' => $selected_model
         ]);
+    }
+
+    /**
+     * Get provider manifest with capabilities and configuration
+     */
+    public function get_provider_manifest(array $settings)
+    {
+        $api_key = $settings['openai_api_key'] ?? '';
+        
+        return [
+            'provider_id' => 'openai',
+            'capabilities' => ['assistants'], // OpenAI provides assistants, not direct translation
+            'assistants_endpoint' => 'https://api.openai.com/v1/assistants',
+            'chat_endpoint' => 'https://api.openai.com/v1/chat/completions',
+            'models_endpoint' => 'https://api.openai.com/v1/models',
+            'auth_type' => 'bearer',
+            'auth_header' => 'Authorization',
+            'api_key_setting' => 'openai_api_key',
+            'api_key_configured' => !empty($api_key) && current_user_can('manage_options'), // Only show to admins
+            'base_url' => 'https://api.openai.com/v1',
+        ];
+    }
+
+    /**
+     * AJAX handler for getting all providers configuration/manifests
+     */
+    public function ajax_get_providers_config()
+    {
+        // Check nonce
+        $nonce_check = false;
+        if (isset($_POST['nonce'])) {
+            $nonce_check = wp_verify_nonce($_POST['nonce'], 'polytrans_openai_nonce');
+        }
+
+        if (!$nonce_check) {
+            wp_send_json_error(__('Security check failed.', 'polytrans'));
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have sufficient permissions to access this page.', 'polytrans'));
+        }
+
+        $settings = get_option('polytrans_settings', []);
+        $registry = \PolyTrans_Provider_Registry::get_instance();
+        $providers = $registry->get_providers();
+        
+        $manifests = [];
+        foreach ($providers as $provider_id => $provider) {
+            $settings_provider_class = $provider->get_settings_provider_class();
+            if ($settings_provider_class && class_exists($settings_provider_class)) {
+                $settings_provider = new $settings_provider_class();
+                if (method_exists($settings_provider, 'get_provider_manifest')) {
+                    $manifests[$provider_id] = $settings_provider->get_provider_manifest($settings);
+                }
+            }
+        }
+
+        wp_send_json_success($manifests);
     }
 }

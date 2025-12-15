@@ -9,6 +9,10 @@
 namespace PolyTrans\PostProcessing\Steps;
 
 use PolyTrans\PostProcessing\WorkflowStepInterface;
+use PolyTrans\Assistants\AssistantManager;
+use PolyTrans\Assistants\AssistantExecutor;
+use PolyTrans\Core\AIAssistantClientFactory;
+use PolyTrans\Providers\AIAssistantClientInterface;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -37,7 +41,7 @@ class PredefinedAssistantStep implements WorkflowStepInterface
      */
     public function get_description()
     {
-        return __('Use a predefined OpenAI assistant with pre-configured settings', 'polytrans');
+        return __('Use a predefined AI assistant from any enabled provider with pre-configured settings', 'polytrans');
     }
 
     /**
@@ -70,21 +74,95 @@ class PredefinedAssistantStep implements WorkflowStepInterface
             $variable_manager = new \PolyTrans_Variable_Manager();
             $interpolated_user_message = $variable_manager->interpolate_template($user_message, $context);
 
-            // Get AI provider settings
-            $provider_settings = $this->get_ai_provider_settings();
-            if (!$provider_settings) {
+            // Detect assistant type and route accordingly
+            if (strpos($assistant_id, 'managed_') === 0) {
+                // Managed Assistant - use AssistantExecutor
+                $numeric_id = (int) str_replace('managed_', '', $assistant_id);
+                $assistant = AssistantManager::get_assistant($numeric_id);
+                
+                if (!$assistant) {
+                    return [
+                        'success' => false,
+                        'error' => "Managed Assistant not found (ID: {$numeric_id})",
+                        'interpolated_user_message' => $interpolated_user_message
+                    ];
+                }
+                
+                // Execute managed assistant with context
+                $executor = new AssistantExecutor();
+                $result = $executor->execute($numeric_id, $context);
+                
+                if (is_wp_error($result)) {
+                    return [
+                        'success' => false,
+                        'error' => $result->get_error_message(),
+                        'interpolated_user_message' => $interpolated_user_message
+                    ];
+                }
+                
+                if (!$result['success']) {
+                    return [
+                        'success' => false,
+                        'error' => $result['error'] ?? 'Managed Assistant execution failed',
+                        'interpolated_user_message' => $interpolated_user_message
+                    ];
+                }
+                
+                // Process response from managed assistant
+                $ai_output = $result['output'] ?? '';
+                $processed_response = $this->process_assistant_response($ai_output, $step_config);
+                
+                $execution_time = microtime(true) - $start_time;
+                
+                return [
+                    'success' => true,
+                    'data' => $processed_response,
+                    'execution_time' => $execution_time,
+                    'raw_response' => $ai_output,
+                    'interpolated_user_message' => $interpolated_user_message,
+                    'assistant_id' => $assistant_id,
+                    'tokens_used' => 0
+                ];
+            } elseif (strpos($assistant_id, 'provider_') === 0) {
+                // Translation Provider - not supported in workflow steps
                 return [
                     'success' => false,
-                    'error' => 'AI provider not configured. Please configure OpenAI settings.',
+                    'error' => 'Translation providers cannot be used in workflow steps. Use AI assistants instead.',
                     'interpolated_user_message' => $interpolated_user_message
                 ];
+            } else {
+                // Provider API Assistant (asst_xxx, project_xxx, etc.)
+                $settings = get_option('polytrans_settings', []);
+                
+                // Create appropriate client using factory
+                $client = AIAssistantClientFactory::create($assistant_id, $settings);
+                
+                if (!$client) {
+                    $provider_id = AIAssistantClientFactory::get_provider_id($assistant_id);
+                    $provider_name = $provider_id ? ucfirst($provider_id) : 'Unknown provider';
+                    
+                    return [
+                        'success' => false,
+                        'error' => "$provider_name assistant client could not be created. Please check API key configuration.",
+                        'interpolated_user_message' => $interpolated_user_message
+                    ];
+                }
+                
+                // For workflow, we need to execute assistant with custom user message
+                // Since AIAssistantClientInterface is designed for translation, we'll use OpenAI client directly for now
+                // Future: extend interface to support custom messages
+                if ($client->get_provider_id() === 'openai') {
+                    // Use OpenAI client directly for workflow execution
+                    $ai_response = $this->call_openai_assistant_api($assistant_id, $interpolated_user_message, $settings);
+                } else {
+                    // Future: support other providers
+                    return [
+                        'success' => false,
+                        'error' => 'Provider ' . $client->get_provider_id() . ' is not yet supported in workflow steps',
+                        'interpolated_user_message' => $interpolated_user_message
+                    ];
+                }
             }
-
-            // Prepare AI request for assistant
-            $ai_request = $this->prepare_assistant_request($assistant_id, $interpolated_user_message, $step_config);
-
-            // Make AI API call to assistant
-            $ai_response = $this->call_assistant_api($ai_request, $provider_settings);
 
             if (!$ai_response['success']) {
                 return [
@@ -166,22 +244,16 @@ class PredefinedAssistantStep implements WorkflowStepInterface
      */
     public function get_config_schema()
     {
-        $available_assistants = $this->get_available_assistants();
-        $assistant_options = [''];
-
-        // Convert assistants to options format
-        foreach ($available_assistants as $assistant) {
-            $assistant_options[$assistant['id']] = $assistant['name'] . ' (' . $assistant['model'] . ')';
-        }
-
+        // Assistants are loaded dynamically via AJAX in the workflow editor
+        // Return empty options - JavaScript will populate them
         return [
             'assistant_id' => [
                 'type' => 'select',
-                'label' => 'OpenAI Assistant',
+                'label' => 'AI Assistant',
                 'required' => true,
-                'options' => $assistant_options,
+                'options' => ['' => __('Loading assistants...', 'polytrans')],
                 'data_attributes' => [
-                    'available-assistants' => json_encode($available_assistants)
+                    'load-via-ajax' => 'true'
                 ]
             ],
             'user_message' => [
@@ -208,97 +280,34 @@ class PredefinedAssistantStep implements WorkflowStepInterface
         ];
     }
 
-    /**
-     * Get available assistants from OpenAI API
-     */
-    private function get_available_assistants()
-    {
-        // Use cached assistants if available and recent (5 minutes)
-        $cached_assistants = get_transient('polytrans_openai_assistants');
-        if ($cached_assistants !== false) {
-            return $cached_assistants;
-        }
-
-        // Create OpenAI client from settings
-        $client = \PolyTrans_OpenAI_Client::from_settings();
-        if (!$client) {
-            return [];
-        }
-
-        // Load all assistants using the client
-        $all_assistants_data = $client->get_all_assistants();
-
-        if (empty($all_assistants_data)) {
-            return [];
-        }
-
-        $assistants = [];
-        foreach ($all_assistants_data as $assistant) {
-            $assistants[$assistant['id']] = [
-                'id' => $assistant['id'],
-                'name' => $assistant['name'] ?? 'Unnamed Assistant',
-                'description' => $assistant['description'] ?? '',
-                'model' => $assistant['model'] ?? 'gpt-4'
-            ];
-        }
-
-        // Cache for 5 minutes
-        set_transient('polytrans_openai_assistants', $assistants, 5 * MINUTE_IN_SECONDS);
-
-        return $assistants;
-    }
 
     /**
-     * Get AI provider settings
+     * Call OpenAI assistant API (for workflow execution)
      */
-    private function get_ai_provider_settings()
-    {
-        $settings = get_option('polytrans_settings', []);
-        $api_key = $settings['openai_api_key'] ?? '';
-
-        if (empty($api_key)) {
-            return false;
-        }
-
-        return [
-            'api_key' => $api_key,
-            'base_url' => $settings['openai_base_url'] ?? 'https://api.openai.com/v1',
-            'model' => $settings['openai_model'] ?? 'gpt-3.5-turbo'
-        ];
-    }
-
-    /**
-     * Prepare assistant request
-     */
-    private function prepare_assistant_request($assistant_id, $user_message, $step_config)
-    {
-        return [
-            'assistant_id' => $assistant_id,
-            'thread' => [
-                'messages' => [
-                    [
-                        'role' => 'user',
-                        'content' => $user_message
-                    ]
-                ]
-            ]
-        ];
-    }
-
-    /**
-     * Call assistant API
-     */
-    private function call_assistant_api($request, $provider_settings)
+    private function call_openai_assistant_api($assistant_id, $user_message, $settings)
     {
         try {
+            $api_key = $settings['openai_api_key'] ?? '';
+            $base_url = $settings['openai_base_url'] ?? 'https://api.openai.com/v1';
+            
+            if (empty($api_key)) {
+                return [
+                    'success' => false,
+                    'error' => 'OpenAI API key not configured'
+                ];
+            }
+            
             // Create OpenAI client
-            $client = new \PolyTrans_OpenAI_Client(
-                $provider_settings['api_key'],
-                $provider_settings['base_url']
-            );
+            $client = new \PolyTrans_OpenAI_Client($api_key, $base_url);
 
             // Create thread with initial message
-            $thread_response = $client->create_thread($request['thread']['messages']);
+            $thread_response = $client->create_thread([
+                [
+                    'role' => 'user',
+                    'content' => $user_message
+                ]
+            ]);
+            
             if (!$thread_response['success']) {
                 return [
                     'success' => false,
@@ -309,7 +318,7 @@ class PredefinedAssistantStep implements WorkflowStepInterface
             $thread_id = $thread_response['thread_id'];
 
             // Run assistant
-            $run_response = $client->run_assistant($thread_id, $request['assistant_id']);
+            $run_response = $client->run_assistant($thread_id, $assistant_id);
             if (!$run_response['success']) {
                 return [
                     'success' => false,

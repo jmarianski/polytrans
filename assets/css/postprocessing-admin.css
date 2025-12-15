@@ -1273,7 +1273,8 @@ select[id*="assistant-id"]:disabled {
     cursor: not-allowed;
 }
 
-select[id*="assistant-id"] option:first-child {
+/* Style only the first option directly in select (not in optgroups) */
+select[id*="assistant-id"] > option:first-child {
     color: #666;
     font-style: italic;
 }

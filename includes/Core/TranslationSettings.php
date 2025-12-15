@@ -58,7 +58,15 @@ class TranslationSettings
 
         $registry = \PolyTrans_Provider_Registry::get_instance();
 
-        $settings['translation_provider'] = sanitize_text_field(wp_unslash($_POST['translation_provider'] ?? 'google'));
+        // Handle enabled translation providers (checkboxes)
+        $settings['enabled_translation_providers'] = isset($_POST['enabled_translation_providers']) 
+            ? array_map('sanitize_text_field', wp_unslash($_POST['enabled_translation_providers'])) 
+            : ['google']; // Default to Google if none selected
+        
+        // Keep backward compatibility: set translation_provider to first enabled provider
+        $settings['translation_provider'] = !empty($settings['enabled_translation_providers']) 
+            ? $settings['enabled_translation_providers'][0] 
+            : 'google';
         $settings['translation_transport_mode'] = sanitize_text_field(wp_unslash($_POST['translation_transport_mode'] ?? 'external'));
         $settings['translation_endpoint'] = esc_url_raw(wp_unslash($_POST['translation_endpoint'] ?? ''));
         $settings['translation_receiver_endpoint'] = esc_url_raw(wp_unslash($_POST['translation_receiver_endpoint'] ?? ''));
@@ -74,11 +82,53 @@ class TranslationSettings
 
         // Handle provider-specific settings
         $selected_provider = $registry->get_provider($settings['translation_provider']);
+        
+        // Always validate OpenAI settings (for path rules and assistant mappings) regardless of selected provider
+        // These are used by TranslationPathExecutor even when Google is the default provider
+        $openai_provider = $registry->get_provider('openai');
+        if ($openai_provider && $openai_provider !== $selected_provider) {
+            $openai_settings_provider_class = $openai_provider->get_settings_provider_class();
+            if ($openai_settings_provider_class && class_exists($openai_settings_provider_class)) {
+                $openai_settings_provider = new $openai_settings_provider_class();
+                $openai_settings = $openai_settings_provider->validate_settings($_POST);
+                // Only merge path rules and assistants (not API key, model, etc. if OpenAI is not selected)
+                if (isset($openai_settings['openai_path_rules'])) {
+                    $settings['openai_path_rules'] = $openai_settings['openai_path_rules'];
+                }
+                if (isset($openai_settings['openai_assistants'])) {
+                    // Validate assistants using PathValidator before saving
+                    $validation = \PolyTrans\Core\PathValidator::validate_assistants_mapping(
+                        $openai_settings['openai_assistants'],
+                        $settings
+                    );
+                    
+                    if (!$validation['valid'] && !empty($validation['errors'])) {
+                        // Show admin notice with validation errors
+                        $error_messages = [];
+                        foreach ($validation['errors'] as $pair => $error) {
+                            $error_messages[] = "$pair: $error";
+                        }
+                        add_settings_error(
+                            'polytrans_settings',
+                            'path_validation_error',
+                            __('Some provider/assistant mappings are invalid: ', 'polytrans') . implode('; ', $error_messages),
+                            'error'
+                        );
+                    }
+                    
+                    // Save even if there are errors (user can fix them later)
+                    $settings['openai_assistants'] = $openai_settings['openai_assistants'];
+                }
+            }
+        }
+        
+        // Handle settings for the selected provider (for API keys, models, etc.)
         if ($selected_provider) {
             $settings_provider_class = $selected_provider->get_settings_provider_class();
             if ($settings_provider_class && class_exists($settings_provider_class)) {
                 $settings_provider = new $settings_provider_class();
                 $provider_settings = $settings_provider->validate_settings($_POST);
+                // Merge all settings from selected provider
                 $settings = array_merge($settings, $provider_settings);
             }
         }
@@ -112,6 +162,7 @@ class TranslationSettings
     {
         $registry = \PolyTrans_Provider_Registry::get_instance();
         $translation_provider = $settings['translation_provider'] ?? 'google';
+        $enabled_providers = $settings['enabled_translation_providers'] ?? ['google'];
         $translation_endpoint = $settings['translation_endpoint'] ?? '';
         $translation_receiver_endpoint = $settings['translation_receiver_endpoint'] ?? '';
         $allowed_sources = $settings['allowed_sources'] ?? [];
@@ -124,16 +175,25 @@ class TranslationSettings
         $author_email_title = $settings['author_email_title'] ?? '';
 
         // Get available providers and their settings providers
+        // Skip providers with empty settings UI (like Google)
         $providers = $registry->get_providers();
         $settings_providers = [];
         foreach ($providers as $provider_id => $provider) {
             $settings_provider_class = $provider->get_settings_provider_class();
             if ($settings_provider_class && class_exists($settings_provider_class)) {
-                $settings_providers[$provider_id] = new $settings_provider_class();
+                $settings_provider_instance = new $settings_provider_class();
+                
+                // Skip Google - it has no settings UI
+                if ($provider_id === 'google') {
+                    // Still enqueue assets if needed, but don't add to tabs
+                    continue;
+                }
+                
+                $settings_providers[$provider_id] = $settings_provider_instance;
                 // Always enqueue OpenAI assets since they're used in workflows regardless of main provider
                 // For other providers, only enqueue if they're the selected provider
                 if ($provider_id === 'openai' || $provider_id === $translation_provider) {
-                    $settings_providers[$provider_id]->enqueue_assets();
+                    $settings_provider_instance->enqueue_assets();
                 }
             }
         }
@@ -165,17 +225,27 @@ class TranslationSettings
                 <!-- Translation Provider Tab -->
                 <div id="provider-settings" class="tab-content active">
                     <div class="translation-provider-section">
-                        <h2><?php esc_html_e('Translation Provider', 'polytrans'); ?></h2>
-                        <p><?php esc_html_e('Choose which translation service to use for automatic translations.', 'polytrans'); ?></p>
+                        <h2><?php esc_html_e('Enabled Translation Providers', 'polytrans'); ?></h2>
+                        <p><?php esc_html_e('Select which translation services are available for use. You can enable multiple providers and assign specific providers or assistants to language pairs in the Language Paths tab.', 'polytrans'); ?></p>
                         <div style="margin-bottom:2em;">
                             <?php foreach ($providers as $provider_id => $provider): ?>
                                 <label style="display:block;margin-bottom:0.5em;">
-                                    <input type="radio" name="translation_provider" value="<?php echo esc_attr($provider_id); ?>" <?php checked($translation_provider, $provider_id); ?> class="provider-selection-radio">
+                                    <input type="checkbox" 
+                                        name="enabled_translation_providers[]" 
+                                        value="<?php echo esc_attr($provider_id); ?>" 
+                                        <?php checked(in_array($provider_id, $enabled_providers), true); ?>
+                                        class="provider-selection-checkbox">
                                     <strong><?php echo esc_html($provider->get_name()); ?></strong>&nbsp;
                                     <span style="color:#666;"><?php echo esc_html($provider->get_description()); ?></span>
+                                    <?php if ($provider_id === 'openai'): ?>
+                                        <span style="color:#888; font-style:italic;"> (<?php esc_html_e('provides assistants, not direct translation', 'polytrans'); ?>)</span>
+                                    <?php endif; ?>
                                 </label>
                             <?php endforeach; ?>
                         </div>
+                        <p class="description">
+                            <?php esc_html_e('Enable providers to make them available in Language Paths. Google Translate provides direct translation, while OpenAI provides AI assistants.', 'polytrans'); ?>
+                        </p>
                     </div>
                 </div>
 
@@ -597,17 +667,17 @@ class TranslationSettings
 
         <hr style="margin: 30px 0;">
 
-        <h2><?php esc_html_e('Assistant Mapping', 'polytrans'); ?></h2>
+        <h2><?php esc_html_e('Provider/Assistant Mapping', 'polytrans'); ?></h2>
         <p class="description">
-            <?php esc_html_e('Select which assistant (Managed or OpenAI API) to use for each language pair. Assistants are loaded from your OpenAI account and from PolyTrans → AI Assistants.', 'polytrans'); ?>
+            <?php esc_html_e('Select which translation provider or assistant to use for each language pair. You can choose from translation providers (like Google Translate) or AI assistants (Managed or OpenAI API).', 'polytrans'); ?>
         </p>
 
         <div id="assistants-loading" style="display:none; padding: 10px; background: #f0f0f1; margin: 10px 0;">
-            <p><em><?php esc_html_e('Loading assistants...', 'polytrans'); ?></em></p>
+            <p><em><?php esc_html_e('Loading providers and assistants...', 'polytrans'); ?></em></p>
         </div>
 
         <div id="assistants-error" style="display:none; padding: 10px; background: #f8d7da; color: #721c24; margin: 10px 0;">
-            <p><?php esc_html_e('Unable to load assistants. Please check your OpenAI API key in OpenAI Configuration tab.', 'polytrans'); ?></p>
+            <p><?php esc_html_e('Unable to load providers and assistants. Please check your OpenAI API key in OpenAI Configuration tab if you want to use OpenAI assistants.', 'polytrans'); ?></p>
         </div>
 
         <div id="assistants-mapping-container">
@@ -782,7 +852,7 @@ class TranslationSettings
                                 data-pair="<?php echo esc_attr($assistant_key); ?>"
                                 data-selected="<?php echo esc_attr($selected_assistant); ?>"
                                 style="width: 100%; max-width: 500px;">
-                                <option value=""><?php esc_html_e('Loading assistants...', 'polytrans'); ?></option>
+                                <option value=""><?php esc_html_e('Loading providers/assistants...', 'polytrans'); ?></option>
                             </select>
 
                             <?php if (!empty($selected_assistant)): ?>

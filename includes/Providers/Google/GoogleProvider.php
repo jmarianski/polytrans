@@ -151,7 +151,7 @@ class GoogleProvider implements TranslationProviderInterface
      */
     public function get_settings_provider_class()
     {
-        return null; // Google Translate has no settings UI
+        return \PolyTrans\Providers\Google\GoogleSettingsProvider::class;
     }
 
     /**

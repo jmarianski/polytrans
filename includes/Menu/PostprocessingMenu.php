@@ -44,6 +44,7 @@ class PostprocessingMenu
         add_action('wp_ajax_polytrans_test_workflow', [$this, 'ajax_test_workflow']);
         add_action('wp_ajax_polytrans_search_posts', [$this, 'ajax_search_posts']);
         add_action('wp_ajax_polytrans_get_post_data', [$this, 'ajax_get_post_data']);
+        // Deprecated - use polytrans_load_assistants instead
         add_action('wp_ajax_polytrans_load_openai_assistants_for_workflow', [$this, 'ajax_load_openai_assistants_for_workflow']);
         add_action('wp_ajax_polytrans_load_managed_assistants', [$this, 'ajax_load_managed_assistants']);
     }
@@ -119,6 +120,7 @@ class PostprocessingMenu
             wp_localize_script('polytrans-workflows', 'polytransWorkflows', [
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('polytrans_workflows_nonce'),
+                'openai_nonce' => wp_create_nonce('polytrans_openai_nonce'),
                 'models' => $this->get_openai_models($selected_model),
                 'selected_model' => $selected_model,
                 'strings' => [
@@ -992,6 +994,7 @@ class PostprocessingMenu
 
     /**
      * AJAX: Load OpenAI assistants for workflow
+     * @deprecated Use polytrans_load_assistants endpoint instead (returns all providers)
      */
     public function ajax_load_openai_assistants_for_workflow()
     {
@@ -1006,32 +1009,114 @@ class PostprocessingMenu
             return;
         }
 
-        // Create OpenAI client from settings
-        $client = \PolyTrans_OpenAI_Client::from_settings();
-        if (!$client) {
-            wp_send_json_error('OpenAI API key not configured');
-            return;
+        // Use the universal endpoint logic - call it directly
+        $settings = get_option('polytrans_settings', []);
+        $api_key = $settings['openai_api_key'] ?? '';
+        
+        // Get grouped assistants using the same logic as polytrans_load_assistants endpoint
+        $grouped_assistants = [
+            'providers' => [],
+            'managed' => [],
+            'openai' => [],
+            'claude' => [],
+            'gemini' => []
+        ];
+        
+        // Load Enabled Translation Providers
+        $registry = \PolyTrans_Provider_Registry::get_instance();
+        $enabled_providers = $settings['enabled_translation_providers'] ?? ['google'];
+        $all_providers = $registry->get_providers();
+        
+        foreach ($all_providers as $provider_id => $provider) {
+            if ($provider_id === 'openai') {
+                continue; // OpenAI doesn't have translation endpoints
+            }
+            
+            if (in_array($provider_id, $enabled_providers)) {
+                $grouped_assistants['providers'][] = [
+                    'id' => 'provider_' . $provider_id,
+                    'name' => $provider->get_name(),
+                    'description' => $provider->get_description(),
+                    'model' => 'N/A',
+                    'provider' => $provider_id
+                ];
+            }
         }
-
-        // Load all assistants using the client
-        $all_assistants = $client->get_all_assistants();
-
-        if (empty($all_assistants)) {
-            wp_send_json_error('No assistants found');
-            return;
+        
+        // Load Managed Assistants
+        $managed_assistants = \PolyTrans\Assistants\AssistantManager::get_all_assistants();
+        if (!empty($managed_assistants)) {
+            foreach ($managed_assistants as $assistant) {
+                $assistant_provider = $assistant['provider'] ?? 'openai';
+                
+                if (!in_array($assistant_provider, $enabled_providers)) {
+                    continue;
+                }
+                
+                if ($assistant_provider === 'openai' && empty($api_key)) {
+                    continue;
+                }
+                
+                $model_display = 'No model';
+                if (!empty($assistant['api_parameters'])) {
+                    $api_params = is_string($assistant['api_parameters']) 
+                        ? json_decode($assistant['api_parameters'], true) 
+                        : $assistant['api_parameters'];
+                    if (is_array($api_params) && !empty($api_params['model'])) {
+                        $model_display = $api_params['model'];
+                    }
+                }
+                if ($model_display === 'No model' || empty($model_display)) {
+                    $model_display = 'Global Setting';
+                }
+                
+                $grouped_assistants['managed'][] = [
+                    'id' => 'managed_' . $assistant['id'],
+                    'name' => $assistant['name'],
+                    'description' => $assistant['description'] ?? '',
+                    'model' => $model_display,
+                    'provider' => $assistant_provider
+                ];
+            }
         }
-
-        // Transform assistants data
-        $assistants = array_map(function ($assistant) {
-            return [
-                'id' => $assistant['id'],
-                'name' => $assistant['name'] ?? 'Unnamed Assistant',
-                'description' => $assistant['description'] ?? '',
-                'model' => $assistant['model'] ?? 'gpt-4'
-            ];
-        }, $all_assistants);
-
-        wp_send_json_success($assistants);
+        
+        // Load OpenAI API Assistants
+        $openai_enabled = in_array('openai', $enabled_providers);
+        if ($openai_enabled && !empty($api_key)) {
+            $client = new \PolyTrans\Providers\OpenAI\OpenAIClient($api_key);
+            $openai_assistants = $client->get_all_assistants();
+            
+            if (!empty($openai_assistants)) {
+                foreach ($openai_assistants as $assistant) {
+                    $grouped_assistants['openai'][] = [
+                        'id' => $assistant['id'],
+                        'name' => $assistant['name'] ?? 'Unnamed Assistant',
+                        'description' => $assistant['description'] ?? '',
+                        'model' => $assistant['model'] ?? 'gpt-4',
+                        'provider' => 'openai'
+                    ];
+                }
+            }
+        }
+        
+        // Flatten grouped structure for backward compatibility
+        $flattened = [];
+        foreach ($grouped_assistants as $group => $assistants) {
+            if (is_array($assistants)) {
+                foreach ($assistants as $assistant) {
+                    $flattened[] = [
+                        'id' => $assistant['id'],
+                        'name' => $assistant['name'] ?? 'Unnamed Assistant',
+                        'description' => $assistant['description'] ?? '',
+                        'model' => $assistant['model'] ?? 'N/A',
+                        'provider' => $assistant['provider'] ?? 'unknown',
+                        'group' => $group
+                    ];
+                }
+            }
+        }
+        
+        wp_send_json_success($flattened);
     }
 
     /**
