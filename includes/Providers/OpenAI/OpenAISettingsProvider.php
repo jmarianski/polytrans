@@ -236,7 +236,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
             'openai_api_key' => '',
             'openai_source_language' => 'en',
             'openai_assistants' => [],
-            'openai_model' => 'gpt-4o-mini' // Default model
+            'openai_model' => '', // None selected by default
         ];
     }
 
@@ -312,7 +312,7 @@ class OpenAISettingsProvider implements SettingsProviderInterface
 
         // Add AJAX URL and nonce for JavaScript
         $settings = get_option('polytrans_settings', []);
-        $selected_model = $settings['openai_model'] ?? 'gpt-4o-mini';
+        $selected_model = $settings['openai_model'] ?? '';
         $js_handle = 'polytrans-openai-' . basename($this->get_required_js_files()[0], '.js');
         wp_localize_script($js_handle, 'polytrans_openai', [
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -712,35 +712,12 @@ class OpenAISettingsProvider implements SettingsProviderInterface
      */
     public function get_grouped_models($selected_model = null)
     {
-        // Try to fetch from API
-        $api_models = $this->fetch_models_from_api();
-
-        // Get fallback models
-        $fallback_models = $this->get_fallback_models();
-
-        // Merge API models with fallback (API takes precedence)
-        $grouped = $api_models;
-
-        // If API returned models, merge with fallback to ensure we have all common models
-        if (!empty($api_models)) {
-            foreach ($fallback_models as $group => $models) {
-                if (!isset($grouped[$group])) {
-                    $grouped[$group] = [];
-                }
-                // Add fallback models that aren't in API response
-                foreach ($models as $model_id => $label) {
-                    if (!isset($grouped[$group][$model_id])) {
-                        $grouped[$group][$model_id] = $label;
-                    }
-                }
-            }
-        } else {
-            // Use fallback if API failed
-            $grouped = $fallback_models;
-        }
-
-        // Backward compatibility: ensure selected model is always present
-        if (!empty($selected_model)) {
+        // Fetch from API (with cache)
+        $settings = get_option('polytrans_settings', []);
+        $grouped = $this->load_models($settings);
+        
+        // Backward compatibility: ensure selected model is always present (if it exists in API)
+        if (!empty($selected_model) && !empty($grouped)) {
             $found = false;
             foreach ($grouped as $group => $models) {
                 if (isset($models[$selected_model])) {
@@ -749,16 +726,15 @@ class OpenAISettingsProvider implements SettingsProviderInterface
                 }
             }
 
-            // If selected model not found, add it to appropriate group
+            // If selected model not found in API results, try to add it (only if we have API data)
             if (!$found) {
                 $group = $this->get_model_group($selected_model);
-                if (empty($group)) {
-                    $group = 'Other Models';
+                if (!empty($group)) {
+                    if (!isset($grouped[$group])) {
+                        $grouped[$group] = [];
+                    }
+                    $grouped[$group][$selected_model] = $this->get_model_label($selected_model);
                 }
-                if (!isset($grouped[$group])) {
-                    $grouped[$group] = [];
-                }
-                $grouped[$group][$selected_model] = $this->get_model_label($selected_model);
             }
         }
 
@@ -1099,14 +1075,21 @@ class OpenAISettingsProvider implements SettingsProviderInterface
         $api_key = $settings['openai_api_key'] ?? '';
         
         if (empty($api_key)) {
-            return $this->get_fallback_models();
+            return [];
+        }
+        
+        // Check cache first (1 hour cache)
+        $cache_key = 'polytrans_openai_models_' . md5($api_key);
+        $cached_models = get_transient($cache_key);
+        if ($cached_models !== false && is_array($cached_models)) {
+            return $cached_models;
         }
         
         $models = $this->fetch_models_from_api($api_key);
         
-        // If API fetch failed, return fallback models
-        if (empty($models)) {
-            return $this->get_fallback_models();
+        // Cache models for 1 hour
+        if (!empty($models)) {
+            set_transient($cache_key, $models, HOUR_IN_SECONDS);
         }
         
         return $models;

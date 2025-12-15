@@ -53,12 +53,22 @@ class ClaudeChatClientAdapter implements ChatClientInterface
         }
         
         // Build request body
-        // Use model from parameters, or fall back to default from settings, or use hardcoded default
+        // Model must be provided - no fallback
         $model = $parameters['model'] ?? '';
         if (empty($model)) {
-            // Try to get default model from settings
+            // Try to get model from settings
             $settings = get_option('polytrans_settings', []);
-            $model = $settings['claude_model'] ?? 'claude-3-5-sonnet-20241022';
+            $model = $settings['claude_model'] ?? '';
+        }
+        
+        // Model is required - return error if not set
+        if (empty($model)) {
+            return [
+                'success' => false,
+                'data' => null,
+                'error' => __('Claude model is not selected. Please select a model in settings.', 'polytrans'),
+                'error_code' => 'model_not_selected',
+            ];
         }
         
         $body = [

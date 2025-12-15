@@ -76,7 +76,7 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
     {
         return [
             'claude_api_key' => '',
-            'claude_model' => 'claude-3-5-sonnet-20241022',
+            'claude_model' => '', // None selected by default
         ];
     }
     
@@ -310,7 +310,14 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
         $api_key = $settings['claude_api_key'] ?? '';
         
         if (empty($api_key)) {
-            return $this->get_fallback_models();
+            return [];
+        }
+        
+        // Check cache first (1 hour cache)
+        $cache_key = 'polytrans_claude_models_' . md5($api_key);
+        $cached_models = get_transient($cache_key);
+        if ($cached_models !== false && is_array($cached_models)) {
+            return $cached_models;
         }
         
         // Fetch models from Claude API /models endpoint
@@ -325,13 +332,13 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
             
             if (is_wp_error($response)) {
                 error_log('PolyTrans: Failed to fetch Claude models: ' . $response->get_error_message());
-                return $this->get_fallback_models();
+                return [];
             }
             
             $status_code = wp_remote_retrieve_response_code($response);
             if ($status_code !== 200) {
                 error_log('PolyTrans: Claude models API returned status ' . $status_code);
-                return $this->get_fallback_models();
+                return [];
             }
             
             $response_body = wp_remote_retrieve_body($response);
@@ -339,7 +346,7 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
             
             if (!isset($data['data']) || !is_array($data['data'])) {
                 error_log('PolyTrans: Claude models API response missing data. Response: ' . substr($response_body, 0, 500));
-                return $this->get_fallback_models();
+                return [];
             }
             
             // Group models by family (similar to OpenAI approach)
@@ -423,16 +430,17 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
                 krsort($models);
             }
             
-            // If we got models from API, return them; otherwise fallback
+            // Cache models for 1 hour
             if (!empty($grouped)) {
+                set_transient($cache_key, $grouped, HOUR_IN_SECONDS);
                 return $grouped;
             }
             
-            error_log('PolyTrans: Claude models API returned no valid models after filtering. Using fallback.');
-            return $this->get_fallback_models();
+            error_log('PolyTrans: Claude models API returned no valid models after filtering.');
+            return [];
         } catch (\Exception $e) {
             error_log('PolyTrans: Exception fetching Claude models: ' . $e->getMessage());
-            return $this->get_fallback_models();
+            return [];
         }
     }
     
@@ -506,24 +514,5 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
         return $label;
     }
     
-    private function get_fallback_models()
-    {
-        // Fallback models if API fails - only include real, existing models
-        return [
-            'Claude 3.5 Models' => [
-                'claude-3-5-sonnet-20241022' => 'Claude 3.5 Sonnet (Latest)',
-                'claude-3-5-haiku-20241022' => 'Claude 3.5 Haiku (Fast)',
-            ],
-            'Claude 3 Opus Models' => [
-                'claude-3-opus-20240229' => 'Claude 3 Opus',
-            ],
-            'Claude 3 Sonnet Models' => [
-                'claude-3-sonnet-20240229' => 'Claude 3 Sonnet',
-            ],
-            'Claude 3 Haiku Models' => [
-                'claude-3-haiku-20240307' => 'Claude 3 Haiku',
-            ],
-        ];
-    }
 }
 

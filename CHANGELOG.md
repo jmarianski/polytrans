@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.3] - 2025-12-15
+
+### Changed
+- **Model Loading**: Removed all hardcoded fallback models - models are now loaded exclusively from API
+  - Models are cached using WordPress transients (1 hour cache)
+  - If API fails or returns no models, empty array is returned (no fallback)
+  - Applies to both OpenAI and Claude providers
+
+### Fixed
+- **Default Model Selection**: Changed default model from hardcoded values to "None selected"
+  - OpenAI: Changed from `'gpt-4o-mini'` to empty string `''`
+  - Claude: Changed from `'claude-3-5-sonnet-20241022'` to empty string `''`
+  - Users must explicitly select a model in settings
+
+### Improved
+- **Model Validation**: Improved validation to gracefully handle empty model selection
+  - Invalid models no longer fallback to hardcoded defaults
+  - Empty model selection is allowed and validated
+  - Chat clients return clear error message when model is not selected
+
+### Technical
+- **Caching**: Added WordPress transient caching for model lists (1 hour TTL)
+  - Cache key includes API key hash for security
+  - Reduces API calls while keeping models up-to-date
+  - Cache automatically expires after 1 hour
+- **Error Handling**: Chat clients now return structured error when model is missing
+  - Error code: `model_not_selected`
+  - User-friendly error message in admin language
+
 ## [1.6.2] - 2025-12-15
 
 ### Added

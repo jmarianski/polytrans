@@ -39,11 +39,21 @@ class OpenAIChatClientAdapter implements ChatClientInterface
             $parameters
         );
         
-        // Ensure model is set - use from parameters, or fall back to default from settings, or use hardcoded default
+        // Model must be provided - no fallback
         if (empty($body['model'])) {
-            // Try to get default model from settings
+            // Try to get model from settings
             $settings = get_option('polytrans_settings', []);
-            $body['model'] = $settings['openai_model'] ?? 'gpt-4o-mini';
+            $body['model'] = $settings['openai_model'] ?? '';
+        }
+        
+        // Model is required - return error if not set
+        if (empty($body['model'])) {
+            return [
+                'success' => false,
+                'data' => null,
+                'error' => __('OpenAI model is not selected. Please select a model in settings.', 'polytrans'),
+                'error_code' => 'model_not_selected',
+            ];
         }
         
         // Make API request
