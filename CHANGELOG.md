@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.6] - 2025-12-15
+
+### Fixed
+- **Gemini Model Filtering**: Fixed filtering to use camelCase `generateContent` instead of `GENERATE_CONTENT`
+  - Gemini API returns methods in camelCase format (e.g., `generateContent`, `generateImage`)
+  - Image/video generation models are now correctly filtered out
+  - Models like "nano-banana" and "gemini-3-pro-image-preview" are excluded
+
+### Fixed
+- **Model Refresh**: Fixed refresh button to force refresh models from API instead of using cache
+  - Added `force_refresh` parameter to AJAX endpoint
+  - Cache is cleared before loading models when refresh button is clicked
+  - Automatic loading still uses cache (1 hour), manual refresh always fetches fresh data
+
 ## [1.6.5] - 2025-12-15
 
 ### Added
