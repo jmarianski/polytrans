@@ -310,8 +310,21 @@ class GeminiSettingsProvider implements SettingsProviderInterface
                 // Gemini API returns supportedGenerationMethods array (e.g., ['GENERATE_CONTENT', 'GENERATE_IMAGE'])
                 // We only want models that support GENERATE_CONTENT (text/chat)
                 $supported_methods = $model['supportedGenerationMethods'] ?? [];
+                
+                // Log supported methods for debugging
+                error_log(sprintf(
+                    'PolyTrans: Gemini model "%s" - supportedGenerationMethods: %s',
+                    $model_id,
+                    is_array($supported_methods) ? json_encode($supported_methods) : 'not set or not array'
+                ));
+                
                 if (!is_array($supported_methods) || !in_array('GENERATE_CONTENT', $supported_methods)) {
                     // Skip models that don't support text generation (image/video only models)
+                    error_log(sprintf(
+                        'PolyTrans: Skipping Gemini model "%s" - does not support GENERATE_CONTENT (methods: %s)',
+                        $model_id,
+                        is_array($supported_methods) ? json_encode($supported_methods) : 'not set'
+                    ));
                     continue;
                 }
                 
