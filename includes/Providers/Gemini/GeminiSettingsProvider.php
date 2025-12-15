@@ -306,6 +306,24 @@ class GeminiSettingsProvider implements SettingsProviderInterface
                     continue;
                 }
                 
+                // Filter out image/video generation models - only include models that support GENERATE_CONTENT
+                // Gemini API returns supportedGenerationMethods array (e.g., ['GENERATE_CONTENT', 'GENERATE_IMAGE'])
+                // We only want models that support GENERATE_CONTENT (text/chat)
+                $supported_methods = $model['supportedGenerationMethods'] ?? [];
+                if (!is_array($supported_methods) || !in_array('GENERATE_CONTENT', $supported_methods)) {
+                    // Skip models that don't support text generation (image/video only models)
+                    continue;
+                }
+                
+                // Additional filter: exclude known image/video model patterns
+                // Nano Banana, Nano Banana Pro, and similar are image generation models
+                if (strpos($model_id, 'nano-banana') !== false || 
+                    strpos($model_id, 'image') !== false || 
+                    strpos($model_id, 'video') !== false ||
+                    strpos($model_id, 'imagen') !== false) {
+                    continue;
+                }
+                
                 // Determine group based on model ID
                 $group = $this->get_model_group($model_id);
                 if (empty($group)) {
