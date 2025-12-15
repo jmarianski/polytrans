@@ -823,17 +823,23 @@ class AssistantsMenu
             $provider_id = 'openai';
         }
         
+        error_log("[PolyTrans] get_model_options called for provider: $provider_id, force_refresh: " . ($force_refresh ? 'true' : 'false'));
+        
         $registry = \PolyTrans_Provider_Registry::get_instance();
         $provider = $registry->get_provider($provider_id);
         
         if (!$provider) {
+            error_log("[PolyTrans] Provider '$provider_id' not found in registry");
             return $this->get_fallback_models();
         }
         
         $settings_provider_class = $provider->get_settings_provider_class();
         if (!$settings_provider_class || !class_exists($settings_provider_class)) {
+            error_log("[PolyTrans] Settings provider class not found or doesn't exist: " . ($settings_provider_class ?? 'null'));
             return $this->get_fallback_models();
         }
+        
+        error_log("[PolyTrans] Settings provider class: $settings_provider_class");
         
         try {
             $settings_provider = new $settings_provider_class();
@@ -841,7 +847,9 @@ class AssistantsMenu
             
             // Check if provider implements SettingsProviderInterface and has load_models method
             if ($settings_provider instanceof \PolyTrans\Providers\SettingsProviderInterface) {
+                error_log("[PolyTrans] Settings provider implements SettingsProviderInterface");
                 if (method_exists($settings_provider, 'load_models')) {
+                    error_log("[PolyTrans] load_models() method exists, calling it...");
                     // Pass force_refresh parameter if method signature supports it
                     // For now, we'll check if cache should be cleared before calling
                     if ($force_refresh) {
@@ -851,24 +859,33 @@ class AssistantsMenu
                         if (!empty($api_key)) {
                             $cache_key = 'polytrans_' . $provider_id . '_models_' . md5($api_key);
                             delete_transient($cache_key);
+                            error_log("[PolyTrans] Cleared cache for provider $provider_id: $cache_key");
                         }
                     }
                     $models = $settings_provider->load_models($settings);
+                    error_log("[PolyTrans] load_models() returned " . (is_array($models) ? count($models, COUNT_RECURSIVE) : 'non-array') . " models");
                     if (!empty($models) && is_array($models)) {
                         return $models;
                     }
+                } else {
+                    error_log("[PolyTrans] load_models() method does NOT exist");
                 }
+            } else {
+                error_log("[PolyTrans] Settings provider does NOT implement SettingsProviderInterface");
             }
             
             // Legacy: Check if provider has get_grouped_models method (for backward compatibility)
             if (method_exists($settings_provider, 'get_grouped_models')) {
+                error_log("[PolyTrans] Using legacy get_grouped_models() method");
                 return $settings_provider->get_grouped_models($selected_model);
             }
         } catch (\Exception $e) {
-            error_log("[PolyTrans] Failed to get models for provider $provider_id: " . $e->getMessage());
+            error_log("[PolyTrans] Exception getting models for provider $provider_id: " . $e->getMessage());
+            error_log("[PolyTrans] Exception trace: " . $e->getTraceAsString());
         }
         
         // Provider-specific fallback based on provider_id
+        error_log("[PolyTrans] Returning fallback models for provider $provider_id");
         return $this->get_fallback_models($provider_id);
     }
 

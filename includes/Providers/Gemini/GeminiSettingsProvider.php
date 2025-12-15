@@ -248,9 +248,11 @@ class GeminiSettingsProvider implements SettingsProviderInterface
     
     public function load_models(array $settings): array
     {
+        error_log("[PolyTrans] GeminiSettingsProvider::load_models() called");
         $api_key = $settings['gemini_api_key'] ?? '';
         
         if (empty($api_key)) {
+            error_log("[PolyTrans] Gemini API key is empty, returning empty array");
             return [];
         }
         
