@@ -4,6 +4,7 @@ namespace PolyTrans\Core;
 
 use PolyTrans\Providers\AIAssistantClientInterface;
 use PolyTrans\Providers\OpenAI\OpenAIAssistantClientAdapter;
+use PolyTrans\Providers\Gemini\GeminiAssistantClientAdapter;
 
 /**
  * AI Assistant Client Factory
@@ -45,15 +46,15 @@ class AIAssistantClientFactory
         // Note: Claude does NOT have an Assistants API - prompts created in UI are not accessible via API
         // Claude must use Managed Assistants via ChatClientFactory instead
         
-        // Future: Gemini Agents API
+        // Gemini Agents API (1.6.5)
         // Gemini has Agents API (different from OpenAI Assistants)
-        // if (strpos($assistant_id, 'agent_') === 0 || strpos($assistant_id, 'gemini_') === 0) {
-        //     $api_key = $settings['gemini_api_key'] ?? '';
-        //     if (empty($api_key)) {
-        //         return null;
-        //     }
-        //     return new GeminiAssistantClientAdapter($api_key);
-        // }
+        if (strpos($assistant_id, 'agent_') === 0 || strpos($assistant_id, 'agents/') === 0) {
+            $api_key = $settings['gemini_api_key'] ?? '';
+            if (empty($api_key)) {
+                return null;
+            }
+            return new \PolyTrans\Providers\Gemini\GeminiAssistantClientAdapter($api_key);
+        }
         
         return null;
     }
@@ -80,6 +81,10 @@ class AIAssistantClientFactory
         // if (strpos($assistant_id, 'project_') === 0) {
         //     return 'claude';
         // }
+        // Gemini Agents API (1.6.5)
+        if (strpos($assistant_id, 'agent_') === 0 || strpos($assistant_id, 'agents/') === 0) {
+            return 'gemini';
+        }
         if (strpos($assistant_id, 'tuned_model_') === 0) {
             return 'gemini';
         }

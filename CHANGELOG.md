@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.5] - 2025-12-15
+
+### Added
+- **Gemini Provider Support**: Full integration of Google Gemini as a translation provider
+  - `GeminiProvider`: Translation provider interface implementation
+  - `GeminiSettingsProvider`: Settings provider with API key validation and model loading from API
+  - `GeminiChatClientAdapter`: Chat client adapter for Gemini GenerateContent API
+  - `GeminiAssistantClientAdapter`: Assistant client adapter for Gemini Agents API
+  - Gemini models loaded dynamically from `/v1beta/models` endpoint with filtering and grouping
+  - Support for Gemini 1.0, 1.5, and 2.x models
+  - Gemini provider available in Language Paths and Managed Assistants
+  - Gemini Agents API support (agents can be loaded and used)
+
+### Technical
+- **Gemini API Integration**: 
+  - Chat API: Uses `generateContent` endpoint with `contents` and `systemInstruction`
+  - Agents API: Uses agent endpoints for predefined agents
+  - Model loading: Fetches from Google Generative AI API with caching
+  - API key validation: Validates via `/models` endpoint
+
 ## [1.6.4] - 2025-12-15
 
 ### Fixed

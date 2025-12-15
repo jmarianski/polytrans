@@ -4,7 +4,7 @@
  * Plugin Name: PolyTrans
  * Plugin URI: https://github.com/your-username/polytrans
  * Description: Advanced multilingual translation management system with AI-powered translation, scheduling, and review workflow
- * Version: 1.6.4
+ * Version: 1.6.5
  * Author: PolyTrans Team
  * Author URI: https://github.com/your-username/polytrans
  * Text Domain: polytrans
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('POLYTRANS_VERSION', '1.6.4');
+define('POLYTRANS_VERSION', '1.6.5');
 define('POLYTRANS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('POLYTRANS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('POLYTRANS_PLUGIN_FILE', __FILE__);
@@ -127,6 +127,7 @@ add_action('polytrans_register_providers', function($registry) {
     $registry->register_provider(new \PolyTrans_Google_Provider());
     $registry->register_provider(new \PolyTrans_OpenAI_Provider());
     $registry->register_provider(new \PolyTrans\Providers\Claude\ClaudeProvider());
+    $registry->register_provider(new \PolyTrans\Providers\Gemini\GeminiProvider());
 }, 10, 1);
 
 /**
@@ -148,6 +149,14 @@ add_filter('polytrans_chat_client_factory_create', function($client, $provider_i
         $api_key = $settings['claude_api_key'] ?? '';
         if (!empty($api_key)) {
             return new \PolyTrans\Providers\Claude\ClaudeChatClientAdapter($api_key);
+        }
+    }
+    
+    // Gemini chat client
+    if ($provider_id === 'gemini' && $client === null) {
+        $api_key = $settings['gemini_api_key'] ?? '';
+        if (!empty($api_key)) {
+            return new \PolyTrans\Providers\Gemini\GeminiChatClientAdapter($api_key);
         }
     }
     
