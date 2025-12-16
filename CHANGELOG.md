@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.10] - 2025-12-15
+
+### Fixed
+- **Logs Pagination Counter**: Fixed pagination counter not updating in top navigation after clicking pagination links
+  - Top pagination now updates correctly when clicking pagination links or refreshing logs table
+  - AJAX endpoint now returns top pagination HTML along with table HTML
+  - Both top and bottom pagination counters now stay synchronized
+  - Fixed issue where top pagination showed incorrect page numbers and links
+
 ## [1.6.9] - 2025-12-15
 
 ### Fixed

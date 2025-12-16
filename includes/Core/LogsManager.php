@@ -932,6 +932,25 @@ class LogsManager
                     $(this).text(buttonText);
                 });
 
+                // Function to update the page counter in the UI
+                function updatePageCounter(page, totalPages) {
+                    // WordPress paginate_links generates pagination
+                    // The counter text is in format "X of Y" inside .tablenav-paging-text
+                    totalPages = totalPages || <?php echo $logs_data['pages']; ?>;
+                    const pageText = page + ' of ' + totalPages;
+                    
+                    // Update pagination counter text (WordPress uses .tablenav-paging-text)
+                    $('.tablenav-pages .tablenav-paging-text').each(function() {
+                        $(this).text(pageText);
+                    });
+                    
+                    // Also update pagination input field if it exists (WordPress admin style)
+                    $('.tablenav-pages input[name="paged"]').val(page);
+                    
+                    // Update the active page link number if it exists
+                    $('.pagination-links .current').text(page);
+                }
+
                 // Handle pagination link clicks
                 $(document).on('click', '.pagination-links a', function(e) {
                     e.preventDefault();
@@ -952,9 +971,61 @@ class LogsManager
                         window.history.pushState(null, '', url);
                     }
 
+                    // Update the page counter (will be updated again after refresh with correct total)
+                    const totalPages = <?php echo $logs_data['pages']; ?>;
+                    updatePageCounter(parseInt(page), totalPages);
+
                     // Refresh the logs table
                     refreshLogsTable();
                 });
+
+                function refreshLogsTable() {
+                    // Get current form data to maintain filters and pagination
+                    const formData = $('#logs-filter-form').serialize();
+
+                    // Show loading indicator
+                    $('#autorefresh-status').text('<?php esc_html_e('Refreshing...', 'polytrans'); ?>');
+
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'polytrans_refresh_logs',
+                            nonce: '<?php echo wp_create_nonce('polytrans_refresh_logs'); ?>',
+                            filters: formData
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                $('#logs-table-container').html(response.data.html);
+
+                                // Update the page counter after table refresh
+                                // Use page from response or fallback to form/URL
+                                const currentPage = response.data.current_page || 
+                                    $('#logs-filter-form input[name="paged"]').val() || 
+                                    (new URLSearchParams(window.location.search)).get('paged') || 
+                                    1;
+                                const totalPages = response.data.total_pages || <?php echo $logs_data['pages']; ?>;
+                                
+                                // Update page counter with correct total pages
+                                updatePageCounter(parseInt(currentPage), parseInt(totalPages));
+                                
+                                // Update the top pagination HTML (outside logs-table-container)
+                                // The top pagination is in .tablenav.bottom (before logs-table-container)
+                                // Use :not(#logs-table-container .tablenav.bottom) to select only the top one
+                                if (response.data.top_pagination) {
+                                    $('#logs-table-container').siblings('.tablenav.bottom').find('.tablenav-pages').html(response.data.top_pagination);
+                                }
+                            }
+                            // Restore status text
+                            updateStatus();
+                        },
+                        error: function() {
+                            console.log('Failed to refresh logs');
+                            // Restore status text
+                            updateStatus();
+                        }
+                    });
+                }
 
                 // Auto-refresh functionality
                 function updateStatus() {
@@ -978,37 +1049,6 @@ class LogsManager
                             refreshLogsTable();
                         }, currentInterval * 1000);
                     }
-                }
-
-                function refreshLogsTable() {
-                    // Get current form data to maintain filters and pagination
-                    const formData = $('#logs-filter-form').serialize();
-
-                    // Show loading indicator
-                    $('#autorefresh-status').text('<?php esc_html_e('Refreshing...', 'polytrans'); ?>');
-
-                    $.ajax({
-                        url: ajaxurl,
-                        type: 'POST',
-                        data: {
-                            action: 'polytrans_refresh_logs',
-                            nonce: '<?php echo wp_create_nonce('polytrans_refresh_logs'); ?>',
-                            filters: formData
-                        },
-                        success: function(response) {
-                            if (response.success) {
-                                $('#logs-table-container').html(response.data.html);
-                                // Reattach pagination handlers - handled by delegated event above
-                            }
-                            // Restore status text
-                            updateStatus();
-                        },
-                        error: function() {
-                            console.log('Failed to refresh logs');
-                            // Restore status text
-                            updateStatus();
-                        }
-                    });
                 }
 
                 // Handle interval change
@@ -1389,7 +1429,43 @@ class LogsManager
         self::render_logs_table($logs_data, $current_page, $search, $level, $source, $post_id);
         $html = ob_get_clean();
 
-        wp_send_json_success(['html' => $html]);
+        // Generate top pagination HTML (same as bottom, but for top nav)
+        $base_url = admin_url('admin.php');
+        $args = ['page' => 'polytrans-logs'];
+        if (!empty($search)) {
+            $args['s'] = $search;
+        }
+        if (!empty($level)) {
+            $args['level'] = $level;
+        }
+        if (!empty($source)) {
+            $args['source'] = $source;
+        }
+        if (!empty($post_id)) {
+            $args['post_id'] = $post_id;
+        }
+        $base_url = add_query_arg($args, $base_url);
+        
+        $top_page_links = paginate_links([
+            'base' => add_query_arg('paged', '%#%', $base_url),
+            'format' => '',
+            'prev_text' => '&laquo;',
+            'next_text' => '&raquo;',
+            'total' => $logs_data['pages'],
+            'current' => $current_page,
+        ]);
+        
+        $top_pagination_html = '';
+        if ($top_page_links) {
+            $top_pagination_html = '<span class="pagination-links">' . $top_page_links . '</span>';
+        }
+
+        wp_send_json_success([
+            'html' => $html,
+            'current_page' => $current_page,
+            'total_pages' => $logs_data['pages'],
+            'top_pagination' => $top_pagination_html
+        ]);
     }
 
     /**
