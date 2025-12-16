@@ -21,6 +21,8 @@ if (! defined('ABSPATH')) {
 	exit;
 }
 
+use PolyTrans\PostProcessing\VariableManager;
+
 /**
  * Class AssistantExecutor
  *
@@ -116,12 +118,7 @@ class AssistantExecutor
 	 */
 	public static function interpolate_prompts($config, $context)
 	{
-		// Load Variable Manager
-		if (! class_exists('PolyTrans_Variable_Manager')) {
-			// Note: PolyTrans_Variable_Manager is autoloaded
-		}
-
-		$variable_manager = new \PolyTrans_Variable_Manager();
+		$variable_manager = new VariableManager();
 
 		try {
 			// Interpolate system prompt (required)

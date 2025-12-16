@@ -14,6 +14,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use PolyTrans\PostProcessing\Managers\WorkflowStorageManager;
+use PolyTrans\Core\LogsManager;
+
+
 class AssistantMigration
 {
     /**
@@ -35,11 +39,11 @@ class AssistantMigration
             'errors' => []
         ];
 
-        \PolyTrans_Logs_Manager::log("Starting workflow migration to managed assistants", 'info');
+        LogsManager::log("Starting workflow migration to managed assistants", 'info');
 
         try {
             // Get all workflows
-            $storage_manager = new \PolyTrans_Workflow_Storage_Manager();
+            $storage_manager = new WorkflowStorageManager();
             $workflows = $storage_manager->get_all_workflows();
 
             if (empty($workflows)) {
@@ -73,7 +77,7 @@ class AssistantMigration
                             $stats['assistants_created']++;
                             $workflow_modified = true;
 
-                            \PolyTrans_Logs_Manager::log(
+                            LogsManager::log(
                                 "Migrated workflow '{$workflow['name']}' step '{$step['name']}' to managed assistant (ID: {$assistant_id})",
                                 'info',
                                 ['workflow_id' => $workflow['id'], 'step_index' => $step_index, 'assistant_id' => $assistant_id]
@@ -81,12 +85,12 @@ class AssistantMigration
                         } else {
                             $error_msg = "Failed to create managed assistant for step '{$step['name']}' in workflow '{$workflow['name']}'";
                             $stats['errors'][] = $error_msg;
-                            \PolyTrans_Logs_Manager::log($error_msg, 'error');
+                            LogsManager::log($error_msg, 'error');
                         }
                     } catch (\Exception $e) {
                         $error_msg = "Failed to migrate step '{$step['name']}' in workflow '{$workflow['name']}': {$e->getMessage()}";
                         $stats['errors'][] = $error_msg;
-                        \PolyTrans_Logs_Manager::log($error_msg, 'error');
+                        LogsManager::log($error_msg, 'error');
                     }
                 }
 
@@ -97,14 +101,14 @@ class AssistantMigration
             }
 
             // Log migration summary
-            \PolyTrans_Logs_Manager::log(
+            LogsManager::log(
                 "Assistant migration completed: {$stats['workflows_processed']} workflows processed, {$stats['steps_migrated']} steps migrated, {$stats['assistants_created']} assistants created",
                 'info',
                 $stats
             );
         } catch (\Exception $e) {
             $stats['errors'][] = "Migration failed: {$e->getMessage()}";
-            \PolyTrans_Logs_Manager::log("Assistant migration failed: {$e->getMessage()}", 'error');
+            LogsManager::log("Assistant migration failed: {$e->getMessage()}", 'error');
         }
 
         return $stats;
@@ -186,7 +190,7 @@ class AssistantMigration
         if (is_wp_error($result)) {
             $error_message = $result->get_error_message();
             $error_data = $result->get_error_data();
-            \PolyTrans_Logs_Manager::log(
+            LogsManager::log(
                 "Failed to create assistant '{$assistant_name}': {$error_message}",
                 'error',
                 ['error_data' => $error_data]
@@ -298,7 +302,7 @@ class AssistantMigration
     public static function is_migration_needed()
     {
         try {
-            $storage_manager = new \PolyTrans_Workflow_Storage_Manager();
+            $storage_manager = new WorkflowStorageManager();
             $workflows = $storage_manager->get_all_workflows();
 
             foreach ($workflows as $workflow) {
@@ -313,7 +317,7 @@ class AssistantMigration
                 }
             }
         } catch (\Exception $e) {
-            \PolyTrans_Logs_Manager::log("Failed to check migration status: {$e->getMessage()}", 'error');
+            LogsManager::log("Failed to check migration status: {$e->getMessage()}", 'error');
         }
 
         return false;
@@ -335,7 +339,7 @@ class AssistantMigration
         ];
 
         try {
-            $storage_manager = new \PolyTrans_Workflow_Storage_Manager();
+            $storage_manager = new WorkflowStorageManager();
             $workflows = $storage_manager->get_all_workflows();
             $status['total_workflows'] = count($workflows);
 
@@ -362,7 +366,7 @@ class AssistantMigration
                 }
             }
         } catch (\Exception $e) {
-            \PolyTrans_Logs_Manager::log("Failed to get migration status: {$e->getMessage()}", 'error');
+            LogsManager::log("Failed to get migration status: {$e->getMessage()}", 'error');
         }
 
         return $status;

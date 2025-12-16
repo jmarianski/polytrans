@@ -13,6 +13,8 @@
 
 namespace PolyTrans\Assistants;
 
+use PolyTrans\Providers\ProviderRegistry;
+
 if (! defined('ABSPATH')) {
 	exit;
 }
@@ -44,7 +46,7 @@ class AssistantManager
 		$valid_providers = array();
 		
 		try {
-			$registry = \PolyTrans_Provider_Registry::get_instance();
+			$registry = ProviderRegistry::get_instance();
 			$settings = get_option('polytrans_settings', []);
 			$enabled_providers = $settings['enabled_translation_providers'] ?? ['google'];
 			$all_providers = $registry->get_providers();
