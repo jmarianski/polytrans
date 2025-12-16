@@ -1,0 +1,90 @@
+{% set page_links = bottom_pagination|default('') %}
+
+<table class="wp-list-table widefat fixed striped">
+    <thead>
+        <tr>
+            <th scope="col" class="manage-column column-created_at">{{ __('Time', 'polytrans') }}</th>
+            <th scope="col" class="manage-column column-level">{{ __('Level', 'polytrans') }}</th>
+            <th scope="col" class="manage-column column-message">{{ __('Message', 'polytrans') }}</th>
+            <th scope="col" class="manage-column column-context">{{ __('Context', 'polytrans') }}</th>
+            <th scope="col" class="manage-column column-source">{{ __('Source', 'polytrans') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if logs_data.logs is empty %}
+            <tr>
+                <td colspan="5">{{ __('No logs found.', 'polytrans') }}</td>
+            </tr>
+        {% else %}
+            {% for log in logs_data.logs %}
+                {% set level_class = 'info' %}
+                {% if log.level == 'error' %}
+                    {% set level_class = 'error' %}
+                {% elseif log.level == 'warning' %}
+                    {% set level_class = 'warning' %}
+                {% endif %}
+                
+                <tr>
+                    <td>
+                        {{ mysql2date('Y-m-d H:i:s', log.created_at)|esc_html }}
+                    </td>
+                    <td>
+                        <span class="log-level log-level-{{ level_class|esc_attr }}">
+                            {{ log.level|capitalize|esc_html }}
+                        </span>
+                    </td>
+                    <td>
+                        {{ log.message|esc_html }}
+                    </td>
+                    <td>
+                        {% if log.context %}
+                            <button type="button" class="button toggle-context" data-context-id="context-{{ log.id|esc_attr }}">
+                                {{ __('Show Context', 'polytrans') }}
+                            </button>
+                            <div class="context-data" id="context-{{ log.id|esc_attr }}" style="display:none;">
+                                <pre>{{ wp_json_encode(log.context, 384)|textarea_safe }}</pre>
+                            </div>
+                        {% else %}
+                            <em>{{ __('No context data', 'polytrans') }}</em>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if log.source %}
+                            {{ log.source|capitalize|esc_html }}
+                            {% if log.process_id %}
+                                ({{ log.process_id|esc_html }})
+                            {% endif %}
+                        {% endif %}
+                        
+                        {% if log.user_id %}
+                            {% set user = get_user_by('id', log.user_id) %}
+                            {% if user %}
+                                <br>
+                                {{ user.display_name|esc_html }}
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        {% endif %}
+    </tbody>
+</table>
+
+<div class="tablenav bottom">
+    <div class="alignleft actions">
+        <form method="post">
+            {{ wp_nonce_field('polytrans_clear_logs')|raw }}
+            <input type="number" name="days" min="1" value="30" style="width: 60px;">
+            <label for="days">{{ __('days', 'polytrans') }}</label>
+            <input type="submit" name="polytrans_clear_logs" class="button" value="{{ __('Clear Old Logs', 'polytrans')|esc_attr }}">
+        </form>
+    </div>
+
+    <div class="tablenav-pages">
+        {% if page_links %}
+            {{ page_links|raw }}
+        {% endif %}
+    </div>
+    <br class="clear">
+</div>
+

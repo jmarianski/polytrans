@@ -210,6 +210,13 @@ class TemplateRenderer
         self::$twig->addFunction(new TwigFunction('mysql2date', 'mysql2date'));
         self::$twig->addFunction(new TwigFunction('get_option', 'get_option'));
 
+        // User functions
+        self::$twig->addFunction(new TwigFunction('get_user_by', 'get_user_by'));
+
+        // URL functions
+        self::$twig->addFunction(new TwigFunction('add_query_arg', 'add_query_arg'));
+        self::$twig->addFunction(new TwigFunction('paginate_links', 'paginate_links'));
+
         // JSON functions
         self::$twig->addFunction(new TwigFunction('wp_json_encode', function ($data, $options = 0) {
             return wp_json_encode($data, $options);
