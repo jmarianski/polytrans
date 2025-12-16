@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.13] - 2025-12-16
+
+### Changed
+- Migrated PostprocessingMenu to Twig templates
+  - Refactored all render methods to use TemplateRenderer
+  - Created templates/admin/workflows/*.twig templates
+  - Updated CSS with new classes, removed inline styles
+  - Reduced PostprocessingMenu.php from 1437 to 1091 lines (-346 lines, 24% reduction)
+- Added urlencode() function to TemplateRenderer for Twig templates
+- Updated TWIG_MIGRATION_STATUS.md documentation
+
 ## [1.6.12] - 2025-12-16
 
 ### Added
