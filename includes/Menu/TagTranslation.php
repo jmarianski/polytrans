@@ -105,7 +105,7 @@ class TagTranslation
         $tag_names = array_filter(array_map('trim', preg_split('/[\r\n,]+/', $tag_list_raw)));
 
         // Get tag objects by name, ensure all tags from the list are present
-        $tags = [];
+        $tags_data = [];
         if (!empty($tag_names)) {
             foreach ($tag_names as $tag_name) {
                 $tag = $this->get_term_by_name_and_lang($tag_name, $source_language);
@@ -129,89 +129,55 @@ class TagTranslation
                         }
                     }
                 }
-                if ($tag) $tags[] = $tag;
+                if ($tag) {
+                    // Get translations for this tag
+                    $terms = function_exists('pll_get_term_translations') ? pll_get_term_translations($tag->term_id) : [];
+                    $translations = [];
+                    foreach ($langs as $lang) {
+                        if ($lang === $source_language) {
+                            continue;
+                        }
+                        $translated_term_id = $terms[$lang] ?? null;
+                        $translation = $translated_term_id ? get_term($translated_term_id, 'post_tag') : null;
+                        if ($translation) {
+                            $translations[$lang] = [
+                                'term_id' => $translation->term_id,
+                                'name' => $translation->name,
+                            ];
+                        }
+                    }
+                    $tags_data[] = [
+                        'term_id' => $tag->term_id,
+                        'name' => $tag->name,
+                        'translations' => $translations,
+                    ];
+                }
             }
         }
 
-?>
-        <div class="wrap">
-            <h1><?php esc_html_e('Tag Translations', 'polytrans'); ?></h1>
+        // Get source language name
+        $source_lang_name = '';
+        if (function_exists('pll_languages_list')) {
+            $lang_names = pll_languages_list(['fields' => 'name']);
+        } else {
+            $lang_names = ['Polish', 'English', 'Italian'];
+        }
+        $lang_index = array_search($source_language, $langs);
+        if ($lang_index !== false) {
+            $source_lang_name = $lang_names[$lang_index] ?? strtoupper($source_language);
+        } else {
+            $source_lang_name = strtoupper($source_language);
+        }
 
-            <div class="tag-translation-admin-desc">
-                <p><?php esc_html_e('This view lets you manage translations for the tags specified in the Translation Settings. You can set translations for each language, and use the import/export functionality to manage translations in bulk.', 'polytrans'); ?></p>
-                <p><strong><?php esc_html_e('Note:', 'polytrans'); ?></strong> <?php printf(esc_html__('To add or remove tags from the translation list, please go to %s.', 'polytrans'), '<a href="' . admin_url('admin.php?page=polytrans') . '">' . esc_html__('Translation Settings → Tag Settings', 'polytrans') . '</a>'); ?></p>
-            </div>
-
-            <!-- Export/Import controls (admin only) -->
-            <?php if (current_user_can('manage_options')): ?>
-                <div>
-                    <button id="export-tag-csv" class="button button-primary"><?php esc_html_e('Export CSV', 'polytrans'); ?></button>
-                    <button id="show-import-csv" class="button"><?php esc_html_e('Import CSV', 'polytrans'); ?></button>
-                    <span id="import-csv-area">
-                        <input type="file" id="import-csv-file" accept=".csv,text/csv" />
-                        <button id="import-csv-submit" class="button button-secondary"><?php esc_html_e('Import', 'polytrans'); ?></button>
-                        <button id="import-csv-cancel" class="button"><?php esc_html_e('Cancel', 'polytrans'); ?></button>
-                    </span>
-                </div>
-            <?php endif; ?>
-
-            <table class="widefat fixed striped" id="tag-translation-table">
-                <thead>
-                    <tr>
-                        <th><?php
-                            $source_lang_name = '';
-                            if (function_exists('pll_languages_list')) {
-                                $lang_names = pll_languages_list(['fields' => 'name']);
-                            } else {
-                                $lang_names = ['Polish', 'English', 'Italian'];
-                            }
-                            foreach ($langs as $i => $lang) {
-                                if ($lang === $source_language) {
-                                    $source_lang_name = $lang_names[$i] ?? strtoupper($lang);
-                                    break;
-                                }
-                            }
-                            echo esc_html($source_lang_name . ' ' . __('Tag', 'polytrans'));
-                            ?></th>
-                        <?php foreach ($langs as $lang): ?>
-                            <?php if ($lang === $source_language) continue; ?>
-                            <th><?php echo esc_html(strtoupper($lang)) . ' ' . esc_html__('Translation', 'polytrans'); ?></th>
-                        <?php endforeach; ?>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($tags as $tag): ?>
-                        <?php
-                        $terms = pll_get_term_translations($tag->term_id);
-                        ?>
-                        <tr>
-                            <td><?php echo esc_html($tag->name); ?></td>
-                            <?php foreach ($langs as $lang): ?>
-                                <?php if ($lang === $source_language) continue; ?>
-                                <?php
-                                $translated_term_id = $terms[$lang] ?? null;
-                                $translation = $translated_term_id ? get_term($translated_term_id, 'post_tag') : null;
-                                $translation_name = $translation ? $translation->name : '';
-                                $translation_id = $translation ? $translation->term_id : '';
-                                ?>
-                                <td>
-                                    <input style="width:100%"
-                                        type="text"
-                                        data-tag="<?php echo esc_attr($tag->term_id); ?>"
-                                        data-lang="<?php echo esc_attr($lang); ?>"
-                                        data-translation-id="<?php echo esc_attr($translation_id); ?>"
-                                        value="<?php echo esc_attr($translation_name); ?>"
-                                        class="tag-translation-input"
-                                        placeholder="<?php esc_attr_e('Enter or select tag...', 'polytrans'); ?>" />
-                                </td>
-                            <?php endforeach; ?>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-<?php
+        echo TemplateRenderer::render('admin/tag-translation/page.twig', [
+            'tags' => $tags_data,
+            'langs' => $langs,
+            'source_language' => $source_language,
+            'source_lang_name' => $source_lang_name,
+            'can_manage_options' => current_user_can('manage_options'),
+        ]);
     }
+
 
     /**
      * AJAX handler for saving tag translation
