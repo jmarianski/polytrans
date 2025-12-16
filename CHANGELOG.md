@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.14] - 2025-12-16
+
+### Changed
+- Migrated TagTranslation and SettingsMenu to Twig templates
+  - Refactored TagTranslation::admin_page() to use TemplateRenderer
+  - Refactored SettingsMenu::render_overview() to use TemplateRenderer
+  - Created templates/admin/tag-translation/page.twig
+  - Created templates/admin/settings/overview.twig
+  - Updated CSS with new classes for Twig templates
+  - Reduced SettingsMenu.php from 184 to 161 lines (-23 lines, 12% reduction)
+- **All major PHP files with mixed HTML have been migrated to Twig!** 🎉
+
 ## [1.6.13] - 2025-12-16
 
 ### Changed
