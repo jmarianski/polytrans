@@ -9,6 +9,7 @@
 namespace PolyTrans\Menu;
 
 use PolyTrans\Assistants\AssistantManager;
+use PolyTrans\Templating\TemplateRenderer;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -251,122 +252,12 @@ class PostprocessingMenu
         $langs = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'slug']) : ['pl', 'en', 'it'];
         $lang_names = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'name']) : ['Polish', 'English', 'Italian'];
 
-?>
-        <div class="wrap">
-            <h1 class="wp-heading-inline"><?php esc_html_e('Post-Processing Workflows', 'polytrans'); ?></h1>
-            <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-workflows&action=new')); ?>" class="page-title-action">
-                <?php esc_html_e('Add New Workflow', 'polytrans'); ?>
-            </a>
-            <hr class="wp-header-end">
-
-            <div class="workflow-statistics" style="margin-bottom: 20px;">
-                <div class="postbox">
-                    <h2 class="hndle"><?php esc_html_e('Workflow Statistics', 'polytrans'); ?></h2>
-                    <div class="inside">
-                        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                            <div>
-                                <strong><?php esc_html_e('Total Workflows:', 'polytrans'); ?></strong>
-                                <?php echo esc_html($statistics['total_workflows']); ?>
-                            </div>
-                            <div>
-                                <strong><?php esc_html_e('Enabled:', 'polytrans'); ?></strong>
-                                <?php echo esc_html($statistics['enabled_workflows']); ?>
-                            </div>
-                            <div>
-                                <strong><?php esc_html_e('Disabled:', 'polytrans'); ?></strong>
-                                <?php echo esc_html($statistics['disabled_workflows']); ?>
-                            </div>
-                        </div>
-
-                        <?php if (!empty($statistics['languages'])): ?>
-                            <div style="margin-top: 10px;">
-                                <strong><?php esc_html_e('By Language:', 'polytrans'); ?></strong>
-                                <?php foreach ($statistics['languages'] as $lang => $count): ?>
-                                    <span style="margin-right: 15px;">
-                                        <?php echo esc_html(strtoupper($lang) . ': ' . $count); ?>
-                                    </span>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <?php if (empty($workflows)): ?>
-                <div class="notice notice-info">
-                    <p>
-                        <?php esc_html_e('No workflows found.', 'polytrans'); ?>
-                        <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-workflows&action=new')); ?>">
-                            <?php esc_html_e('Create your first workflow', 'polytrans'); ?>
-                        </a>
-                    </p>
-                </div>
-            <?php else: ?>
-                <table class="widefat fixed striped">
-                    <thead>
-                        <tr>
-                            <th style="width: 25%;"><?php esc_html_e('Name', 'polytrans'); ?></th>
-                            <th style="width: 10%;"><?php esc_html_e('Language', 'polytrans'); ?></th>
-                            <th style="width: 8%;"><?php esc_html_e('Steps', 'polytrans'); ?></th>
-                            <th style="width: 10%;"><?php esc_html_e('Status', 'polytrans'); ?></th>
-                            <th style="width: 22%;"><?php esc_html_e('Description', 'polytrans'); ?></th>
-                            <th style="width: 25%;"><?php esc_html_e('Actions', 'polytrans'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($workflows as $workflow): ?>
-                            <tr data-workflow-id="<?php echo esc_attr($workflow['id']); ?>">
-                                <td>
-                                    <strong><?php echo esc_html($workflow['name']); ?></strong>
-                                </td>
-                                <td>
-                                    <?php
-                                    $lang_index = array_search($workflow['language'], $langs);
-                                    echo esc_html($lang_index !== false ? $lang_names[$lang_index] : strtoupper($workflow['language']));
-                                    ?>
-                                </td>
-                                <td>
-                                    <?php echo esc_html(count($workflow['steps'] ?? [])); ?>
-                                </td>
-                                <td>
-                                    <?php if (isset($workflow['enabled']) && $workflow['enabled']): ?>
-                                        <span class="workflow-status enabled"><?php esc_html_e('Enabled', 'polytrans'); ?></span>
-                                    <?php else: ?>
-                                        <span class="workflow-status disabled"><?php esc_html_e('Disabled', 'polytrans'); ?></span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php echo esc_html($workflow['description'] ?? ''); ?>
-                                </td>
-                                <td class="row-actions-visible">
-                                    <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-workflows&action=edit&workflow_id=' . urlencode($workflow['id']))); ?>" class="button button-small">
-                                        <?php esc_html_e('Edit', 'polytrans'); ?>
-                                    </a>
-                                    <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-workflows&action=test&workflow_id=' . urlencode($workflow['id']))); ?>" class="button button-small">
-                                        <?php esc_html_e('Test', 'polytrans'); ?>
-                                    </a>
-                                    <?php
-                                    $is_enabled = isset($workflow['enabled']) && $workflow['enabled'];
-                                    ?>
-                                    <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-execute-workflow&workflow_id=' . urlencode($workflow['id']))); ?>"
-                                        class="button button-small button-primary"
-                                        <?php echo !$is_enabled ? 'disabled aria-disabled="true" style="pointer-events: none; opacity: 0.5;"' : ''; ?>>
-                                        <?php esc_html_e('Execute', 'polytrans'); ?>
-                                    </a>
-                                    <button type="button" class="button button-small workflow-duplicate" data-workflow-id="<?php echo esc_attr($workflow['id']); ?>">
-                                        <?php esc_html_e('Duplicate', 'polytrans'); ?>
-                                    </button>
-                                    <button type="button" class="button button-small button-link-delete workflow-delete" data-workflow-id="<?php echo esc_attr($workflow['id']); ?>">
-                                        <?php esc_html_e('Delete', 'polytrans'); ?>
-                                    </button>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            <?php endif; ?>
-        </div>
-    <?php
+        echo TemplateRenderer::render('admin/workflows/list.twig', [
+            'workflows' => $workflows,
+            'statistics' => $statistics,
+            'langs' => $langs,
+            'lang_names' => $lang_names,
+        ]);
     }
 
     /**
@@ -406,57 +297,22 @@ class PostprocessingMenu
         $langs = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'slug']) : ['pl', 'en', 'it'];
         $lang_names = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'name']) : ['Polish', 'English', 'Italian'];
 
-        // Get available variable documentation
-        $data_providers = $workflow_manager->get_data_providers();
-        $variable_docs = [];
-        foreach ($data_providers as $provider) {
-            $provider_docs = $provider->get_variable_documentation();
-            $variable_docs = array_merge($variable_docs, $provider_docs);
+        // Add user label for attribution user if set
+        if (!empty($workflow['attribution_user'])) {
+            $attribution_user = get_user_by('id', $workflow['attribution_user']);
+            if ($attribution_user) {
+                $workflow['attribution_user_label'] = $attribution_user->display_name . ' (' . $attribution_user->user_email . ')';
+            } else {
+                // User not found, clear the invalid user ID
+                $workflow['attribution_user'] = null;
+            }
         }
 
-    ?>
-        <div class="wrap">
-            <h1><?php echo $is_new ? esc_html__('Add New Workflow', 'polytrans') : esc_html__('Edit Workflow', 'polytrans'); ?></h1>
-
-            <form id="workflow-editor-form" method="post">
-                <?php wp_nonce_field('polytrans_workflow_save', 'workflow_nonce'); ?>
-                <input type="hidden" name="workflow_id" value="<?php echo esc_attr($workflow['id']); ?>">
-
-                <div id="workflow-editor-container">
-                    <!-- Workflow basic settings will be rendered here by JavaScript -->
-                </div>
-
-                <div class="workflow-editor-actions">
-                    <button type="submit" class="button button-primary">
-                        <?php esc_html_e('Save Workflow', 'polytrans'); ?>
-                    </button>
-                    <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-workflows')); ?>" class="button">
-                        <?php esc_html_e('Cancel', 'polytrans'); ?>
-                    </a>
-                </div>
-            </form>
-
-            <!-- Legacy variable documentation panel removed - now using compact pills in JS -->
-        </div>
-
-        <script type="text/javascript">
-            // Pass workflow data to JavaScript
-            <?php
-            // Add user label for attribution user if set
-            if (!empty($workflow['attribution_user'])) {
-                $attribution_user = get_user_by('id', $workflow['attribution_user']);
-                if ($attribution_user) {
-                    $workflow['attribution_user_label'] = $attribution_user->display_name . ' (' . $attribution_user->user_email . ')';
-                } else {
-                    // User not found, clear the invalid user ID
-                    $workflow['attribution_user'] = null;
-                }
-            }
-            ?>
-            window.polytransWorkflowData = <?php echo json_encode($workflow); ?>;
-            window.polytransLanguages = <?php echo json_encode(array_combine($langs, $lang_names)); ?>;
-        </script>
-    <?php
+        echo TemplateRenderer::render('admin/workflows/editor.twig', [
+            'is_new' => $is_new,
+            'workflow' => $workflow,
+            'languages' => array_combine($langs, $lang_names),
+        ]);
     }
 
     /**
@@ -472,19 +328,9 @@ class PostprocessingMenu
             wp_die(__('Workflow not found.', 'polytrans'));
         }
 
-    ?>
-        <div class="wrap">
-            <h1><?php esc_html_e('Test Workflow', 'polytrans'); ?>: <?php echo esc_html($workflow['name']); ?></h1>
-
-            <div id="workflow-tester-container">
-                <!-- Workflow tester will be rendered here by JavaScript -->
-            </div>
-        </div>
-
-        <script type="text/javascript">
-            window.polytransWorkflowTestData = <?php echo json_encode($workflow); ?>;
-        </script>
-    <?php
+        echo TemplateRenderer::render('admin/workflows/tester.twig', [
+            'workflow' => $workflow,
+        ]);
     }
 
     /**
@@ -522,238 +368,46 @@ class PostprocessingMenu
 
         // Pre-selected post data
         $selected_post = null;
+        $selected_post_data = null;
         if ($post_id) {
             $selected_post = get_post($post_id);
+            if ($selected_post) {
+                $selected_post_data = [
+                    'ID' => $selected_post->ID,
+                    'post_title' => $selected_post->post_title,
+                    'post_type' => $selected_post->post_type
+                ];
+            }
         }
 
         // Get available languages
         $langs = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'slug']) : ['pl', 'en', 'it'];
         $lang_names = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'name']) : ['Polish', 'English', 'Italian'];
 
-    ?>
-        <div class="wrap execute-workflow-page">
-            <h1><?php esc_html_e('Execute Workflow Manually', 'polytrans'); ?></h1>
-            <p class="description">
-                <?php esc_html_e('Run post-processing workflows on existing translated posts on-demand.', 'polytrans'); ?>
-            </p>
+        echo TemplateRenderer::render('admin/workflows/execute.twig', [
+            'all_workflows' => $all_workflows,
+            'workflow_id' => $workflow_id,
+            'selected_workflow' => $selected_workflow,
+            'post_id' => $post_id,
+            'selected_post' => $selected_post,
+            'language_filter' => $language_filter,
+            'locked' => $locked,
+            'langs' => $langs,
+            'lang_names' => $lang_names,
+        ]);
 
-            <div id="execute-wizard" class="execute-wizard">
-
-                <!-- Step 1: Select Workflow -->
-                <div class="execute-step" id="step-workflow">
-                    <div class="postbox">
-                        <h2 class="hndle"><?php esc_html_e('Step 1: Select Workflow', 'polytrans'); ?></h2>
-                        <div class="inside">
-                            <?php if ($language_filter): ?>
-                                <div class="notice notice-info inline" style="margin: 0 0 15px 0; padding: 10px;">
-                                    <p style="margin: 0;">
-                                        <span class="dashicons dashicons-info" style="vertical-align: middle;"></span>
-                                        <?php
-                                        $lang_name = '';
-                                        $lang_index = array_search($language_filter, $langs);
-                                        if ($lang_index !== false) {
-                                            $lang_name = $lang_names[$lang_index];
-                                        } else {
-                                            $lang_name = strtoupper($language_filter);
-                                        }
-                                        printf(
-                                            esc_html__('Showing workflows for %s posts only. This matches your selected post\'s language.', 'polytrans'),
-                                            '<strong>' . esc_html($lang_name) . '</strong>'
-                                        );
-                                        ?>
-                                    </p>
-                                </div>
-                            <?php endif; ?>
-                            <table class="form-table">
-                                <tr>
-                                    <th scope="row">
-                                        <label for="workflow-select"><?php esc_html_e('Workflow', 'polytrans'); ?></label>
-                                    </th>
-                                    <td>
-                                        <select id="workflow-select" class="regular-text" <?php echo $locked ? 'disabled' : ''; ?>>
-                                            <option value=""><?php esc_html_e('Select workflow...', 'polytrans'); ?></option>
-                                            <?php foreach ($all_workflows as $workflow): ?>
-                                                <option
-                                                    value="<?php echo esc_attr($workflow['id']); ?>"
-                                                    data-language="<?php echo esc_attr($workflow['language']); ?>"
-                                                    data-steps="<?php echo esc_attr(count($workflow['steps'] ?? [])); ?>"
-                                                    <?php selected($workflow_id, $workflow['id']); ?>>
-                                                    <?php echo esc_html($workflow['name']); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <?php if ($locked && $selected_workflow): ?>
-                                            <input type="hidden" id="workflow-id-locked" value="<?php echo esc_attr($workflow_id); ?>">
-                                        <?php endif; ?>
-                                        <p class="description">
-                                            <?php esc_html_e('Select the workflow you want to execute. Workflows are filtered to match your post\'s language.', 'polytrans'); ?>
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <div id="workflow-details" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-left: 4px solid #2271b1;">
-                                <h4 style="margin-top: 0;"><?php esc_html_e('Workflow Details', 'polytrans'); ?></h4>
-                                <p>
-                                    <strong><?php esc_html_e('Target Language:', 'polytrans'); ?></strong>
-                                    <span id="workflow-language"></span>
-                                </p>
-                                <p>
-                                    <strong><?php esc_html_e('Number of Steps:', 'polytrans'); ?></strong>
-                                    <span id="workflow-steps-count"></span>
-                                </p>
-                                <div id="workflow-steps-list"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 2: Select Post -->
-                <div class="execute-step" id="step-post" style="display: none;">
-                    <div class="postbox">
-                        <h2 class="hndle"><?php esc_html_e('Step 2: Select Post', 'polytrans'); ?></h2>
-                        <div class="inside">
-
-                            <!-- Post Search -->
-                            <div style="margin-bottom: 25px;">
-                                <label for="post-search" style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">
-                                    <?php esc_html_e('Search for post:', 'polytrans'); ?>
-                                </label>
-                                <input
-                                    type="text"
-                                    id="post-search"
-                                    class="regular-text"
-                                    style="width: 100%; max-width: 500px; padding: 8px 12px; font-size: 14px;"
-                                    placeholder="<?php esc_attr_e('Type post title to search...', 'polytrans'); ?>"
-                                    <?php echo $locked ? 'disabled' : ''; ?> />
-                                <div id="post-search-results" style="display: none; margin-top: 10px;"></div>
-                            </div>
-
-                            <!-- Or Divider -->
-                            <div style="text-align: center; margin: 30px 0; position: relative;">
-                                <span style="background: #fff; padding: 0 15px; position: relative; z-index: 1; color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">
-                                    <?php esc_html_e('OR', 'polytrans'); ?>
-                                </span>
-                                <hr style="position: absolute; top: 50%; left: 0; right: 0; margin: 0; z-index: 0; border: none; border-top: 1px solid #ddd;">
-                            </div>
-
-                            <!-- Direct ID Entry -->
-                            <div style="margin-bottom: 25px;">
-                                <label for="post-id-input" style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">
-                                    <?php esc_html_e('Enter post ID:', 'polytrans'); ?>
-                                </label>
-                                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                                    <input
-                                        type="number"
-                                        id="post-id-input"
-                                        class="regular-text"
-                                        style="width: 120px; padding: 8px 12px; font-size: 14px;"
-                                        placeholder="<?php esc_attr_e('Post ID', 'polytrans'); ?>"
-                                        <?php echo $locked ? 'disabled' : ''; ?> />
-                                    <button
-                                        type="button"
-                                        id="verify-post-id"
-                                        class="button button-secondary"
-                                        style="padding: 6px 20px; height: auto;"
-                                        <?php echo $locked ? 'disabled' : ''; ?>>
-                                        <?php esc_html_e('Load Post', 'polytrans'); ?>
-                                    </button>
-                                </div>
-                                <?php if ($locked && $selected_post): ?>
-                                    <input type="hidden" id="post-id-locked" value="<?php echo esc_attr($post_id); ?>">
-                                <?php endif; ?>
-                            </div>
-
-                            <!-- Selected Post Display -->
-                            <div id="selected-post-display" style="display: none; margin-top: 25px; padding: 20px; background: #f0f9ff; border-left: 4px solid #0073aa; border-radius: 4px;">
-                                <h4 style="margin: 0 0 15px 0; color: #0073aa; font-size: 14px; font-weight: 600;">
-                                    ✓ <?php esc_html_e('Selected Post', 'polytrans'); ?>
-                                </h4>
-                                <div id="selected-posts-info"></div>
-                            </div>
-
-                            <!-- Error Display -->
-                            <div id="post-selection-error" class="notice notice-error" style="display: none; margin-top: 20px;">
-                                <p style="margin: 10px 0;"></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 3: Review & Execute -->
-                <div class="execute-step" id="step-execute" style="display: none;">
-                    <div class="postbox">
-                        <h2 class="hndle"><?php esc_html_e('Step 3: Review & Execute', 'polytrans'); ?></h2>
-                        <div class="inside">
-                            <div id="execution-review">
-                                <!-- Review information will be populated by JavaScript -->
-                            </div>
-
-                            <div class="execution-warning" style="margin: 20px 0; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107;">
-                                <p style="margin: 0;">
-                                    <strong>⚠️ <?php esc_html_e('Warning:', 'polytrans'); ?></strong>
-                                    <?php esc_html_e('This will modify the translated post content. Make sure you have selected the correct workflow and post.', 'polytrans'); ?>
-                                </p>
-                            </div>
-
-                            <div style="text-align: center; margin-top: 20px;">
-                                <button type="button" id="execute-workflow-btn" class="button button-primary button-large">
-                                    <?php esc_html_e('Execute Workflow', 'polytrans'); ?>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Execution Status -->
-                <div class="execute-step" id="step-status" style="display: none;">
-                    <div class="postbox">
-                        <h2 class="hndle">📊 <?php esc_html_e('Execution Status', 'polytrans'); ?></h2>
-                        <div class="inside">
-                            <div id="execution-status-content">
-                                <!-- Status will be populated by JavaScript -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Results Display -->
-                <div class="execute-step" id="step-results" style="display: none;">
-                    <div class="postbox">
-                        <h2 class="hndle" id="results-title"></h2>
-                        <div class="inside">
-                            <div id="execution-results-content">
-                                <!-- Results will be populated by JavaScript -->
-                            </div>
-
-                            <div style="text-align: center; margin-top: 20px;">
-                                <button type="button" id="execute-another-btn" class="button button-primary">
-                                    <?php esc_html_e('Execute Another Workflow', 'polytrans'); ?>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <script type="text/javascript">
-            window.polytransExecuteWorkflowData = {
-                workflows: <?php echo json_encode($all_workflows); ?>,
-                selectedWorkflow: <?php echo $selected_workflow ? json_encode($selected_workflow) : 'null'; ?>,
-                selectedPost: <?php echo $selected_post ? json_encode([
-                                    'ID' => $selected_post->ID,
-                                    'post_title' => $selected_post->post_title,
-                                    'post_type' => $selected_post->post_type
-                                ]) : 'null'; ?>,
-                locked: <?php echo $locked ? 'true' : 'false'; ?>,
-                workflowId: '<?php echo esc_js($workflow_id); ?>',
-                postId: <?php echo $post_id; ?>,
-                languageFilter: '<?php echo esc_js($language_filter); ?>'
-            };
-        </script>
-<?php
+        // Output JavaScript data
+        echo '<script type="text/javascript">';
+        echo 'window.polytransExecuteWorkflowData = ' . json_encode([
+            'workflows' => $all_workflows,
+            'selectedWorkflow' => $selected_workflow,
+            'selectedPost' => $selected_post_data,
+            'locked' => $locked,
+            'workflowId' => $workflow_id,
+            'postId' => $post_id,
+            'languageFilter' => $language_filter,
+        ]) . ';';
+        echo '</script>';
     }
 
     /**
@@ -1146,26 +800,6 @@ class PostprocessingMenu
         wp_send_json_success($assistants);
     }
 
-    /**
-     * Get OpenAI assistants from the settings provider
-     */
-    private function get_openai_assistants()
-    {
-        // Check if OpenAI settings provider class exists
-        if (!class_exists('\PolyTrans_OpenAI_Settings_Provider')) {
-            return [];
-        }
-
-        try {
-            $provider = new \PolyTrans_OpenAI_Settings_Provider();
-            $reflection = new \ReflectionClass($provider);
-            $method = $reflection->getMethod('get_assistants');
-            $method->setAccessible(true);
-            return $method->invoke($provider);
-        } catch (\Exception $e) {
-            return [];
-        }
-    }
 
     /**
      * Get OpenAI models from the settings provider

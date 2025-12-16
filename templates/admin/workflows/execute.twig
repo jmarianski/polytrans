@@ -1,0 +1,202 @@
+<div class="wrap execute-workflow-page">
+    <h1>{{ __('Execute Workflow Manually', 'polytrans')|esc_html }}</h1>
+    <p class="description">
+        {{ __('Run post-processing workflows on existing translated posts on-demand.', 'polytrans')|esc_html }}
+    </p>
+
+    <div id="execute-wizard" class="execute-wizard">
+
+        <!-- Step 1: Select Workflow -->
+        <div class="execute-step" id="step-workflow">
+            <div class="postbox">
+                <h2 class="hndle">{{ __('Step 1: Select Workflow', 'polytrans')|esc_html }}</h2>
+                <div class="inside">
+                    {% if language_filter %}
+                        <div class="notice notice-info inline workflow-filter-notice">
+                            <p>
+                                <span class="dashicons dashicons-info"></span>
+                                {% set lang_name = '' %}
+                                {% set lang_index = null %}
+                                {% for i, lang in langs %}
+                                    {% if lang == language_filter %}
+                                        {% set lang_index = i %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if lang_index is not null %}
+                                    {% set lang_name = lang_names[lang_index] %}
+                                {% else %}
+                                    {% set lang_name = language_filter|upper %}
+                                {% endif %}
+                                {{ __('Showing workflows for %s posts only. This matches your selected post\'s language.', 'polytrans')|format('<strong>' ~ lang_name|esc_html ~ '</strong>')|raw }}
+                            </p>
+                        </div>
+                    {% endif %}
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">
+                                <label for="workflow-select">{{ __('Workflow', 'polytrans')|esc_html }}</label>
+                            </th>
+                            <td>
+                                <select id="workflow-select" class="regular-text" {% if locked %}disabled{% endif %}>
+                                    <option value="">{{ __('Select workflow...', 'polytrans')|esc_html }}</option>
+                                    {% for workflow in all_workflows %}
+                                        <option
+                                            value="{{ workflow.id|esc_attr }}"
+                                            data-language="{{ workflow.language|esc_attr }}"
+                                            data-steps="{{ (workflow.steps|default([]))|length|esc_attr }}"
+                                            {{ selected(workflow_id, workflow.id) }}>
+                                            {{ workflow.name|esc_html }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                {% if locked and selected_workflow %}
+                                    <input type="hidden" id="workflow-id-locked" value="{{ workflow_id|esc_attr }}">
+                                {% endif %}
+                                <p class="description">
+                                    {{ __('Select the workflow you want to execute. Workflows are filtered to match your post\'s language.', 'polytrans')|esc_html }}
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div id="workflow-details" class="workflow-details-panel">
+                        <h4>{{ __('Workflow Details', 'polytrans')|esc_html }}</h4>
+                        <p>
+                            <strong>{{ __('Target Language:', 'polytrans')|esc_html }}</strong>
+                            <span id="workflow-language"></span>
+                        </p>
+                        <p>
+                            <strong>{{ __('Number of Steps:', 'polytrans')|esc_html }}</strong>
+                            <span id="workflow-steps-count"></span>
+                        </p>
+                        <div id="workflow-steps-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Select Post -->
+        <div class="execute-step" id="step-post">
+            <div class="postbox">
+                <h2 class="hndle">{{ __('Step 2: Select Post', 'polytrans')|esc_html }}</h2>
+                <div class="inside">
+
+                    <!-- Post Search -->
+                    <div class="post-search-section">
+                        <label for="post-search" class="post-search-label">
+                            {{ __('Search for post:', 'polytrans')|esc_html }}
+                        </label>
+                        <input
+                            type="text"
+                            id="post-search"
+                            class="regular-text post-search-input"
+                            placeholder="{{ __('Type post title to search...', 'polytrans')|esc_attr }}"
+                            {% if locked %}disabled{% endif %} />
+                        <div id="post-search-results" class="post-search-results"></div>
+                    </div>
+
+                    <!-- Or Divider -->
+                    <div class="post-select-divider">
+                        <span class="divider-text">{{ __('OR', 'polytrans')|esc_html }}</span>
+                        <hr class="divider-line">
+                    </div>
+
+                    <!-- Direct ID Entry -->
+                    <div class="post-id-section">
+                        <label for="post-id-input" class="post-id-label">
+                            {{ __('Enter post ID:', 'polytrans')|esc_html }}
+                        </label>
+                        <div class="post-id-input-group">
+                            <input
+                                type="number"
+                                id="post-id-input"
+                                class="regular-text post-id-input"
+                                placeholder="{{ __('Post ID', 'polytrans')|esc_attr }}"
+                                {% if locked %}disabled{% endif %} />
+                            <button
+                                type="button"
+                                id="verify-post-id"
+                                class="button button-secondary verify-post-btn"
+                                {% if locked %}disabled{% endif %}>
+                                {{ __('Load Post', 'polytrans')|esc_html }}
+                            </button>
+                        </div>
+                        {% if locked and selected_post %}
+                            <input type="hidden" id="post-id-locked" value="{{ post_id|esc_attr }}">
+                        {% endif %}
+                    </div>
+
+                    <!-- Selected Post Display -->
+                    <div id="selected-post-display" class="selected-post-display">
+                        <h4>
+                            ✓ {{ __('Selected Post', 'polytrans')|esc_html }}
+                        </h4>
+                        <div id="selected-posts-info"></div>
+                    </div>
+
+                    <!-- Error Display -->
+                    <div id="post-selection-error" class="notice notice-error post-selection-error">
+                        <p></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Review & Execute -->
+        <div class="execute-step" id="step-execute">
+            <div class="postbox">
+                <h2 class="hndle">{{ __('Step 3: Review & Execute', 'polytrans')|esc_html }}</h2>
+                <div class="inside">
+                    <div id="execution-review">
+                        <!-- Review information will be populated by JavaScript -->
+                    </div>
+
+                    <div class="execution-warning">
+                        <p>
+                            <strong>⚠️ {{ __('Warning:', 'polytrans')|esc_html }}</strong>
+                            {{ __('This will modify the translated post content. Make sure you have selected the correct workflow and post.', 'polytrans')|esc_html }}
+                        </p>
+                    </div>
+
+                    <div class="execution-actions">
+                        <button type="button" id="execute-workflow-btn" class="button button-primary button-large">
+                            {{ __('Execute Workflow', 'polytrans')|esc_html }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Execution Status -->
+        <div class="execute-step" id="step-status">
+            <div class="postbox">
+                <h2 class="hndle">📊 {{ __('Execution Status', 'polytrans')|esc_html }}</h2>
+                <div class="inside">
+                    <div id="execution-status-content">
+                        <!-- Status will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Display -->
+        <div class="execute-step" id="step-results">
+            <div class="postbox">
+                <h2 class="hndle" id="results-title"></h2>
+                <div class="inside">
+                    <div id="execution-results-content">
+                        <!-- Results will be populated by JavaScript -->
+                    </div>
+
+                    <div class="execution-results-actions">
+                        <button type="button" id="execute-another-btn" class="button button-primary">
+                            {{ __('Execute Another Workflow', 'polytrans')|esc_html }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+

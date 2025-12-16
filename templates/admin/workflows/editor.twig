@@ -1,0 +1,34 @@
+<div class="wrap">
+    <h1>
+        {% if is_new %}
+            {{ __('Add New Workflow', 'polytrans')|esc_html }}
+        {% else %}
+            {{ __('Edit Workflow', 'polytrans')|esc_html }}
+        {% endif %}
+    </h1>
+
+    <form id="workflow-editor-form" method="post">
+        {{ wp_nonce_field('polytrans_workflow_save', 'workflow_nonce')|raw }}
+        <input type="hidden" name="workflow_id" value="{{ workflow.id|esc_attr }}">
+
+        <div id="workflow-editor-container">
+            <!-- Workflow basic settings will be rendered here by JavaScript -->
+        </div>
+
+        <div class="workflow-editor-actions">
+            <button type="submit" class="button button-primary">
+                {{ __('Save Workflow', 'polytrans')|esc_html }}
+            </button>
+            <a href="{{ admin_url('admin.php?page=polytrans-workflows')|esc_url }}" class="button">
+                {{ __('Cancel', 'polytrans')|esc_html }}
+            </a>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    // Pass workflow data to JavaScript
+    window.polytransWorkflowData = {{ workflow|json_encode|raw }};
+    window.polytransLanguages = {{ languages|json_encode|raw }};
+</script>
+

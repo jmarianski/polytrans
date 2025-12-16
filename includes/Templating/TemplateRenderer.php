@@ -198,6 +198,7 @@ class TemplateRenderer
         self::$twig->addFunction(new TwigFunction('admin_url', 'admin_url'));
         self::$twig->addFunction(new TwigFunction('home_url', 'home_url'));
         self::$twig->addFunction(new TwigFunction('site_url', 'site_url'));
+        self::$twig->addFunction(new TwigFunction('urlencode', 'urlencode'));
 
         // WordPress utility functions
         self::$twig->addFunction(new TwigFunction('selected', 'selected'));

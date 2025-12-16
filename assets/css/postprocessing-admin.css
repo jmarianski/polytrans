@@ -1,7 +1,54 @@
 /* Post-Processing Workflows Admin Styles */
 
+.workflow-statistics {
+    margin-bottom: 20px;
+}
+
 .workflow-statistics .postbox {
     max-width: none;
+}
+
+.workflow-stats-grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.workflow-stats-languages {
+    margin-top: 10px;
+}
+
+.workflow-lang-stat {
+    margin-right: 15px;
+}
+
+.workflow-col-name {
+    width: 25%;
+}
+
+.workflow-col-language {
+    width: 10%;
+}
+
+.workflow-col-steps {
+    width: 8%;
+}
+
+.workflow-col-status {
+    width: 10%;
+}
+
+.workflow-col-description {
+    width: 22%;
+}
+
+.workflow-col-actions {
+    width: 25%;
+}
+
+.workflow-execute-btn[disabled] {
+    pointer-events: none;
+    opacity: 0.5;
 }
 
 .workflow-status.enabled {

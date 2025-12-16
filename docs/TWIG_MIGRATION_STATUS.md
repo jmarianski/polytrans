@@ -36,17 +36,21 @@ This document tracks the migration of PHP files with mixed HTML to Twig template
   - `assets/js/settings/translation-settings-admin.js` (extracted inline scripts)
 - **Result**: Complete migration with modular templates
 
-## Pending Migrations 📋
-
-### 1. PostprocessingMenu (HIGH PRIORITY)
+### 3. PostprocessingMenu (v1.6.12)
 - **File**: `includes/Menu/PostprocessingMenu.php`
-- **Size**: 1437 lines
-- **Methods with HTML**:
-  - `render_workflow_list()` (lines 254-369) - Workflow list table with statistics
-  - `render_workflow_editor()` (lines 417-460) - Workflow editor form
-  - `render_workflow_tester()` (lines 475-488) - Workflow tester page
-- **Estimated HTML**: ~200-300 lines
-- **Priority**: High (largest remaining file)
+- **Before**: 1437 lines
+- **After**: 1091 lines
+- **Reduction**: -346 lines (~24% reduction)
+- **Templates**: 
+  - `templates/admin/workflows/list.twig` (workflow list with statistics)
+  - `templates/admin/workflows/editor.twig` (workflow editor form)
+  - `templates/admin/workflows/tester.twig` (workflow tester page)
+  - `templates/admin/workflows/execute.twig` (execute workflow wizard)
+- **Assets**: 
+  - `assets/css/postprocessing-admin.css` (updated with new classes for Twig templates)
+- **Result**: Complete migration with modular templates, removed all inline styles
+
+## Pending Migrations 📋
 
 ### 2. TagTranslation
 - **File**: `includes/Menu/TagTranslation.php`
