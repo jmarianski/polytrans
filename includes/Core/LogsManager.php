@@ -2,6 +2,8 @@
 
 namespace PolyTrans\Core;
 
+use PolyTrans\Templating\TemplateRenderer;
+
 /**
  * PolyTrans Logs Manager
  * Handles logs database table creation and management
@@ -610,25 +612,24 @@ class LogsManager
         // Check if database logging is enabled
         $db_logging_enabled = self::is_db_logging_enabled();
 
-        // Display warning if database logging is disabled or table doesn't exist
+        // Prepare warning message
+        $warning_message = '';
         if (!$db_logging_enabled || !$table_exists) {
-            echo '<div class="notice notice-warning is-dismissible"><p>';
             if (!$db_logging_enabled) {
-                echo esc_html__('Database logging is currently disabled. Logs are only being written to the WordPress error log and post meta. Enable database logging in PolyTrans settings to view logs here.', 'polytrans');
+                $warning_message = esc_html__('Database logging is currently disabled. Logs are only being written to the WordPress error log and post meta. Enable database logging in PolyTrans settings to view logs here.', 'polytrans');
             } else {
-                echo esc_html__('Logs database table does not exist. Logs are only being written to the WordPress error log and post meta.', 'polytrans');
-                echo ' <a href="' . esc_url(admin_url('admin.php?page=polytrans-settings')) . '">' . esc_html__('Go to Settings', 'polytrans') . '</a>';
+                $warning_message = esc_html__('Logs database table does not exist. Logs are only being written to the WordPress error log and post meta.', 'polytrans');
+                $warning_message .= ' <a href="' . esc_url(admin_url('admin.php?page=polytrans-settings')) . '">' . esc_html__('Go to Settings', 'polytrans') . '</a>';
             }
-            echo '</p></div>';
         }
 
-        // If a clear logs action is requested
+        // Prepare success message
+        $success_message = '';
         if ($table_exists && isset($_POST['polytrans_clear_logs']) && check_admin_referer('polytrans_clear_logs')) {
             $days = isset($_POST['days']) ? intval($_POST['days']) : 30;
             $deleted = self::clear_old_logs($days);
 
-            echo '<div class="updated"><p>';
-            printf(
+            $success_message = sprintf(
                 _n(
                     '%d log entry cleared.',
                     '%d log entries cleared.',
@@ -637,7 +638,6 @@ class LogsManager
                 ),
                 $deleted
             );
-            echo '</p></div>';
         }
 
         // Process filters and pagination
@@ -657,467 +657,49 @@ class LogsManager
             'post_id' => $post_id
         ]);
 
-        // Display filters form
-?>
-        <div class="wrap">
-            <h1><?php esc_html_e('PolyTrans Logs', 'polytrans'); ?></h1>
+        // Generate pagination links
+        $top_page_links = paginate_links([
+            'base' => add_query_arg('paged', '%#%'),
+            'format' => '',
+            'prev_text' => '&laquo;',
+            'next_text' => '&raquo;',
+            'total' => $logs_data['pages'],
+            'current' => $current_page,
+        ]);
 
-            <!-- Auto-refresh controls -->
-            <div class="polytrans-autorefresh-controls" style="margin-bottom: 15px; padding: 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
-                <label for="autorefresh-interval"><?php esc_html_e('Auto-refresh every:', 'polytrans'); ?></label>
-                <select id="autorefresh-interval">
-                    <option value="0"><?php esc_html_e('Disabled', 'polytrans'); ?></option>
-                    <option value="5"><?php esc_html_e('5 seconds', 'polytrans'); ?></option>
-                    <option value="10"><?php esc_html_e('10 seconds', 'polytrans'); ?></option>
-                    <option value="30"><?php esc_html_e('30 seconds', 'polytrans'); ?></option>
-                    <option value="60"><?php esc_html_e('1 minute', 'polytrans'); ?></option>
-                    <option value="300"><?php esc_html_e('5 minutes', 'polytrans'); ?></option>
-                </select>
-                <button type="button" id="pause-autorefresh" class="button" style="margin-left: 10px;">
-                    <?php esc_html_e('Pause', 'polytrans'); ?>
-                </button>
-                <button type="button" id="manual-refresh" class="button" style="margin-left: 5px;" title="<?php esc_attr_e('Refresh now', 'polytrans'); ?>">
-                    <?php esc_html_e('Refresh Now', 'polytrans'); ?>
-                </button>
-                <span id="autorefresh-status" style="margin-left: 10px; font-style: italic;"></span>
-            </div>
+        $top_pagination = '';
+        if ($top_page_links) {
+            $top_pagination = '<span class="pagination-links">' . $top_page_links . '</span>';
+        }
 
-            <form method="get" id="logs-filter-form">
-                <input type="hidden" name="page" value="polytrans-logs">
-                <input type="hidden" name="paged" value="<?php echo esc_attr($current_page); ?>">
+        // Generate bottom pagination
+        $bottom_page_links = paginate_links([
+            'base' => add_query_arg('paged', '%#%'),
+            'format' => '',
+            'prev_text' => '&laquo;',
+            'next_text' => '&raquo;',
+            'total' => $logs_data['pages'],
+            'current' => $current_page,
+        ]);
 
-                <div class="tablenav top">
-                    <div class="alignleft actions">
-                        <label for="filter-by-level" class="screen-reader-text"><?php esc_html_e('Filter by level', 'polytrans'); ?></label>
-                        <select name="level" id="filter-by-level">
-                            <option value=""><?php esc_html_e('All levels', 'polytrans'); ?></option>
-                            <option value="info" <?php selected($level, 'info'); ?>><?php esc_html_e('Info', 'polytrans'); ?></option>
-                            <option value="warning" <?php selected($level, 'warning'); ?>><?php esc_html_e('Warning', 'polytrans'); ?></option>
-                            <option value="error" <?php selected($level, 'error'); ?>><?php esc_html_e('Error', 'polytrans'); ?></option>
-                        </select>
+        $bottom_pagination = '';
+        if ($bottom_page_links) {
+            $bottom_pagination = '<span class="pagination-links">' . $bottom_page_links . '</span>';
+        }
 
-                        <label for="filter-by-source" class="screen-reader-text"><?php esc_html_e('Filter by source', 'polytrans'); ?></label>
-                        <select name="source" id="filter-by-source">
-                            <option value=""><?php esc_html_e('All sources', 'polytrans'); ?></option>
-                            <option value="web" <?php selected($source, 'web'); ?>><?php esc_html_e('Web', 'polytrans'); ?></option>
-                            <option value="ajax" <?php selected($source, 'ajax'); ?>><?php esc_html_e('Ajax', 'polytrans'); ?></option>
-                            <option value="cron" <?php selected($source, 'cron'); ?>><?php esc_html_e('Cron', 'polytrans'); ?></option>
-                            <option value="cli" <?php selected($source, 'cli'); ?>><?php esc_html_e('CLI', 'polytrans'); ?></option>
-                        </select>
-
-                        <label for="filter-by-post" class="screen-reader-text"><?php esc_html_e('Filter by post ID', 'polytrans'); ?></label>
-                        <input type="number" name="post_id" id="filter-by-post" value="<?php echo $post_id ? esc_attr($post_id) : ''; ?>" placeholder="<?php esc_attr_e('Post ID', 'polytrans'); ?>">
-
-                        <input type="submit" class="button" value="<?php esc_attr_e('Filter', 'polytrans'); ?>">
-
-                        <?php if (!empty($search) || !empty($level) || !empty($source) || !empty($post_id)): ?>
-                            <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-logs')); ?>" class="button"><?php esc_html_e('Reset', 'polytrans'); ?></a>
-                        <?php endif; ?>
-                    </div>
-
-                    <div class="alignright">
-                        <p class="search-box">
-                            <label class="screen-reader-text" for="log-search-input"><?php esc_html_e('Search Logs:', 'polytrans'); ?></label>
-                            <input type="search" id="log-search-input" name="s" value="<?php echo esc_attr($search); ?>" placeholder="<?php esc_attr_e('Search logs...', 'polytrans'); ?>">
-                            <input type="submit" id="search-submit" class="button" value="<?php esc_attr_e('Search Logs', 'polytrans'); ?>">
-                        </p>
-                    </div>
-
-                    <br class="clear">
-                </div>
-            </form>
-
-            <div class="tablenav bottom">
-                <div class="tablenav-pages">
-                    <?php
-                    $page_links = paginate_links([
-                        'base' => add_query_arg('paged', '%#%'),
-                        'format' => '',
-                        'prev_text' => '&laquo;',
-                        'next_text' => '&raquo;',
-                        'total' => $logs_data['pages'],
-                        'current' => $current_page,
-                    ]);
-
-                    if ($page_links) {
-                        echo '<span class="pagination-links">' . $page_links . '</span>';
-                    }
-                    ?>
-                </div>
-            </div>
-
-            <div id="logs-table-container">
-                <table class="wp-list-table widefat fixed striped">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="manage-column column-created_at"><?php esc_html_e('Time', 'polytrans'); ?></th>
-                            <th scope="col" class="manage-column column-level"><?php esc_html_e('Level', 'polytrans'); ?></th>
-                            <th scope="col" class="manage-column column-message"><?php esc_html_e('Message', 'polytrans'); ?></th>
-                            <th scope="col" class="manage-column column-context"><?php esc_html_e('Context', 'polytrans'); ?></th>
-                            <th scope="col" class="manage-column column-source"><?php esc_html_e('Source', 'polytrans'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($logs_data['logs'])): ?>
-                            <tr>
-                                <td colspan="5"><?php esc_html_e('No logs found.', 'polytrans'); ?></td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($logs_data['logs'] as $log): ?>
-                                <tr>
-                                    <td>
-                                        <?php echo esc_html(mysql2date('Y-m-d H:i:s', $log->created_at)); ?>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $level_class = '';
-                                        switch ($log->level) {
-                                            case 'error':
-                                                $level_class = 'error';
-                                                break;
-                                            case 'warning':
-                                                $level_class = 'warning';
-                                                break;
-                                            case 'info':
-                                            default:
-                                                $level_class = 'info';
-                                                break;
-                                        }
-                                        ?>
-                                        <span class="log-level log-level-<?php echo esc_attr($level_class); ?>">
-                                            <?php echo esc_html(ucfirst($log->level)); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <?php echo esc_html($log->message); ?>
-                                    </td>
-                                    <td>
-                                        <?php if (!empty($log->context)): ?>
-                                            <button type="button" class="button toggle-context" data-context-id="context-<?php echo esc_attr($log->id); ?>">
-                                                <?php esc_html_e('Show Context', 'polytrans'); ?>
-                                            </button>
-                                            <div class="context-data" id="context-<?php echo esc_attr($log->id); ?>" style="display:none;">
-                                                <pre><?php echo esc_html(json_encode($log->context, JSON_PRETTY_PRINT)); ?></pre>
-                                            </div>
-                                        <?php else: ?>
-                                            <em><?php esc_html_e('No context data', 'polytrans'); ?></em>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $source = $log->source;
-                                        $process_id = $log->process_id;
-                                        $user_id = $log->user_id;
-
-                                        if ($source) {
-                                            echo esc_html(ucfirst($source));
-                                            if ($process_id) {
-                                                echo ' (' . esc_html($process_id) . ')';
-                                            }
-                                        }
-
-                                        if ($user_id) {
-                                            $user = get_user_by('id', $user_id);
-                                            if ($user) {
-                                                echo '<br>';
-                                                echo esc_html($user->display_name);
-                                            }
-                                        }
-                                        ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-
-                <div class="tablenav bottom">
-                    <div class="alignleft actions">
-                        <form method="post">
-                            <?php wp_nonce_field('polytrans_clear_logs'); ?>
-                            <input type="number" name="days" min="1" value="30" style="width: 60px;">
-                            <label for="days"><?php esc_html_e('days', 'polytrans'); ?></label>
-                            <input type="submit" name="polytrans_clear_logs" class="button" value="<?php esc_attr_e('Clear Old Logs', 'polytrans'); ?>">
-                        </form>
-                    </div>
-
-                    <div class="tablenav-pages">
-                        <?php
-                        if ($page_links) {
-                            echo '<span class="pagination-links">' . $page_links . '</span>';
-                        }
-                        ?>
-                    </div>
-                    <br class="clear">
-                </div>
-            </div> <!-- End logs-table-container -->
-        </div>
-
-        <style>
-            .polytrans-autorefresh-controls {
-                background: #f9f9f9;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 10px;
-                margin-bottom: 15px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                flex-wrap: wrap;
-            }
-
-            .polytrans-autorefresh-controls label {
-                font-weight: 600;
-                margin: 0;
-            }
-
-            .polytrans-autorefresh-controls select {
-                min-width: 120px;
-            }
-
-            #autorefresh-status {
-                color: #666;
-                font-style: italic;
-                margin-left: 10px;
-            }
-
-            .log-level {
-                display: inline-block;
-                padding: 3px 8px;
-                border-radius: 3px;
-                font-weight: bold;
-            }
-
-            .log-level-error {
-                background-color: #f8d7da;
-                color: #721c24;
-            }
-
-            .log-level-warning {
-                background-color: #fff3cd;
-                color: #856404;
-            }
-
-            .log-level-info {
-                background-color: #d1ecf1;
-                color: #0c5460;
-            }
-
-            .context-data {
-                margin-top: 10px;
-                padding: 10px;
-                background-color: #f8f9fa;
-                border: 1px solid #ddd;
-                border-radius: 3px;
-                max-height: 200px;
-                overflow: auto;
-            }
-        </style>
-
-        <script>
-            jQuery(document).ready(function($) {
-                let autoRefreshInterval = null;
-                let isPaused = false;
-                let currentInterval = parseInt(localStorage.getItem('polytrans_logs_refresh_interval')) || 10; // Default to 10 seconds or saved preference
-
-                // Context toggle functionality (delegated to work with AJAX-loaded content)
-                $(document).on('click', '.toggle-context', function() {
-                    var contextId = $(this).data('context-id');
-                    $('#' + contextId).toggle();
-
-                    var buttonText = $(this).text() === '<?php esc_html_e('Show Context', 'polytrans'); ?>' ?
-                        '<?php esc_html_e('Hide Context', 'polytrans'); ?>' :
-                        '<?php esc_html_e('Show Context', 'polytrans'); ?>';
-
-                    $(this).text(buttonText);
-                });
-
-                // Function to update the page counter in the UI
-                function updatePageCounter(page, totalPages) {
-                    // WordPress paginate_links generates pagination
-                    // The counter text is in format "X of Y" inside .tablenav-paging-text
-                    totalPages = totalPages || <?php echo $logs_data['pages']; ?>;
-                    const pageText = page + ' of ' + totalPages;
-                    
-                    // Update pagination counter text (WordPress uses .tablenav-paging-text)
-                    $('.tablenav-pages .tablenav-paging-text').each(function() {
-                        $(this).text(pageText);
-                    });
-                    
-                    // Also update pagination input field if it exists (WordPress admin style)
-                    $('.tablenav-pages input[name="paged"]').val(page);
-                    
-                    // Update the active page link number if it exists
-                    $('.pagination-links .current').text(page);
-                }
-
-                // Handle pagination link clicks
-                $(document).on('click', '.pagination-links a', function(e) {
-                    e.preventDefault();
-                    var url = $(this).attr('href');
-                    var urlParams = new URLSearchParams(url.split('?')[1]);
-                    var page = urlParams.get('paged') || 1;
-
-                    // Update the form's paged input or add it if it doesn't exist
-                    var $pagedInput = $('#logs-filter-form input[name="paged"]');
-                    if ($pagedInput.length) {
-                        $pagedInput.val(page);
-                    } else {
-                        $('#logs-filter-form').append('<input type="hidden" name="paged" value="' + page + '">');
-                    }
-
-                    // Update the URL without reloading
-                    if (window.history && window.history.pushState) {
-                        window.history.pushState(null, '', url);
-                    }
-
-                    // Update the page counter (will be updated again after refresh with correct total)
-                    const totalPages = <?php echo $logs_data['pages']; ?>;
-                    updatePageCounter(parseInt(page), totalPages);
-
-                    // Refresh the logs table
-                    refreshLogsTable();
-                });
-
-                function refreshLogsTable() {
-                    // Get current form data to maintain filters and pagination
-                    const formData = $('#logs-filter-form').serialize();
-
-                    // Show loading indicator
-                    $('#autorefresh-status').text('<?php esc_html_e('Refreshing...', 'polytrans'); ?>');
-
-                    $.ajax({
-                        url: ajaxurl,
-                        type: 'POST',
-                        data: {
-                            action: 'polytrans_refresh_logs',
-                            nonce: '<?php echo wp_create_nonce('polytrans_refresh_logs'); ?>',
-                            filters: formData
-                        },
-                        success: function(response) {
-                            if (response.success) {
-                                $('#logs-table-container').html(response.data.html);
-
-                                // Update the page counter after table refresh
-                                // Use page from response or fallback to form/URL
-                                const currentPage = response.data.current_page || 
-                                    $('#logs-filter-form input[name="paged"]').val() || 
-                                    (new URLSearchParams(window.location.search)).get('paged') || 
-                                    1;
-                                const totalPages = response.data.total_pages || <?php echo $logs_data['pages']; ?>;
-                                
-                                // Update page counter with correct total pages
-                                updatePageCounter(parseInt(currentPage), parseInt(totalPages));
-                                
-                                // Update the top pagination HTML (outside logs-table-container)
-                                // The top pagination is in .tablenav.bottom (before logs-table-container)
-                                // Use :not(#logs-table-container .tablenav.bottom) to select only the top one
-                                if (response.data.top_pagination) {
-                                    $('#logs-table-container').siblings('.tablenav.bottom').find('.tablenav-pages').html(response.data.top_pagination);
-                                }
-                            }
-                            // Restore status text
-                            updateStatus();
-                        },
-                        error: function() {
-                            console.log('Failed to refresh logs');
-                            // Restore status text
-                            updateStatus();
-                        }
-                    });
-                }
-
-                // Auto-refresh functionality
-                function updateStatus() {
-                    const statusElement = $('#autorefresh-status');
-                    if (currentInterval === 0) {
-                        statusElement.text('<?php esc_html_e('Auto-refresh disabled', 'polytrans'); ?>');
-                    } else if (isPaused) {
-                        statusElement.text('<?php esc_html_e('Paused', 'polytrans'); ?>');
-                    } else {
-                        statusElement.text('<?php esc_html_e('Auto-refreshing every', 'polytrans'); ?> ' + currentInterval + ' <?php esc_html_e('seconds', 'polytrans'); ?>');
-                    }
-                }
-
-                function startAutoRefresh() {
-                    if (autoRefreshInterval) {
-                        clearInterval(autoRefreshInterval);
-                    }
-
-                    if (currentInterval > 0 && !isPaused) {
-                        autoRefreshInterval = setInterval(function() {
-                            refreshLogsTable();
-                        }, currentInterval * 1000);
-                    }
-                }
-
-                // Handle interval change
-                $('#autorefresh-interval').on('change', function() {
-                    currentInterval = parseInt($(this).val());
-                    localStorage.setItem('polytrans_logs_refresh_interval', currentInterval); // Save preference
-                    if (currentInterval === 0) {
-                        isPaused = false;
-                        $('#pause-autorefresh').text('<?php esc_html_e('Pause', 'polytrans'); ?>');
-                        if (autoRefreshInterval) {
-                            clearInterval(autoRefreshInterval);
-                        }
-                    } else {
-                        if (isPaused) {
-                            isPaused = false;
-                            $('#pause-autorefresh').text('<?php esc_html_e('Pause', 'polytrans'); ?>');
-                        }
-                        startAutoRefresh();
-                    }
-                    updateStatus();
-                });
-
-                // Handle pause/resume button
-                $('#pause-autorefresh').on('click', function() {
-                    if (currentInterval === 0) {
-                        return; // Do nothing if auto-refresh is disabled
-                    }
-
-                    isPaused = !isPaused;
-                    $(this).text(isPaused ? '<?php esc_html_e('Resume', 'polytrans'); ?>' : '<?php esc_html_e('Pause', 'polytrans'); ?>');
-
-                    if (isPaused) {
-                        if (autoRefreshInterval) {
-                            clearInterval(autoRefreshInterval);
-                        }
-                    } else {
-                        startAutoRefresh();
-                    }
-                    updateStatus();
-                });
-
-                // Handle manual refresh button
-                $('#manual-refresh').on('click', function() {
-                    refreshLogsTable();
-                });
-
-                // Handle browser back/forward buttons
-                window.addEventListener('popstate', function(event) {
-                    // Parse the current URL to get the page number
-                    var urlParams = new URLSearchParams(window.location.search);
-                    var page = urlParams.get('paged') || 1;
-
-                    // Update the form's paged input
-                    var $pagedInput = $('#logs-filter-form input[name="paged"]');
-                    if ($pagedInput.length) {
-                        $pagedInput.val(page);
-                    }
-
-                    // Refresh the logs table
-                    refreshLogsTable();
-                });
-
-                // Initialize
-                $('#autorefresh-interval').val(currentInterval); // Set the dropdown to saved preference
-                startAutoRefresh();
-                updateStatus();
-            });
-        </script>
-    <?php
+        // Render template
+        echo TemplateRenderer::render('admin/logs/page.twig', [
+            'warning_message' => $warning_message,
+            'success_message' => $success_message,
+            'current_page' => $current_page,
+            'search' => $search,
+            'level' => $level,
+            'source' => $source,
+            'post_id' => $post_id,
+            'logs_data' => $logs_data,
+            'top_pagination' => $top_pagination,
+            'bottom_pagination' => $bottom_pagination,
+        ]);
     }
 
     /**
@@ -1424,10 +1006,8 @@ class LogsManager
             'post_id' => $post_id
         ]);
 
-        // Generate table HTML
-        ob_start();
-        self::render_logs_table($logs_data, $current_page, $search, $level, $source, $post_id);
-        $html = ob_get_clean();
+        // Generate table HTML using Twig
+        $html = self::render_logs_table($logs_data, $current_page, $search, $level, $source, $post_id);
 
         // Generate top pagination HTML (same as bottom, but for top nav)
         $base_url = admin_url('admin.php');
@@ -1500,110 +1080,16 @@ class LogsManager
             'total' => $logs_data['pages'],
             'current' => $current_page,
         ]);
-    ?>
-        <table class="wp-list-table widefat fixed striped">
-            <thead>
-                <tr>
-                    <th scope="col" class="manage-column column-created_at"><?php esc_html_e('Time', 'polytrans'); ?></th>
-                    <th scope="col" class="manage-column column-level"><?php esc_html_e('Level', 'polytrans'); ?></th>
-                    <th scope="col" class="manage-column column-message"><?php esc_html_e('Message', 'polytrans'); ?></th>
-                    <th scope="col" class="manage-column column-context"><?php esc_html_e('Context', 'polytrans'); ?></th>
-                    <th scope="col" class="manage-column column-source"><?php esc_html_e('Source', 'polytrans'); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($logs_data['logs'])): ?>
-                    <tr>
-                        <td colspan="5"><?php esc_html_e('No logs found.', 'polytrans'); ?></td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($logs_data['logs'] as $log): ?>
-                        <tr>
-                            <td>
-                                <?php echo esc_html(mysql2date('Y-m-d H:i:s', $log->created_at)); ?>
-                            </td>
-                            <td>
-                                <?php
-                                $level_class = '';
-                                switch ($log->level) {
-                                    case 'error':
-                                        $level_class = 'error';
-                                        break;
-                                    case 'warning':
-                                        $level_class = 'warning';
-                                        break;
-                                    case 'info':
-                                    default:
-                                        $level_class = 'info';
-                                        break;
-                                }
-                                ?>
-                                <span class="log-level log-level-<?php echo esc_attr($level_class); ?>">
-                                    <?php echo esc_html(ucfirst($log->level)); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <?php echo esc_html($log->message); ?>
-                            </td>
-                            <td>
-                                <?php if (!empty($log->context)): ?>
-                                    <button type="button" class="button toggle-context" data-context-id="context-<?php echo esc_attr($log->id); ?>">
-                                        <?php esc_html_e('Show Context', 'polytrans'); ?>
-                                    </button>
-                                    <div class="context-data" id="context-<?php echo esc_attr($log->id); ?>" style="display:none;">
-                                        <pre><?php echo esc_html(json_encode($log->context, JSON_PRETTY_PRINT)); ?></pre>
-                                    </div>
-                                <?php else: ?>
-                                    <em><?php esc_html_e('No context data', 'polytrans'); ?></em>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php
-                                $source = $log->source;
-                                $process_id = $log->process_id;
-                                $user_id = $log->user_id;
 
-                                if ($source) {
-                                    echo esc_html(ucfirst($source));
-                                    if ($process_id) {
-                                        echo ' (' . esc_html($process_id) . ')';
-                                    }
-                                }
+        $bottom_pagination = '';
+        if ($page_links) {
+            $bottom_pagination = '<span class="pagination-links">' . $page_links . '</span>';
+        }
 
-                                if ($user_id) {
-                                    $user = get_user_by('id', $user_id);
-                                    if ($user) {
-                                        echo '<br>';
-                                        echo esc_html($user->display_name);
-                                    }
-                                }
-                                ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-
-        <div class="tablenav bottom">
-            <div class="alignleft actions">
-                <form method="post">
-                    <?php wp_nonce_field('polytrans_clear_logs'); ?>
-                    <input type="number" name="days" min="1" value="30" style="width: 60px;">
-                    <label for="days"><?php esc_html_e('days', 'polytrans'); ?></label>
-                    <input type="submit" name="polytrans_clear_logs" class="button" value="<?php esc_attr_e('Clear Old Logs', 'polytrans'); ?>">
-                </form>
-            </div>
-
-            <div class="tablenav-pages">
-                <?php
-                if ($page_links) {
-                    echo '<span class="pagination-links">' . $page_links . '</span>';
-                }
-                ?>
-            </div>
-            <br class="clear">
-        </div>
-<?php
+        // Render table template
+        return TemplateRenderer::render('admin/logs/table.twig', [
+            'logs_data' => $logs_data,
+            'bottom_pagination' => $bottom_pagination,
+        ], false); // Don't enqueue assets for AJAX responses
     }
 }

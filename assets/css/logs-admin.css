@@ -1,0 +1,74 @@
+/**
+ * PolyTrans Logs Admin Styles
+ * 
+ * Styles for the logs admin page
+ * 
+ * @package PolyTrans
+ * @since 1.7.0
+ */
+
+.polytrans-autorefresh-controls {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.polytrans-autorefresh-controls label {
+    font-weight: 600;
+    margin: 0;
+}
+
+.polytrans-autorefresh-controls select {
+    min-width: 120px;
+}
+
+#autorefresh-status {
+    color: #666;
+    font-style: italic;
+    margin-left: 10px;
+}
+
+.log-level {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+.log-level-error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.log-level-warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.log-level-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.context-data {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    max-height: 200px;
+    overflow: auto;
+}
+
+.context-data pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+

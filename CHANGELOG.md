@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.11] - 2025-12-15
+
+### Added
+- **Twig Template System for Logs Page**: Migrated logs admin page to Twig templates
+  - Extracted HTML to `templates/admin/logs/page.twig` and `table.twig`
+  - Extracted CSS to `assets/css/logs-admin.css`
+  - Extracted JavaScript to `assets/js/logs-admin.js`
+  - Clean separation of concerns: HTML in Twig, CSS in separate file, JS in separate file
+  - Improved code maintainability and readability
+
+### Changed
+- **Logs Page Architecture**: Refactored `LogsManager::admin_logs_page()` to use `TemplateRenderer`
+  - All HTML rendering now handled by Twig templates
+  - Assets properly enqueued via `admin_enqueue_scripts` hook
+  - Consistent with other admin pages using Twig templates
+
 ## [1.6.10] - 2025-12-15
 
 ### Fixed

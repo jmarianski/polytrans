@@ -1,0 +1,100 @@
+{% set has_filters = search is not empty or level is not empty or source is not empty or post_id is not empty %}
+
+{# Note: Assets are enqueued in LogsMenu::add_scripts() via admin_enqueue_scripts hook #}
+
+<div class="wrap">
+    <h1>{{ __('PolyTrans Logs', 'polytrans') }}</h1>
+
+    {% if warning_message %}
+        <div class="notice notice-warning is-dismissible">
+            <p>{{ warning_message|raw }}</p>
+        </div>
+    {% endif %}
+
+    {% if success_message %}
+        <div class="updated">
+            <p>{{ success_message|raw }}</p>
+        </div>
+    {% endif %}
+
+    <!-- Auto-refresh controls -->
+    <div class="polytrans-autorefresh-controls">
+        <label for="autorefresh-interval">{{ __('Auto-refresh every:', 'polytrans') }}</label>
+        <select id="autorefresh-interval">
+            <option value="0">{{ __('Disabled', 'polytrans') }}</option>
+            <option value="5">{{ __('5 seconds', 'polytrans') }}</option>
+            <option value="10">{{ __('10 seconds', 'polytrans') }}</option>
+            <option value="30">{{ __('30 seconds', 'polytrans') }}</option>
+            <option value="60">{{ __('1 minute', 'polytrans') }}</option>
+            <option value="300">{{ __('5 minutes', 'polytrans') }}</option>
+        </select>
+        <button type="button" id="pause-autorefresh" class="button">
+            {{ __('Pause', 'polytrans') }}
+        </button>
+        <button type="button" id="manual-refresh" class="button" title="{{ __('Refresh now', 'polytrans')|esc_attr }}">
+            {{ __('Refresh Now', 'polytrans') }}
+        </button>
+        <span id="autorefresh-status"></span>
+    </div>
+
+    <form method="get" id="logs-filter-form" data-total-pages="{{ logs_data.pages|esc_attr }}">
+        <input type="hidden" name="page" value="polytrans-logs">
+        <input type="hidden" name="paged" value="{{ current_page|esc_attr }}">
+
+        <div class="tablenav top">
+            <div class="alignleft actions">
+                <label for="filter-by-level" class="screen-reader-text">{{ __('Filter by level', 'polytrans') }}</label>
+                <select name="level" id="filter-by-level">
+                    <option value="">{{ __('All levels', 'polytrans') }}</option>
+                    <option value="info" {{ selected(level, 'info') }}>{{ __('Info', 'polytrans') }}</option>
+                    <option value="warning" {{ selected(level, 'warning') }}>{{ __('Warning', 'polytrans') }}</option>
+                    <option value="error" {{ selected(level, 'error') }}>{{ __('Error', 'polytrans') }}</option>
+                </select>
+
+                <label for="filter-by-source" class="screen-reader-text">{{ __('Filter by source', 'polytrans') }}</label>
+                <select name="source" id="filter-by-source">
+                    <option value="">{{ __('All sources', 'polytrans') }}</option>
+                    <option value="web" {{ selected(source, 'web') }}>{{ __('Web', 'polytrans') }}</option>
+                    <option value="ajax" {{ selected(source, 'ajax') }}>{{ __('Ajax', 'polytrans') }}</option>
+                    <option value="cron" {{ selected(source, 'cron') }}>{{ __('Cron', 'polytrans') }}</option>
+                    <option value="cli" {{ selected(source, 'cli') }}>{{ __('CLI', 'polytrans') }}</option>
+                </select>
+
+                <label for="filter-by-post" class="screen-reader-text">{{ __('Filter by post ID', 'polytrans') }}</label>
+                <input type="number" name="post_id" id="filter-by-post" value="{{ post_id ? post_id|esc_attr : '' }}" placeholder="{{ __('Post ID', 'polytrans')|esc_attr }}">
+
+                <input type="submit" class="button" value="{{ __('Filter', 'polytrans')|esc_attr }}">
+
+                {% if has_filters %}
+                    <a href="{{ admin_url('admin.php?page=polytrans-logs')|esc_url }}" class="button">{{ __('Reset', 'polytrans') }}</a>
+                {% endif %}
+            </div>
+
+            <div class="alignright">
+                <p class="search-box">
+                    <label class="screen-reader-text" for="log-search-input">{{ __('Search Logs:', 'polytrans') }}</label>
+                    <input type="search" id="log-search-input" name="s" value="{{ search|esc_attr }}" placeholder="{{ __('Search logs...', 'polytrans')|esc_attr }}">
+                    <input type="submit" id="search-submit" class="button" value="{{ __('Search Logs', 'polytrans')|esc_attr }}">
+                </p>
+            </div>
+
+            <br class="clear">
+        </div>
+    </form>
+
+    <div class="tablenav bottom">
+        <div class="tablenav-pages">
+            {% if top_pagination %}
+                {{ top_pagination|raw }}
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="logs-table-container">
+        {{ include('admin/logs/table.twig', {
+            'logs_data': logs_data,
+            'bottom_pagination': bottom_pagination
+        }) }}
+    </div>
+</div>
+
