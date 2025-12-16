@@ -13,6 +13,9 @@ jQuery(function ($) {
 
     var postId = PolyTransScheduler.postId;
 
+    // Flag to track if translate button is locked by translation process
+    var translateButtonLocked = false;
+
 
     // Helper: show/hide translation status UI
     function renderStatusUI(status) {
@@ -174,13 +177,15 @@ jQuery(function ($) {
             $targetLangs.prop('disabled', false);
             $needsReview.prop('disabled', false);
             $('#polytrans-dirty-warning').remove();
-            // Re-trigger scope change to set correct button state
-            $scope.trigger('change');
+            // Re-trigger scope change to set correct button state (but respect lock)
+            if (!translateButtonLocked) {
+                $scope.trigger('change');
+            }
         }
     }
 
     // Defer initial check to allow page to fully load
-    setTimeout(function() {
+    setTimeout(function () {
         // First, store initial values for all form fields
         $('#post input:not([name*="polytrans"]), #post textarea:not([name*="polytrans"]), #post select:not([name*="polytrans"])').each(function () {
             $(this).data('original-value', $(this).val());
@@ -232,7 +237,10 @@ jQuery(function ($) {
             $translateBtn.prop('disabled', true);
         } else {
             $('#polytrans-scheduler-options').show();
-            $translateBtn.prop('disabled', false);
+            // Only enable button if not locked by translation process
+            if (!translateButtonLocked) {
+                $translateBtn.prop('disabled', false);
+            }
             if (scopeVal === 'regional') {
                 $targetLangsRow.show();
             } else {
@@ -243,6 +251,13 @@ jQuery(function ($) {
 
     // Handle translation button click
     $translateBtn.on('click', function () {
+        var $btn = $translateBtn;
+
+        // Prevent double-click: disable immediately
+        if ($btn.prop('disabled') || translateButtonLocked) {
+            return false;
+        }
+
         var scopeVal = $scope.val();
         var targets = $targetLangs.val() || [];
         var needsReviewVal = $needsReview.is(':checked') ? 1 : 0;
@@ -254,21 +269,94 @@ jQuery(function ($) {
             needs_review: needsReviewVal,
             _ajax_nonce: PolyTransScheduler.nonce
         };
-        var $btn = $translateBtn;
+
+        // Set lock flag and disable button immediately to prevent double-click
+        translateButtonLocked = true;
         $btn.prop('disabled', true);
+
+        // Track when button was disabled (minimum 5 seconds lock)
+        var disabledAt = Date.now();
+        var minLockDuration = 5000; // 5 seconds
+
+        // Helper function to check if we should unlock the button
+        var checkUnlockButton = function () {
+            var elapsed = Date.now() - disabledAt;
+
+            // Check if minimum lock duration has passed
+            if (elapsed >= minLockDuration) {
+                // Fetch current status to see if translation is in progress
+                $.post(PolyTransScheduler.ajax_url, {
+                    action: 'polytrans_get_translation_status',
+                    post_id: postId,
+                    _ajax_nonce: PolyTransScheduler.nonce
+                }, function (statusResp) {
+                    if (statusResp && statusResp.success && statusResp.data && statusResp.data.status) {
+                        // Check if any translation is in progress
+                        var hasActiveTranslation = false;
+                        for (var lang in statusResp.data.status) {
+                            var status = statusResp.data.status[lang];
+                            if (status && (status.status === 'started' || status.status === 'translating' || status.status === 'processing')) {
+                                hasActiveTranslation = true;
+                                break;
+                            }
+                        }
+
+                        // Only unlock if no active translation and minimum time has passed
+                        if (!hasActiveTranslation && elapsed >= minLockDuration) {
+                            translateButtonLocked = false;
+                            // Only enable if scope is not 'local' and form is not dirty
+                            var scopeVal = $scope.val();
+                            if (scopeVal !== 'local') {
+                                $btn.prop('disabled', false);
+                            }
+                        } else if (hasActiveTranslation) {
+                            // Translation is active, keep checking every 2 seconds
+                            setTimeout(checkUnlockButton, 2000);
+                        }
+                    } else {
+                        // Status check failed, unlock after minimum time
+                        if (elapsed >= minLockDuration) {
+                            translateButtonLocked = false;
+                            var scopeVal = $scope.val();
+                            if (scopeVal !== 'local') {
+                                $btn.prop('disabled', false);
+                            }
+                        }
+                    }
+                }).fail(function () {
+                    // Status check failed, unlock after minimum time
+                    if (elapsed >= minLockDuration) {
+                        translateButtonLocked = false;
+                        var scopeVal = $scope.val();
+                        if (scopeVal !== 'local') {
+                            $btn.prop('disabled', false);
+                        }
+                    }
+                });
+            } else {
+                // Minimum time not passed yet, check again soon
+                setTimeout(checkUnlockButton, 100);
+            }
+        };
+
+        // Make AJAX request
         $.post(PolyTransScheduler.ajax_url, data, function (resp) {
             if (resp && resp.success && resp.data) {
                 fetchStatusAndRender();
                 startPolling();
+                // Start checking if we can unlock (after minimum time)
+                setTimeout(checkUnlockButton, minLockDuration);
             } else {
                 $translateStatus.text(resp.data && resp.data.message ? resp.data.message : resp.data);
                 startPolling();
                 console.error('Translation scheduling failed:', resp);
+                // Start checking if we can unlock (after minimum time)
+                setTimeout(checkUnlockButton, minLockDuration);
             }
-            $btn.prop('disabled', false);
         }).fail(function (xhr) {
             $translateStatus.text('Error: ' + (xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : 'Unknown error'));
-            $btn.prop('disabled', false);
+            // Start checking if we can unlock (after minimum time)
+            setTimeout(checkUnlockButton, minLockDuration);
         });
     });
 

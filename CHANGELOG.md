@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.9] - 2025-12-15
+
+### Fixed
+- **Translation Button Double-Click Prevention**: Fixed issue where translate button could be clicked twice before being disabled
+  - Button is now immediately disabled on first click to prevent double-click
+  - Added `translateButtonLocked` flag to prevent other handlers from re-enabling button during translation process
+  - Button remains locked for minimum 5 seconds or until translation status is confirmed
+  - Other handlers (scope change, form dirty check) now respect the lock flag
+  - Prevents accidental duplicate translation requests
+
 ## [1.6.8] - 2025-12-15
 
 ### Added
