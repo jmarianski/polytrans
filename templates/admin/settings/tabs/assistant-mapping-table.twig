@@ -1,0 +1,54 @@
+{% set language_pairs = get_language_pairs(langs) %}
+{% if langs is empty %}
+    <p><em>{{ __('No languages configured. Please configure languages in Basic Settings first.', 'polytrans') }}</em></p>
+{% elseif language_pairs is empty %}
+    <p><em>{{ __('No language pairs available.', 'polytrans') }}</em></p>
+{% else %}
+    <table class="widefat fixed striped" style="margin-top: 10px;">
+        <thead>
+            <tr>
+                <th style="width: 30%;">{{ __('Language Pair', 'polytrans') }}</th>
+                <th style="width: 70%;">{{ __('Assistant', 'polytrans') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pair in language_pairs %}
+                {% set source_name = get_language_name(pair.source, langs, lang_names) %}
+                {% set target_name = get_language_name(pair.target, langs, lang_names) %}
+                {% set assistant_key = pair.key %}
+                {% set selected_assistant = assistants_mapping[assistant_key]|default('') %}
+                <tr class="language-pair-row"
+                    data-source="{{ pair.source|esc_attr }}"
+                    data-target="{{ pair.target|esc_attr }}"
+                    data-pair="{{ assistant_key|esc_attr }}">
+                    <td>
+                        <strong>{{ source_name|esc_html }} → {{ target_name|esc_html }}</strong>
+                    </td>
+                    <td>
+                        <!-- Hidden input to preserve the actual value -->
+                        <input type="hidden"
+                            name="openai_assistants[{{ assistant_key|esc_attr }}]"
+                            value="{{ selected_assistant|esc_attr }}"
+                            class="openai-assistant-hidden"
+                            data-pair="{{ assistant_key|esc_attr }}" />
+
+                        <!-- Visible select for user interaction -->
+                        <select class="openai-assistant-select"
+                            data-pair="{{ assistant_key|esc_attr }}"
+                            data-selected="{{ selected_assistant|esc_attr }}"
+                            style="width: 100%; max-width: 500px;">
+                            <option value="">{{ __('Loading providers/assistants...', 'polytrans') }}</option>
+                        </select>
+
+                        {% if selected_assistant is not empty %}
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                {{ __('Current: %s', 'polytrans')|format(selected_assistant)|esc_html }}
+                            </div>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+

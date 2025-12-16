@@ -1,0 +1,107 @@
+{% set has_provider_tabs = settings_providers|length > 0 %}
+
+<div class="wrap">
+    <h1>{{ __('Translation Settings', 'polytrans') }}</h1>
+    <p>{{ __('Configure translation workflow for each language. You can specify the default post status after translation, assign a reviewer, and customize the emails sent to the reviewer and author.', 'polytrans') }}</p>
+
+    <!-- Tab Navigation -->
+    <div class="nav-tab-wrapper">
+        <a href="#provider-settings" class="nav-tab nav-tab-active" id="provider-tab">{{ __('Translation Provider', 'polytrans') }}</a>
+        <a href="#basic-settings" class="nav-tab" id="basic-tab">{{ __('Basic Settings', 'polytrans') }}</a>
+        <a href="#language-paths-settings" class="nav-tab" id="language-paths-tab">{{ __('Language Paths', 'polytrans') }}</a>
+        <a href="#tag-settings" class="nav-tab" id="tag-tab">{{ __('Tag Settings', 'polytrans') }}</a>
+        <a href="#email-settings" class="nav-tab" id="email-tab">{{ __('Email Settings', 'polytrans') }}</a>
+        {% for provider_id, settings_provider in settings_providers %}
+            <a href="#{{ provider_id|esc_attr }}-settings" class="nav-tab provider-settings-tab" id="{{ provider_id|esc_attr }}-tab">
+                {{ settings_provider.get_tab_label()|esc_html }}
+            </a>
+        {% endfor %}
+        <a href="#advanced-settings" class="nav-tab" id="advanced-tab">{{ __('Advanced Settings', 'polytrans') }}</a>
+    </div>
+
+    <form method="post">
+        {{ wp_nonce_field('polytrans_settings')|raw }}
+
+        <!-- Translation Provider Tab -->
+        <div id="provider-settings" class="tab-content active">
+            {{ include('admin/settings/tabs/provider-settings.twig', {
+                'providers': providers,
+                'enabled_providers': enabled_providers
+            }) }}
+        </div>
+
+        <!-- Basic Settings Tab -->
+        <div id="basic-settings" class="tab-content" style="display:none;">
+            {{ include('admin/settings/tabs/basic-settings.twig', {
+                'langs': langs,
+                'lang_names': lang_names,
+                'allowed_sources': allowed_sources,
+                'allowed_targets': allowed_targets,
+                'settings': settings
+            }) }}
+        </div>
+
+        <!-- Language Paths Tab -->
+        <div id="language-paths-settings" class="tab-content" style="display:none;">
+            {% set assistants_mapping = settings.assistants_mapping|default(settings.openai_assistants|default({})) %}
+            {% set path_rules = settings.translation_path_rules|default(settings.openai_path_rules|default({})) %}
+            {{ include('admin/settings/tabs/language-paths.twig', {
+                'settings': settings,
+                'assistants_mapping': assistants_mapping,
+                'path_rules': path_rules,
+                'langs': langs,
+                'lang_names': lang_names
+            }) }}
+        </div>
+
+        <!-- Tag Settings Tab -->
+        <div id="tag-settings" class="tab-content" style="display:none;">
+            {{ include('admin/settings/tabs/tag-settings.twig', {
+                'source_language': source_language,
+                'base_tags': base_tags,
+                'langs': langs,
+                'lang_names': lang_names
+            }) }}
+        </div>
+
+        <!-- Email Settings Tab -->
+        <div id="email-settings" class="tab-content" style="display:none;">
+            {{ include('admin/settings/tabs/email-settings.twig', {
+                'reviewer_email': reviewer_email,
+                'reviewer_email_title': reviewer_email_title,
+                'author_email': author_email,
+                'author_email_title': author_email_title,
+                'settings': settings
+            }) }}
+        </div>
+
+        <!-- Dynamic Provider Settings Tabs -->
+        {% for provider_id, settings_provider in settings_providers %}
+            <div id="{{ provider_id|esc_attr }}-settings" class="tab-content provider-settings-content" style="display:none;">
+                {% if provider_custom_ui[provider_id] is defined and provider_custom_ui[provider_id] is not empty %}
+                    {# Provider has custom UI #}
+                    {{ provider_custom_ui[provider_id]|raw }}
+                {% else %}
+                    {# Use universal UI based on manifest #}
+                    {{ include('admin/settings/tabs/universal-provider-ui.twig', {
+                        'provider_id': provider_id,
+                        'settings_provider': settings_provider,
+                        'settings': settings
+                    }) }}
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <!-- Advanced Settings Tab -->
+        <div id="advanced-settings" class="tab-content" style="display:none;">
+            {{ include('admin/settings/tabs/advanced-settings.twig', {
+                'translation_endpoint': translation_endpoint,
+                'translation_receiver_endpoint': translation_receiver_endpoint,
+                'settings': settings
+            }) }}
+        </div>
+
+        <p><input type="submit" class="button button-primary" value="{{ __('Save Settings', 'polytrans')|esc_attr }}"></p>
+    </form>
+</div>
+

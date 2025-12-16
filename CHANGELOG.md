@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.12] - 2025-12-16
+
+### Added
+- **Twig Template System for Translation Settings**: Migrated TranslationSettings page to Twig templates
+  - Extracted HTML to `templates/admin/settings/` directory with modular templates for each tab
+  - Extracted inline CSS to `assets/css/settings/translation-settings-admin.css` (path rules, workflow steps, notification filters)
+  - Extracted inline JavaScript to `assets/js/settings/translation-settings-admin.js` (path rules management, secret method changes)
+  - Added Twig functions: `wp_editor()`, `get_language_pairs()`, `get_language_name()`, `action()`, `in_array()`
+  - Clean separation of concerns: HTML in Twig, CSS in separate file, JS in separate file
+
+### Changed
+- **TranslationSettings Architecture**: Refactored `TranslationSettings::output_page()` and all `render_*()` methods to use `TemplateRenderer`
+  - Reduced PHP file size from 1393 to 579 lines (-814 lines, ~58% reduction)
+  - All HTML rendering now handled by Twig templates
+  - Improved code maintainability and readability
+  - Provider custom UI handling moved to PHP (before template rendering)
+
 ## [1.6.11] - 2025-12-15
 
 ### Added

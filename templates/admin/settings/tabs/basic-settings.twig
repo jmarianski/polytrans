@@ -1,0 +1,29 @@
+<h2>{{ __('Allowed Source Languages', 'polytrans') }}</h2>
+<p>{{ __('Select which source languages are allowed for automatic translation. Only posts in these languages will be considered as sources for translation.', 'polytrans') }}</p>
+<div class="language-grid">
+    {% for i, lang in langs %}
+        <label>
+            <input type="checkbox" name="allowed_sources[]" value="{{ lang|esc_attr }}" {{ checked(in_array(lang, allowed_sources)) }}>
+            {{ (lang_names[i] ?? lang|upper)|esc_html }}
+        </label>
+    {% endfor %}
+</div>
+
+<h2>{{ __('Allowed Target Languages', 'polytrans') }}</h2>
+<p>{{ __('Select which target languages are allowed for automatic translation. Only these languages will be available as translation targets and shown in the configuration table below.', 'polytrans') }}</p>
+<div class="language-grid">
+    {% for i, lang in langs %}
+        <label>
+            <input type="checkbox" name="allowed_targets[]" value="{{ lang|esc_attr }}" {{ checked(in_array(lang, allowed_targets)) }}>
+            {{ (lang_names[i] ?? lang|upper)|esc_html }}
+        </label>
+    {% endfor %}
+</div>
+
+{{ include('admin/settings/tabs/language-config-table.twig', {
+    'settings': settings,
+    'langs': langs,
+    'lang_names': lang_names,
+    'statuses': statuses
+}) }}
+

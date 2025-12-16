@@ -126,6 +126,9 @@ class SettingsMenu
                     'connection_failed' => esc_html__('Connection failed. Please check your settings.', 'polytrans'),
                     'invalid_url' => esc_html__('Please enter a valid URL.', 'polytrans'),
                     'required_field' => esc_html__('This field is required.', 'polytrans'),
+                    'all' => esc_html__('All', 'polytrans'),
+                    'none_direct' => esc_html__('None (Direct)', 'polytrans'),
+                    'remove' => esc_html__('Remove', 'polytrans'),
                 ]
             ];
             

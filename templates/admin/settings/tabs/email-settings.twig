@@ -1,0 +1,64 @@
+{% set notification_allowed_domains = settings.notification_allowed_domains|default('') %}
+{% set notification_allowed_domains_str = notification_allowed_domains is iterable ? notification_allowed_domains|join(', ') : notification_allowed_domains %}
+
+<!-- Email Templates Section -->
+<div class="translation-emails-row" style="display:flex;gap:2em;flex-wrap:wrap;">
+    <div class="translation-email-col">
+        <h2>{{ __('Reviewer Email Template', 'polytrans') }}</h2>
+        <label for="reviewer_email_title"><strong>{{ __('Email Subject (Reviewer)', 'polytrans') }}</strong></label><br />
+        <input type="text" id="reviewer_email_title" name="reviewer_email_title" value="{{ reviewer_email_title|esc_attr }}" style="width:100%" />
+        <br><small>{{ __('Subject of the email sent to reviewer. You can use {title} for the post title.', 'polytrans') }}</small><br><br>
+        {% set editor_settings_reviewer = {
+            'textarea_name': 'reviewer_email',
+            'textarea_rows': 6,
+            'media_buttons': false,
+            'teeny': true,
+            'quicktags': true
+        } %}
+        {{ wp_editor(reviewer_email, 'reviewer_email', editor_settings_reviewer)|raw }}
+        <small>{{ __('Email sent to reviewer when translation is ready for review. Use {link} for the edit link and {title} for the post title. Note: Edit links will use the "Edit Link Base URL" from Advanced Settings if configured, which is recommended for background processes.', 'polytrans') }}</small>
+    </div>
+    <div class="translation-email-col">
+        <h2>{{ __('Author Email Template (when translation is published)', 'polytrans') }}</h2>
+        <label for="author_email_title"><strong>{{ __('Email Subject (Author)', 'polytrans') }}</strong></label><br />
+        <input type="text" id="author_email_title" name="author_email_title" value="{{ author_email_title|esc_attr }}" style="width:100%" />
+        <br><small>{{ __('Subject of the email sent to the author. You can use {title} for the post title.', 'polytrans') }}</small><br><br>
+        {% set editor_settings_author = {
+            'textarea_name': 'author_email',
+            'textarea_rows': 6,
+            'media_buttons': false,
+            'teeny': true,
+            'quicktags': true
+        } %}
+        {{ wp_editor(author_email, 'author_email', editor_settings_author)|raw }}
+        <small>{{ __('Email sent to the author when translation is published. Use {link} for the edit link and {title} for the post title. Note: Edit links will use the "Edit Link Base URL" from Advanced Settings if configured, which is recommended for background processes.', 'polytrans') }}</small>
+    </div>
+</div>
+
+<hr style="margin: 2em 0;">
+
+<!-- Notification Filters Section -->
+<div class="notification-filters-section" style="margin-bottom: 2em; padding: 1em; background: #f9f9f9; border-left: 4px solid #2271b1;">
+    <h2>{{ __('Author Notification Filters', 'polytrans') }}</h2>
+    <p style="margin-top: 0;">
+        {{ __('Control which authors receive email notifications when translations are completed. This is useful to prevent sending emails to external authors (e.g., guest contributors).', 'polytrans') }}
+        <br>
+        <strong>{{ __('Note:', 'polytrans') }}</strong> {{ __('Reviewer notifications are always sent (reviewers are internal users from settings).', 'polytrans') }}
+    </p>
+    
+    <div style="margin-bottom: 1.5em;">
+        <label for="notification_allowed_domains"><strong>{{ __('Allowed Email Domains', 'polytrans') }}</strong></label><br>
+        <input type="text" name="notification_allowed_domains" id="notification_allowed_domains" value="{{ notification_allowed_domains_str|esc_attr }}" style="width: 100%; max-width: 500px;" placeholder="example.com, company.org">
+        <br>
+        <small>
+            {{ __('Comma-separated list of allowed email domains (e.g., "example.com, company.org"). Only authors with emails from these domains will receive notifications. Leave empty to allow all domains.', 'polytrans') }}
+        </small>
+    </div>
+    
+    <p style="margin-bottom: 0; padding: 0.5em; background: #fff; border-left: 3px solid #72aee6;">
+        <strong>{{ __('How it works:', 'polytrans') }}</strong><br>
+        {{ __('If filter is set, only authors with emails from the specified domains will receive notifications.', 'polytrans') }}<br>
+        {{ __('If no filter is set, all authors will receive notifications (default behavior).', 'polytrans') }}
+    </p>
+</div>
+

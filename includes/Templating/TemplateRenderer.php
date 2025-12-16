@@ -205,6 +205,9 @@ class TemplateRenderer
         self::$twig->addFunction(new TwigFunction('disabled', 'disabled'));
         self::$twig->addFunction(new TwigFunction('wp_nonce_field', 'wp_nonce_field'));
         self::$twig->addFunction(new TwigFunction('wp_create_nonce', 'wp_create_nonce'));
+        
+        // PHP utility functions
+        self::$twig->addFunction(new TwigFunction('in_array', 'in_array'));
 
         // Date functions
         self::$twig->addFunction(new TwigFunction('mysql2date', 'mysql2date'));
@@ -216,6 +219,13 @@ class TemplateRenderer
         // URL functions
         self::$twig->addFunction(new TwigFunction('add_query_arg', 'add_query_arg'));
         self::$twig->addFunction(new TwigFunction('paginate_links', 'paginate_links'));
+        
+        // WordPress editor function (uses output buffering to capture HTML)
+        self::$twig->addFunction(new TwigFunction('wp_editor', function ($content, $editor_id, $settings = []) {
+            ob_start();
+            wp_editor($content, $editor_id, $settings);
+            return ob_get_clean();
+        }, ['is_safe' => ['html']]));
 
         // JSON functions
         self::$twig->addFunction(new TwigFunction('wp_json_encode', function ($data, $options = 0) {
@@ -234,6 +244,38 @@ class TemplateRenderer
         // Custom helper functions
         self::$twig->addFunction(new TwigFunction('polytrans_admin_url', function ($path = '') {
             return admin_url('admin.php?page=' . $path);
+        }));
+        
+        // Action hook function (for do_action in templates)
+        self::$twig->addFunction(new TwigFunction('action', function ($hook, ...$args) {
+            ob_start();
+            do_action($hook, ...$args);
+            return ob_get_clean();
+        }, ['is_safe' => ['html']]));
+        
+        // Helper functions for language pairs (used in settings templates)
+        self::$twig->addFunction(new TwigFunction('get_language_pairs', function ($langs) {
+            $pairs = [];
+            foreach ($langs as $source) {
+                foreach ($langs as $target) {
+                    if ($source !== $target) {
+                        $pairs[] = [
+                            'source' => $source,
+                            'target' => $target,
+                            'key' => $source . '_to_' . $target
+                        ];
+                    }
+                }
+            }
+            return $pairs;
+        }));
+        
+        self::$twig->addFunction(new TwigFunction('get_language_name', function ($code, $langs, $lang_names) {
+            $index = array_search($code, $langs);
+            if ($index !== false && isset($lang_names[$index])) {
+                return $lang_names[$index];
+            }
+            return strtoupper($code);
         }));
     }
 

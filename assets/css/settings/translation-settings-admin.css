@@ -300,3 +300,129 @@ select {
         margin-top: 0.5em;
     }
 }
+
+/* Path Rules Styles */
+.path-rules-container {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 0;
+    margin-top: 10px;
+}
+
+#path-rules-table {
+    margin: 0;
+    border: none;
+}
+
+#path-rules-table thead th {
+    background: #f6f7f7;
+    font-weight: 600;
+    padding: 12px 15px;
+    border-bottom: 2px solid #c3c4c7;
+}
+
+#path-rules-table tbody td {
+    padding: 15px;
+    vertical-align: middle;
+}
+
+#path-rules-table .path-rule-row {
+    border-bottom: 1px solid #e5e5e5;
+}
+
+#path-rules-table .path-rule-row:last-child {
+    border-bottom: none;
+}
+
+#path-rules-table .path-rule-row:hover {
+    background: #f9f9f9;
+}
+
+.path-rule-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 14px;
+    background: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.path-rule-select:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+    outline: none;
+}
+
+.path-rule-visual {
+    display: inline-block;
+    font-size: 14px;
+    color: #50575e;
+    margin-top: 8px;
+    line-height: 1.6;
+}
+
+.path-rule-visual > span {
+    display: inline-block;
+    margin: 0 4px;
+}
+
+.path-rule-arrow {
+    color: #2271b1;
+    font-weight: bold;
+}
+
+.path-rule-intermediate {
+    color: #d63638;
+    font-weight: 600;
+}
+
+.path-rule-direct {
+    color: #00a32a;
+    font-style: italic;
+}
+
+.remove-rule {
+    background: #d63638;
+    color: #fff;
+    border-color: #d63638;
+}
+
+.remove-rule:hover {
+    background: #b32d2e;
+    border-color: #b32d2e;
+}
+
+#add-path-rule {
+    margin-top: 15px;
+    background: #2271b1;
+    color: #fff;
+    border-color: #2271b1;
+}
+
+#add-path-rule:hover {
+    background: #135e96;
+    border-color: #135e96;
+}
+
+/* Workflow step styles */
+.workflow-step {
+    margin-bottom: 1em;
+    padding: 1em;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.remove-workflow-step {
+    background-color: #dc3232;
+    color: white;
+}
+
+/* Notification filters section */
+.notification-filters-section {
+    margin-bottom: 2em;
+    padding: 1em;
+    background: #f9f9f9;
+    border-left: 4px solid #2271b1;
+}

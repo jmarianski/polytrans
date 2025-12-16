@@ -1,0 +1,85 @@
+{% set manifest = settings_provider.get_provider_manifest(settings) %}
+{% set capabilities = manifest.capabilities|default([]) %}
+{% set api_key_setting = manifest.api_key_setting|default(null) %}
+{% set has_chat_or_assistants = 'chat' in capabilities or 'assistants' in capabilities %}
+{% set api_key = api_key_setting ? (settings[api_key_setting]|default('')) : '' %}
+{% set model_setting_key = provider_id ~ '_model' %}
+{% set default_model = settings[model_setting_key]|default('') %}
+{% set has_assistants_api = 'assistants' in capabilities %}
+{% set has_chat = 'chat' in capabilities %}
+
+<div class="universal-provider-config-section" data-provider-id="{{ provider_id|esc_attr }}">
+    <h2>{{ settings_provider.get_tab_label()|esc_html }}</h2>
+    {% if settings_provider.get_tab_description() %}
+        <p>{{ settings_provider.get_tab_description()|esc_html }}</p>
+    {% endif %}
+    
+    {% if api_key_setting %}
+        <!-- API Key Section -->
+        <div class="provider-api-key-section" style="margin-top:2em;">
+            <h3>{{ __('API Key', 'polytrans') }}</h3>
+            <div style="display:flex;gap:0.5em;align-items:center;max-width:600px;">
+                <input type="password"
+                       data-provider="{{ provider_id|esc_attr }}"
+                       data-field="api-key"
+                       id="{{ provider_id|esc_attr }}-api-key"
+                       name="{{ api_key_setting|esc_attr }}"
+                       value="{{ api_key|esc_attr }}"
+                       style="width:100%"
+                       placeholder="{{ __('Enter your API key', 'polytrans')|esc_attr }}"
+                       autocomplete="off" />
+                <button type="button"
+                        data-provider="{{ provider_id|esc_attr }}"
+                        data-action="validate-key"
+                        class="button">{{ __('Validate', 'polytrans') }}</button>
+                <button type="button"
+                        data-provider="{{ provider_id|esc_attr }}"
+                        data-action="toggle-visibility"
+                        class="button">👁</button>
+            </div>
+            <div data-provider="{{ provider_id|esc_attr }}" data-field="validation-message" style="margin-top:0.5em;"></div>
+            <small>{{ __('Enter your %s API key. It will be validated before saving.', 'polytrans')|format(settings_provider.get_tab_label())|esc_html }}</small>
+        </div>
+    {% endif %}
+    
+    {% if has_chat and not has_assistants_api %}
+        <div class="notice notice-info" style="margin-top:2em;">
+            <p>
+                <strong>{{ __('Note:', 'polytrans') }}</strong>
+                {{ __('%s does not have a dedicated Assistants API. To use %s for AI-powered translations, please create a "Managed Assistant" in the Assistants menu. Managed Assistants allow you to configure system prompts and user message templates for %s.', 'polytrans')|format(settings_provider.get_tab_label(), settings_provider.get_tab_label(), settings_provider.get_tab_label())|esc_html }}
+            </p>
+            <p>
+                <a href="{{ admin_url('admin.php?page=polytrans-assistants&action=new')|esc_url }}" class="button button-secondary">
+                    {{ __('Create Managed Assistant', 'polytrans') }}
+                </a>
+            </p>
+        </div>
+    {% endif %}
+    
+    {% if has_chat_or_assistants %}
+        <!-- Model Selection Section -->
+        <div class="provider-model-section" style="margin-top:2em;">
+            <h3>{{ __('Default Model', 'polytrans') }}</h3>
+            <div style="display:flex;gap:0.5em;align-items:center;max-width:600px;">
+                <select data-provider="{{ provider_id|esc_attr }}"
+                        data-field="model"
+                        data-selected-model="{{ default_model|esc_attr }}"
+                        id="{{ provider_id|esc_attr }}-model"
+                        name="{{ model_setting_key|esc_attr }}"
+                        style="flex:1;">
+                    <option value="">{{ __('Loading models...', 'polytrans') }}</option>
+                </select>
+                <button type="button"
+                        data-provider="{{ provider_id|esc_attr }}"
+                        data-action="refresh-models"
+                        class="button">{{ __('Refresh', 'polytrans') }}</button>
+            </div>
+            <div data-provider="{{ provider_id|esc_attr }}" data-field="model-message" style="margin-top:0.5em;"></div>
+            <small>{{ __('Default %s model to use for translations and AI Assistant steps.', 'polytrans')|format(settings_provider.get_tab_label())|esc_html }}</small>
+        </div>
+    {% endif %}
+    
+    {# Allow providers to add custom fields via filter #}
+    {% do action('polytrans_render_provider_settings_' ~ provider_id, settings, manifest) %}
+</div>
+

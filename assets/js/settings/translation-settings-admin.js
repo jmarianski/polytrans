@@ -465,5 +465,125 @@
                 input.focus();
             });
         }
+
+        // Handle secret method changes to show/hide custom header field
+        $('select[name="translation_receiver_secret_method"]').on('change', function() {
+            var selectedMethod = $(this).val();
+            var customHeaderSection = $('#custom-header-section');
+
+            if (selectedMethod === 'header_custom') {
+                customHeaderSection.show();
+            } else {
+                customHeaderSection.hide();
+            }
+        });
+
+        // Path Rules Management
+        // Function to update visual representation of path rule
+        function updatePathRuleVisual($row) {
+            var source = $row.find('.path-rule-source').val();
+            var target = $row.find('.path-rule-target').val();
+            var intermediate = $row.find('.path-rule-intermediate').val() || '';
+            
+            var sourceText = source === 'all' ? PolyTransAjax.i18n.all || 'All' : $row.find('.path-rule-source option:selected').text();
+            var targetText = target === 'all' ? PolyTransAjax.i18n.all || 'All' : $row.find('.path-rule-target option:selected').text();
+            var intermediateText = intermediate === '' ? (PolyTransAjax.i18n.none_direct || 'None (Direct)') : $row.find('.path-rule-intermediate option:selected').text();
+            
+            var $visual = $row.find('.path-rule-visual');
+            if (intermediate === '') {
+                $visual.html('<span class="path-rule-direct">' + sourceText + ' → ' + targetText + '</span>');
+            } else {
+                $visual.html(
+                    '<span>' + sourceText + '</span>' +
+                    '<span class="path-rule-arrow">→</span>' +
+                    '<span class="path-rule-intermediate">' + intermediateText + '</span>' +
+                    '<span class="path-rule-arrow">→</span>' +
+                    '<span>' + targetText + '</span>'
+                );
+            }
+        }
+        
+        // Update visual for existing rules on change
+        $(document).on('change', '.path-rule-source, .path-rule-target, .path-rule-intermediate', function() {
+            var $row = $(this).closest('.path-rule-row');
+            updatePathRuleVisual($row);
+        });
+        
+        // Initialize visuals for existing rules
+        $('.path-rule-row').each(function() {
+            updatePathRuleVisual($(this));
+        });
+        
+        // Add path rule
+        $('#add-path-rule').on('click', function() {
+            var ruleIndex = $('#path-rules-container tbody tr, #path-rules-table tbody tr').length;
+            var langs = window.polytransLanguages || {};
+            var langOptions = '';
+            for (var langCode in langs) {
+                langOptions += '<option value="' + langCode + '">' + langs[langCode] + '</option>';
+            }
+            
+            var newRow = $('<tr class="path-rule-row">' +
+                '<td>' +
+                    '<select name="openai_path_rules[' + ruleIndex + '][source]" class="path-rule-source path-rule-select" required>' +
+                        '<option value="all">' + (PolyTransAjax.i18n.all || 'All') + '</option>' +
+                        langOptions +
+                    '</select>' +
+                '</td>' +
+                '<td>' +
+                    '<select name="openai_path_rules[' + ruleIndex + '][target]" class="path-rule-target path-rule-select" required>' +
+                        '<option value="all">' + (PolyTransAjax.i18n.all || 'All') + '</option>' +
+                        langOptions +
+                    '</select>' +
+                '</td>' +
+                '<td>' +
+                    '<select name="openai_path_rules[' + ruleIndex + '][intermediate]" class="path-rule-intermediate path-rule-select">' +
+                        '<option value="">' + (PolyTransAjax.i18n.none_direct || 'None (Direct)') + '</option>' +
+                        langOptions +
+                    '</select>' +
+                    '<div class="path-rule-visual"></div>' +
+                '</td>' +
+                '<td>' +
+                    '<button type="button" class="button remove-rule">' + (PolyTransAjax.i18n.remove || 'Remove') + '</button>' +
+                '</td>' +
+            '</tr>');
+            
+            var $container = $('#path-rules-container tbody, #path-rules-table tbody');
+            if ($container.length === 0) {
+                // Create tbody if it doesn't exist
+                $('#path-rules-container, #path-rules-table').append('<tbody></tbody>');
+                $container = $('#path-rules-container tbody, #path-rules-table tbody');
+            }
+            $container.append(newRow);
+            
+            // Initialize visual for new row
+            updatePathRuleVisual(newRow);
+            
+            // Trigger filtering after adding new rule
+            if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
+                window.PolyTransLanguagePaths.updateLanguagePairVisibility();
+            }
+        });
+
+        // Remove path rule
+        $(document).on('click', '.remove-rule', function() {
+            $(this).closest('tr').remove();
+            // Trigger filtering after removing rule
+            if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
+                window.PolyTransLanguagePaths.updateLanguagePairVisibility();
+            }
+        });
+
+        // Trigger filtering when path rule values change
+        $(document).on('change', '.path-rule-source, .path-rule-target, .path-rule-intermediate', function() {
+            if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
+                window.PolyTransLanguagePaths.updateLanguagePairVisibility();
+            }
+        });
+
+        // Initial filtering on page load
+        if (window.PolyTransLanguagePaths && window.PolyTransLanguagePaths.updateLanguagePairVisibility) {
+            window.PolyTransLanguagePaths.updateLanguagePairVisibility();
+        }
     });
 })(jQuery);
