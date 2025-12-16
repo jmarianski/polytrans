@@ -1,0 +1,63 @@
+<div class="wrap">
+    <h1>{{ __('Tag Translations', 'polytrans')|esc_html }}</h1>
+
+    <div class="tag-translation-admin-desc">
+        <p>{{ __('This view lets you manage translations for the tags specified in the Translation Settings. You can set translations for each language, and use the import/export functionality to manage translations in bulk.', 'polytrans')|esc_html }}</p>
+        <p>
+            <strong>{{ __('Note:', 'polytrans')|esc_html }}</strong>
+            {% set settings_url = admin_url('admin.php?page=polytrans')|esc_url %}
+            {% set settings_link = '<a href="' ~ settings_url ~ '">' ~ __('Translation Settings → Tag Settings', 'polytrans')|esc_html ~ '</a>' %}
+            {{ __('To add or remove tags from the translation list, please go to %s.', 'polytrans')|format(settings_link)|raw }}
+        </p>
+    </div>
+
+    {% if can_manage_options %}
+        <div class="tag-translation-controls">
+            <button id="export-tag-csv" class="button button-primary">{{ __('Export CSV', 'polytrans')|esc_html }}</button>
+            <button id="show-import-csv" class="button">{{ __('Import CSV', 'polytrans')|esc_html }}</button>
+            <span id="import-csv-area" class="import-csv-area">
+                <input type="file" id="import-csv-file" accept=".csv,text/csv" />
+                <button id="import-csv-submit" class="button button-secondary">{{ __('Import', 'polytrans')|esc_html }}</button>
+                <button id="import-csv-cancel" class="button">{{ __('Cancel', 'polytrans')|esc_html }}</button>
+            </span>
+        </div>
+    {% endif %}
+
+    <table class="widefat fixed striped" id="tag-translation-table">
+        <thead>
+            <tr>
+                <th>{{ source_lang_name }} {{ __('Tag', 'polytrans')|esc_html }}</th>
+                {% for lang in langs %}
+                    {% if lang != source_language %}
+                        <th>{{ lang|upper|esc_html }} {{ __('Translation', 'polytrans')|esc_html }}</th>
+                    {% endif %}
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for tag in tags %}
+                {% set terms = tag.translations %}
+                <tr>
+                    <td>{{ tag.name|esc_html }}</td>
+                    {% for lang in langs %}
+                        {% if lang != source_language %}
+                            {% set translation = terms[lang]|default(null) %}
+                            <td>
+                                <input
+                                    type="text"
+                                    style="width:100%"
+                                    data-tag="{{ tag.term_id|esc_attr }}"
+                                    data-lang="{{ lang|esc_attr }}"
+                                    data-translation-id="{{ translation.term_id|default('')|esc_attr }}"
+                                    value="{{ translation.name|default('')|esc_attr }}"
+                                    class="tag-translation-input"
+                                    placeholder="{{ __('Enter or select tag...', 'polytrans')|esc_attr }}" />
+                            </td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+

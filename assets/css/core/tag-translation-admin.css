@@ -1,5 +1,14 @@
 /* Tag Translation Admin Styles */
 
+.tag-translation-controls {
+    margin-bottom: 20px;
+}
+
+.import-csv-area {
+    display: none;
+    margin-left: 10px;
+}
+
 .tag-translation-admin-desc {
     background: #f0f0f1;
     padding: 1em;

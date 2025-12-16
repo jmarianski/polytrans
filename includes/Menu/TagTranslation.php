@@ -7,6 +7,8 @@
 
 namespace PolyTrans\Menu;
 
+use PolyTrans\Templating\TemplateRenderer;
+
 if (!defined('ABSPATH')) {
     exit;
 }

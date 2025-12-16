@@ -50,23 +50,28 @@ This document tracks the migration of PHP files with mixed HTML to Twig template
   - `assets/css/postprocessing-admin.css` (updated with new classes for Twig templates)
 - **Result**: Complete migration with modular templates, removed all inline styles
 
+### 4. TagTranslation (v1.6.13)
+- **File**: `includes/Menu/TagTranslation.php`
+- **Before**: 496 lines
+- **After**: 496 lines (refactored, HTML moved to Twig)
+- **Templates**: 
+  - `templates/admin/tag-translation/page.twig` (tag translation table, CSV import/export form)
+- **Assets**: 
+  - `assets/css/core/tag-translation-admin.css` (updated with new classes)
+- **Result**: Complete migration, removed inline HTML
+
+### 5. SettingsMenu (v1.6.13)
+- **File**: `includes/Menu/SettingsMenu.php`
+- **Before**: 184 lines
+- **After**: 161 lines
+- **Reduction**: -23 lines (~12% reduction)
+- **Templates**: 
+  - `templates/admin/settings/overview.twig` (overview page with links)
+- **Result**: Complete migration
+
 ## Pending Migrations 📋
 
-### 2. TagTranslation
-- **File**: `includes/Menu/TagTranslation.php`
-- **Size**: 494 lines
-- **Methods with HTML**:
-  - `admin_page()` (lines 134-211) - Tag translation table, CSV import/export form
-- **Estimated HTML**: ~80-100 lines
-- **Priority**: Medium
-
-### 3. SettingsMenu
-- **File**: `includes/Menu/SettingsMenu.php`
-- **Size**: 184 lines
-- **Methods with HTML**:
-  - `render_overview()` (lines 142-170) - Overview page with links
-- **Estimated HTML**: ~30 lines
-- **Priority**: Low (smallest file)
+None! All major PHP files with mixed HTML have been migrated to Twig templates. 🎉
 
 ## Removed Files 🗑️
 
