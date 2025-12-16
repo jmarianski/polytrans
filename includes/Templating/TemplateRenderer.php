@@ -15,7 +15,9 @@ namespace PolyTrans\Templating;
 
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
-use Twig\Error\Error as TwigError;
+use PolyTrans\Templating\TemplateAssets;
+use Twig\TwigFunction;
+use Twig\TwigFilter;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -91,17 +93,17 @@ class TemplateRenderer
         self::$twig = new Environment(
             $loader,
             [
-                'cache' => $use_cache ? self::$cache_dir : false,
+                'cache' =>  false,
                 'debug' => self::$debug,
                 'auto_reload' => self::$debug,
                 'strict_variables' => false,
                 'autoescape' => false, // WordPress handles escaping
             ]
         );
-
         // Add WordPress functions and filters
         self::add_wordpress_functions();
         self::add_wordpress_filters();
+        self::add_asset_functions();
     }
 
     /**
@@ -109,16 +111,35 @@ class TemplateRenderer
      *
      * @param string $template Template file path (relative to templates directory)
      * @param array<string, mixed> $context Variables available in template
+     * @param bool $enqueue_assets Whether to enqueue assets registered by template
      * @return string Rendered HTML
      */
-    public static function render(string $template, array $context = []): string
+    public static function render(string $template, array $context = [], bool $enqueue_assets = true): string
     {
         if (null === self::$twig) {
             self::init();
         }
 
+        // Reset assets before rendering (in case of multiple renders)
+        if ($enqueue_assets) {
+            TemplateAssets::reset();
+        }
+
         try {
             $return = self::$twig->render($template, $context);
+            
+            // Enqueue assets after rendering (they were registered during render)
+            // Use admin_footer hook to ensure assets are enqueued before page output
+            if ($enqueue_assets) {
+                // Check if we're in admin and hook hasn't been added yet
+                if (is_admin() && !has_action('admin_footer', [self::class, 'enqueue_template_assets'])) {
+                    add_action('admin_footer', [self::class, 'enqueue_template_assets'], 1);
+                } else {
+                    // If not in admin or hook already added, enqueue immediately
+                    TemplateAssets::enqueue_all();
+                }
+            }
+            
             return $return;
         } catch (\Throwable $e) {
             error_log(sprintf(
@@ -137,6 +158,16 @@ class TemplateRenderer
     }
 
     /**
+     * Enqueue template assets (called via admin_footer hook)
+     *
+     * @return void
+     */
+    public static function enqueue_template_assets(): void
+    {
+        TemplateAssets::enqueue_all();
+    }
+
+    /**
      * Add WordPress functions to Twig
      *
      * @return void
@@ -148,43 +179,88 @@ class TemplateRenderer
         }
 
         // Escaping functions
-        self::$twig->addFunction(new \Twig\TwigFunction('esc_html', 'esc_html'));
-        self::$twig->addFunction(new \Twig\TwigFunction('esc_attr', 'esc_attr'));
-        self::$twig->addFunction(new \Twig\TwigFunction('esc_url', 'esc_url'));
-        self::$twig->addFunction(new \Twig\TwigFunction('esc_js', 'esc_js'));
-        self::$twig->addFunction(new \Twig\TwigFunction('esc_textarea', 'esc_textarea'));
-        self::$twig->addFunction(new \Twig\TwigFunction('wp_kses_post', 'wp_kses_post'));
+        self::$twig->addFunction(new TwigFunction('esc_html', 'esc_html'));
+        self::$twig->addFunction(new TwigFunction('esc_attr', 'esc_attr'));
+        self::$twig->addFunction(new TwigFunction('esc_url', 'esc_url'));
+        self::$twig->addFunction(new TwigFunction('esc_js', 'esc_js'));
+        self::$twig->addFunction(new TwigFunction('esc_textarea', 'esc_textarea'));
+        self::$twig->addFunction(new TwigFunction('wp_kses_post', 'wp_kses_post'));
 
         // Translation functions
-        self::$twig->addFunction(new \Twig\TwigFunction('__', '__'));
-        self::$twig->addFunction(new \Twig\TwigFunction('_e', '_e'));
-        self::$twig->addFunction(new \Twig\TwigFunction('esc_html__', 'esc_html__'));
-        self::$twig->addFunction(new \Twig\TwigFunction('esc_html_e', 'esc_html_e'));
-        self::$twig->addFunction(new \Twig\TwigFunction('esc_attr__', 'esc_attr__'));
-        self::$twig->addFunction(new \Twig\TwigFunction('esc_attr_e', 'esc_attr_e'));
+        self::$twig->addFunction(new TwigFunction('__', '__'));
+        self::$twig->addFunction(new TwigFunction('_e', '_e'));
+        self::$twig->addFunction(new TwigFunction('esc_html__', 'esc_html__'));
+        self::$twig->addFunction(new TwigFunction('esc_html_e', 'esc_html_e'));
+        self::$twig->addFunction(new TwigFunction('esc_attr__', 'esc_attr__'));
+        self::$twig->addFunction(new TwigFunction('esc_attr_e', 'esc_attr_e'));
 
         // URL functions
-        self::$twig->addFunction(new \Twig\TwigFunction('admin_url', 'admin_url'));
-        self::$twig->addFunction(new \Twig\TwigFunction('home_url', 'home_url'));
-        self::$twig->addFunction(new \Twig\TwigFunction('site_url', 'site_url'));
+        self::$twig->addFunction(new TwigFunction('admin_url', 'admin_url'));
+        self::$twig->addFunction(new TwigFunction('home_url', 'home_url'));
+        self::$twig->addFunction(new TwigFunction('site_url', 'site_url'));
 
         // WordPress utility functions
-        self::$twig->addFunction(new \Twig\TwigFunction('selected', 'selected'));
-        self::$twig->addFunction(new \Twig\TwigFunction('checked', 'checked'));
-        self::$twig->addFunction(new \Twig\TwigFunction('disabled', 'disabled'));
-        self::$twig->addFunction(new \Twig\TwigFunction('wp_nonce_field', 'wp_nonce_field'));
-        self::$twig->addFunction(new \Twig\TwigFunction('wp_create_nonce', 'wp_create_nonce'));
+        self::$twig->addFunction(new TwigFunction('selected', 'selected'));
+        self::$twig->addFunction(new TwigFunction('checked', 'checked'));
+        self::$twig->addFunction(new TwigFunction('disabled', 'disabled'));
+        self::$twig->addFunction(new TwigFunction('wp_nonce_field', 'wp_nonce_field'));
+        self::$twig->addFunction(new TwigFunction('wp_create_nonce', 'wp_create_nonce'));
 
         // Date functions
-        self::$twig->addFunction(new \Twig\TwigFunction('mysql2date', 'mysql2date'));
-        self::$twig->addFunction(new \Twig\TwigFunction('get_option', 'get_option'));
+        self::$twig->addFunction(new TwigFunction('mysql2date', 'mysql2date'));
+        self::$twig->addFunction(new TwigFunction('get_option', 'get_option'));
 
         // JSON functions
-        self::$twig->addFunction(new \Twig\TwigFunction('wp_json_encode', 'wp_json_encode'));
+        self::$twig->addFunction(new TwigFunction('wp_json_encode', function ($data, $options = 0) {
+            return wp_json_encode($data, $options);
+        }));
+        
+        // JSON constants for Twig templates
+        self::$twig->addFunction(new TwigFunction('JSON_PRETTY_PRINT', function () {
+            return JSON_PRETTY_PRINT; // 128
+        }));
+        
+        self::$twig->addFunction(new TwigFunction('JSON_UNESCAPED_UNICODE', function () {
+            return JSON_UNESCAPED_UNICODE; // 256
+        }));
 
         // Custom helper functions
-        self::$twig->addFunction(new \Twig\TwigFunction('polytrans_admin_url', function ($path = '') {
+        self::$twig->addFunction(new TwigFunction('polytrans_admin_url', function ($path = '') {
             return admin_url('admin.php?page=' . $path);
+        }));
+    }
+
+    /**
+     * Add asset management functions to Twig
+     *
+     * @return void
+     */
+    private static function add_asset_functions(): void
+    {
+        if (null === self::$twig) {
+            return;
+        }
+
+        // Asset management functions (return void, use {% do %} in templates)
+        self::$twig->addFunction(new TwigFunction('enqueue_assets', function ($assets_config) {
+            TemplateAssets::register_assets($assets_config);
+        }, ['is_safe' => ['html']]));
+
+        self::$twig->addFunction(new TwigFunction('localize_script', function ($script_handle, $object_name, $data) {
+            TemplateAssets::register_localized_data($script_handle, $object_name, $data);
+        }, ['is_safe' => ['html']]));
+
+        self::$twig->addFunction(new TwigFunction('add_inline_script', function ($handle, $data, $position = 'after') {
+            TemplateAssets::add_inline_script($handle, $data, $position);
+        }, ['is_safe' => ['html']]));
+
+        // Plugin constants
+        self::$twig->addFunction(new TwigFunction('polytrans_plugin_url', function () {
+            return POLYTRANS_PLUGIN_URL;
+        }));
+
+        self::$twig->addFunction(new TwigFunction('polytrans_version', function () {
+            return POLYTRANS_VERSION;
         }));
     }
 
@@ -200,22 +276,32 @@ class TemplateRenderer
         }
 
         // Escaping filters
-        self::$twig->addFilter(new \Twig\TwigFilter('esc_html', 'esc_html'));
-        self::$twig->addFilter(new \Twig\TwigFilter('esc_attr', 'esc_attr'));
-        self::$twig->addFilter(new \Twig\TwigFilter('esc_url', 'esc_url'));
-        self::$twig->addFilter(new \Twig\TwigFilter('esc_js', 'esc_js'));
-        self::$twig->addFilter(new \Twig\TwigFilter('esc_textarea', 'esc_textarea'));
+        self::$twig->addFilter(new TwigFilter('esc_html', 'esc_html'));
+        self::$twig->addFilter(new TwigFilter('esc_attr', 'esc_attr'));
+        self::$twig->addFilter(new TwigFilter('esc_url', 'esc_url'));
+        self::$twig->addFilter(new TwigFilter('esc_js', 'esc_js'));
+        self::$twig->addFilter(new TwigFilter('esc_textarea', 'esc_textarea'));
 
         // WordPress content filters
-        self::$twig->addFilter(new \Twig\TwigFilter('wp_kses', 'wp_kses'));
-        self::$twig->addFilter(new \Twig\TwigFilter('wp_kses_post', 'wp_kses_post'));
-        self::$twig->addFilter(new \Twig\TwigFilter('wpautop', 'wpautop'));
-        self::$twig->addFilter(new \Twig\TwigFilter('wptexturize', 'wptexturize'));
+        self::$twig->addFilter(new TwigFilter('wp_kses', 'wp_kses'));
+        self::$twig->addFilter(new TwigFilter('wp_kses_post', 'wp_kses_post'));
+        self::$twig->addFilter(new TwigFilter('wpautop', 'wpautop'));
+        self::$twig->addFilter(new TwigFilter('wptexturize', 'wptexturize'));
 
         // String manipulation filters
-        self::$twig->addFilter(new \Twig\TwigFilter('capitalize', function($string) {
+        self::$twig->addFilter(new TwigFilter('capitalize', function($string) {
             return ucfirst($string);
         }));
+        
+        // Textarea-safe filter: escapes only < and >, preserves quotes and newlines
+        // Use this for JSON in textarea elements where quotes don't need escaping
+        self::$twig->addFilter(new TwigFilter('textarea_safe', function($string) {
+            if (empty($string)) {
+                return '';
+            }
+            // Only escape < and >, preserve quotes and newlines for JSON formatting
+            return str_replace(['<', '>'], ['&lt;', '&gt;'], $string);
+        }, ['is_safe' => ['html']]));
     }
 
     /**

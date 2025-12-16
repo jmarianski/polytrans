@@ -12,6 +12,7 @@ namespace PolyTrans\Menu;
 use PolyTrans\Assistants\AssistantManager;
 use PolyTrans\Assistants\AssistantMigration;
 use PolyTrans\Templating\TemplateRenderer;
+use PolyTrans\Providers\SettingsProviderInterface;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -158,6 +159,79 @@ class AssistantsMenu
     }
 
     /**
+     * Enqueue assets for assistant editor
+     *
+     * @param array $assistant Assistant data
+     * @param array $models Available models
+     * @param string $current_provider Current provider ID
+     * @param string $current_model Current model ID
+     * @param array $provider_manifests Provider manifests
+     * @param array $providers_js Providers data for JS
+     * @return void
+     */
+    private function enqueue_editor_assets($assistant, $models, $current_provider, $current_model, $provider_manifests, $providers_js)
+    {
+        // Enqueue prompt editor module (reusable component)
+        wp_enqueue_script(
+            'polytrans-prompt-editor',
+            POLYTRANS_PLUGIN_URL . 'assets/js/prompt-editor.js',
+            ['jquery'],
+            POLYTRANS_VERSION,
+            true
+        );
+
+        wp_enqueue_script(
+            'polytrans-assistants',
+            POLYTRANS_PLUGIN_URL . 'assets/js/assistants-admin.js',
+            ['jquery', 'wp-util', 'polytrans-prompt-editor'],
+            POLYTRANS_VERSION,
+            true
+        );
+
+        // Enqueue postprocessing CSS for shared prompt editor styles
+        wp_enqueue_style(
+            'polytrans-postprocessing',
+            POLYTRANS_PLUGIN_URL . 'assets/css/postprocessing-admin.css',
+            [],
+            POLYTRANS_VERSION
+        );
+
+        wp_enqueue_style(
+            'polytrans-assistants',
+            POLYTRANS_PLUGIN_URL . 'assets/css/assistants-admin.css',
+            ['polytrans-postprocessing'],
+            POLYTRANS_VERSION
+        );
+
+        // Localize script
+        wp_localize_script('polytrans-assistants', 'polytransAssistants', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('polytrans_assistants'),
+            'models' => $models,
+            'selected_model' => $current_model,
+            'current_provider' => $current_provider,
+            'providerManifests' => $provider_manifests,
+            'strings' => [
+                'confirmDelete' => __('Are you sure you want to delete this assistant?', 'polytrans'),
+                'saveSuccess' => __('Assistant saved successfully.', 'polytrans'),
+                'saveError' => __('Failed to save assistant.', 'polytrans'),
+                'deleteSuccess' => __('Assistant deleted successfully.', 'polytrans'),
+                'deleteError' => __('Failed to delete assistant.', 'polytrans'),
+                'loading' => __('Loading...', 'polytrans'),
+                'requiredField' => __('This field is required.', 'polytrans'),
+            ],
+            'providers' => $providers_js,
+            'responseFormats' => [
+                'text' => __('Text', 'polytrans'),
+                'json' => __('JSON', 'polytrans')
+            ]
+        ]);
+
+        // Add inline script with assistant data
+        wp_add_inline_script('polytrans-assistants', 'window.polytransAssistantData = ' . wp_json_encode($assistant) . ';', 'after');
+    }
+
+    /**
      * Render assistants management page
      */
     public function render_assistants_page()
@@ -227,9 +301,11 @@ class AssistantsMenu
                 'id' => 0,
                 'name' => '',
                 'provider' => 'openai',
-                'model' => 'gpt-4',
-                'prompt_template' => '',
+                'model' => '',
+                'system_prompt' => '',
+                'user_message_template' => '',
                 'response_format' => 'text',
+                'expected_output_schema' => null,
                 'config' => [
                     'temperature' => 0.7
                 ]
@@ -257,212 +333,103 @@ class AssistantsMenu
             }
         }
 
-    ?>
-        <div class="wrap">
-            <h1><?php echo $is_new ? esc_html__('Add New Assistant', 'polytrans') : esc_html__('Edit Assistant', 'polytrans'); ?></h1>
+        // Get available providers that support assistants
+        $registry = \PolyTrans_Provider_Registry::get_instance();
+        $settings = get_option('polytrans_settings', []);
+        $enabled_providers = $settings['enabled_translation_providers'] ?? ['google'];
+        $all_providers = $registry->get_providers();
+        
+        $available_assistant_providers = [];
+        $provider_manifests = [];
+        foreach ($all_providers as $provider_id => $provider) {
+            if (!in_array($provider_id, $enabled_providers)) {
+                continue;
+            }
+            
+            $settings_provider_class = $provider->get_settings_provider_class();
+            if ($settings_provider_class && class_exists($settings_provider_class)) {
+                $settings_provider = new $settings_provider_class();
+                if (method_exists($settings_provider, 'get_provider_manifest')) {
+                    $manifest = $settings_provider->get_provider_manifest($settings);
+                    $capabilities = $manifest['capabilities'] ?? [];
+                    if (in_array('chat', $capabilities) || in_array('assistants', $capabilities)) {
+                        $available_assistant_providers[$provider_id] = [
+                            'id' => $provider_id,
+                            'name' => $provider->get_name(),
+                        ];
+                        $provider_manifests[$provider_id] = [
+                            'capabilities' => $capabilities,
+                            'supports_system_prompt' => in_array('system_prompt', $capabilities),
+                        ];
+                    }
+                }
+            }
+        }
+        
+        // If no providers found, fallback to hardcoded list
+        if (empty($available_assistant_providers)) {
+            $available_assistant_providers = [
+                'openai' => ['id' => 'openai', 'name' => 'OpenAI'],
+                'claude' => ['id' => 'claude', 'name' => 'Claude'],
+                'gemini' => null,
+            ];
+        }
 
-            <form id="assistant-editor-form" method="post">
-                <?php wp_nonce_field('polytrans_assistant_save', 'assistant_nonce'); ?>
-                <input type="hidden" name="assistant_id" value="<?php echo esc_attr($assistant['id']); ?>">
+        // Get models for current provider
+        $current_provider = $assistant['provider'] ?? 'openai';
+        $current_model = $assistant['model'] ?? '';
+        $models = $this->get_model_options($current_provider, $current_model);
 
-                <table class="form-table" role="presentation">
-                    <tbody>
-                        <tr>
-                            <th scope="row">
-                                <label for="assistant-name"><?php esc_html_e('Name', 'polytrans'); ?> <span class="required">*</span></label>
-                            </th>
-                            <td>
-                                <input type="text" id="assistant-name" name="name" class="regular-text" value="<?php echo esc_attr($assistant['name']); ?>" required>
-                                <p class="description"><?php esc_html_e('A descriptive name for this assistant.', 'polytrans'); ?></p>
-                            </td>
-                        </tr>
+        // Prepare providers list for JS (legacy format)
+        $providers_js = [
+            'openai' => [
+                'label' => __('OpenAI', 'polytrans'),
+                'models' => ['gpt-4', 'gpt-4-turbo-preview', 'gpt-3.5-turbo']
+            ],
+            'claude' => [
+                'label' => __('Claude (Anthropic)', 'polytrans'),
+                'models' => ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']
+            ],
+            'gemini' => [
+                'label' => __('Gemini (Google)', 'polytrans'),
+                'models' => ['gemini-pro', 'gemini-pro-vision']
+            ]
+        ];
 
-                        <tr>
-                            <th scope="row">
-                                <label for="assistant-provider"><?php esc_html_e('Provider', 'polytrans'); ?> <span class="required">*</span></label>
-                            </th>
-                            <td>
-                                <?php
-                                // Get available providers that support assistants
-                                $registry = \PolyTrans_Provider_Registry::get_instance();
-                                $settings = get_option('polytrans_settings', []);
-                                $enabled_providers = $settings['enabled_translation_providers'] ?? ['google'];
-                                $all_providers = $registry->get_providers();
-                                
-                                $available_assistant_providers = [];
-                                $provider_manifests = []; // Store manifests for JS
-                                foreach ($all_providers as $provider_id => $provider) {
-                                    // Check if provider is enabled
-                                    if (!in_array($provider_id, $enabled_providers)) {
-                                        continue;
-                                    }
-                                    
-                                    // Check if provider supports chat or assistants via manifest
-                                    // Managed assistants can use providers with 'chat' capability (via system prompt)
-                                    // or providers with 'assistants' capability (via dedicated API)
-                                    $settings_provider_class = $provider->get_settings_provider_class();
-                                    if ($settings_provider_class && class_exists($settings_provider_class)) {
-                                        $settings_provider = new $settings_provider_class();
-                                        if (method_exists($settings_provider, 'get_provider_manifest')) {
-                                            $manifest = $settings_provider->get_provider_manifest($settings);
-                                            $capabilities = $manifest['capabilities'] ?? [];
-                                            // Managed assistants can use 'chat' or 'assistants' capability
-                                            if (in_array('chat', $capabilities) || in_array('assistants', $capabilities)) {
-                                                $available_assistant_providers[$provider_id] = $provider;
-                                                // Store manifest for JavaScript (system_prompt capability info)
-                                                $capabilities = $manifest['capabilities'] ?? [];
-                                                $provider_manifests[$provider_id] = [
-                                                    'capabilities' => $capabilities, // Store full capabilities array
-                                                    'supports_system_prompt' => in_array('system_prompt', $capabilities), // Check system_prompt capability (for backward compatibility)
-                                                ];
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                // If no providers found, fallback to hardcoded list (for backward compatibility)
-                                if (empty($available_assistant_providers)) {
-                                    $available_assistant_providers = [
-                                        'openai' => $registry->get_provider('openai'),
-                                        'claude' => $registry->get_provider('claude'),
-                                        'gemini' => null, // Placeholder
-                                    ];
-                                }
-                                ?>
-                                <select id="assistant-provider" name="provider" required>
-                                    <?php foreach ($available_assistant_providers as $provider_id => $provider): ?>
-                                        <?php if ($provider): ?>
-                                            <option value="<?php echo esc_attr($provider_id); ?>" <?php selected($assistant['provider'] ?? 'openai', $provider_id); ?>>
-                                                <?php echo esc_html($provider->get_name()); ?>
-                                            </option>
-                                        <?php else: ?>
-                                            <option value="<?php echo esc_attr($provider_id); ?>" disabled <?php selected($assistant['provider'] ?? 'openai', $provider_id); ?>>
-                                                <?php echo esc_html(ucfirst($provider_id)); ?> <?php esc_html_e('(Not Available)', 'polytrans'); ?>
-                                            </option>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
-                                </select>
-                                <p class="description">
-                                    <?php esc_html_e('AI provider to use for this assistant. Only enabled providers with assistant support are shown.', 'polytrans'); ?>
-                                </p>
-                            </td>
-                        </tr>
+        // Enqueue assets before rendering (WordPress requires assets to be enqueued before page output)
+        $this->enqueue_editor_assets($assistant, $models, $current_provider, $current_model, $provider_manifests, $providers_js);
 
-                        <tr>
-                            <th scope="row">
-                                <label for="assistant-model"><?php esc_html_e('AI Model', 'polytrans'); ?></label>
-                            </th>
-                            <td>
-                                <select id="assistant-model" name="model" class="regular-text" data-selected-model="<?php echo esc_attr($assistant['model'] ?? ''); ?>" data-provider="<?php echo esc_attr($assistant['provider'] ?? 'openai'); ?>">
-                                    <?php
-                                    $current_model = $assistant['model'] ?? '';
-                                    $current_provider = $assistant['provider'] ?? 'openai';
-                                    $models = $this->get_model_options($current_provider, $current_model);
+        // Format expected_output_schema as JSON string if it's an array
+        $expected_output_schema_json = '';
+        if (!empty($assistant['expected_output_schema'])) {
+            if (is_array($assistant['expected_output_schema'])) {
+                $expected_output_schema_json = wp_json_encode($assistant['expected_output_schema'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            } else {
+                // Already a JSON string, try to decode and re-encode for formatting
+                $decoded = json_decode($assistant['expected_output_schema'], true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $expected_output_schema_json = wp_json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                } else {
+                    // If it's already a formatted JSON string, use it as-is
+                    $expected_output_schema_json = $assistant['expected_output_schema'];
+                }
+            }
+        }
 
-                                    // Add "Use Global Setting" option
-                                    $selected = empty($current_model) ? 'selected' : '';
-                                    echo '<option value="" ' . $selected . '>' . esc_html__('Use Global Setting', 'polytrans') . '</option>';
-
-                                    foreach ($models as $group_name => $group_models) {
-                                        echo '<optgroup label="' . esc_attr($group_name) . '">';
-                                        foreach ($group_models as $model_value => $model_label) {
-                                            $selected = ($current_model === $model_value) ? 'selected' : '';
-                                            echo '<option value="' . esc_attr($model_value) . '" ' . $selected . '>' . esc_html($model_label) . '</option>';
-                                        }
-                                        echo '</optgroup>';
-                                    }
-                                    ?>
-                                </select>
-                                <button type="button" id="refresh-models" class="button" style="margin-left: 0.5em;" title="<?php esc_attr_e('Refresh models from provider API', 'polytrans'); ?>">
-                                    <?php esc_html_e('Refresh', 'polytrans'); ?>
-                                </button>
-                                <p class="description"><?php esc_html_e('Select the AI model to use for this assistant. "Use Global Setting" will use the default model from plugin settings.', 'polytrans'); ?></p>
-                            </td>
-                        </tr>
-
-                        <tr id="system-prompt-row" class="system-prompt-field-row">
-                            <th scope="row">
-                                <label for="assistant-system-prompt"><?php esc_html_e('System Instructions', 'polytrans'); ?> <span class="required system-prompt-required">*</span></label>
-                            </th>
-                            <td class="workflow-field-with-variables">
-                                <div id="system-prompt-editor-container"></div>
-                                <p class="description"><?php esc_html_e('Instructions that define how the assistant should behave. This is static and doesn\'t change between requests.', 'polytrans'); ?></p>
-                                <p class="description"><strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> "You are a content quality expert. Analyze posts for grammar, SEO, and readability. Always respond in JSON format."</p>
-                                <p class="description system-prompt-not-supported" style="display:none; color: #d63638;">
-                                    <strong><?php esc_html_e('Note:', 'polytrans'); ?></strong> 
-                                    <?php esc_html_e('This provider does not support system prompts. Only the User Message Template will be used.', 'polytrans'); ?>
-                                </p>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">
-                                <label for="assistant-user-message"><?php esc_html_e('User Message Template', 'polytrans'); ?></label>
-                            </th>
-                            <td class="workflow-field-with-variables">
-                                <div id="user-message-editor-container"></div>
-                                <p class="description"><?php esc_html_e('Template for the user message with dynamic data. Use Twig syntax for variables: {{ variable_name }}', 'polytrans'); ?></p>
-                                <p class="description"><strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> "Title: {{ title }}\nContent: {{ content }}\n\nPlease analyze this content."</p>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">
-                                <label for="assistant-response-format"><?php esc_html_e('Response Format', 'polytrans'); ?></label>
-                            </th>
-                            <td>
-                                <select id="assistant-response-format" name="response_format">
-                                    <option value="text" <?php selected($assistant['response_format'], 'text'); ?>><?php esc_html_e('Text', 'polytrans'); ?></option>
-                                    <option value="json" <?php selected($assistant['response_format'], 'json'); ?>><?php esc_html_e('JSON', 'polytrans'); ?></option>
-                                </select>
-                                <p class="description"><?php esc_html_e('Expected response format from the assistant.', 'polytrans'); ?></p>
-                            </td>
-                        </tr>
-
-                        <tr id="expected-output-schema-row" style="display: none;">
-                            <th scope="row">
-                                <label for="assistant-expected-output-schema"><?php esc_html_e('Expected Output Schema', 'polytrans'); ?></label>
-                            </th>
-                            <td>
-                                <textarea id="assistant-expected-output-schema" name="expected_output_schema" class="large-text code" rows="8" placeholder='{"field_name": "type"}'><?php echo esc_textarea(!empty($assistant['expected_output_schema']) ? wp_json_encode($assistant['expected_output_schema'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : ''); ?></textarea>
-                                <p class="description">
-                                    <?php esc_html_e('Define the expected JSON structure for AI responses. Format: {"field": "type"}', 'polytrans'); ?><br>
-                                    <strong><?php esc_html_e('Supported types:', 'polytrans'); ?></strong> string, number, array, object, boolean<br>
-                                    <strong><?php esc_html_e('Example:', 'polytrans'); ?></strong> {"title": "string", "content": "string", "meta": "object"}
-                                </p>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">
-                                <label for="assistant-temperature"><?php esc_html_e('Temperature', 'polytrans'); ?></label>
-                            </th>
-                            <td>
-                                <input type="number" id="assistant-temperature" name="config[temperature]" class="small-text" min="0" max="2" step="0.1" value="<?php echo esc_attr($assistant['config']['temperature'] ?? 0.7); ?>">
-                                <p class="description"><?php esc_html_e('Controls randomness: 0 = focused, 2 = creative. Default: 0.7', 'polytrans'); ?></p>
-                            </td>
-                        </tr>
-
-                    </tbody>
-                </table>
-
-                <div class="assistant-editor-actions">
-                    <button type="submit" class="button button-primary">
-                        <?php esc_html_e('Save Assistant', 'polytrans'); ?>
-                    </button>
-                    <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-assistants')); ?>" class="button">
-                        <?php esc_html_e('Cancel', 'polytrans'); ?>
-                    </a>
-                </div>
-            </form>
-
-        </div>
-
-        <script type="text/javascript">
-            // Pass assistant data to JavaScript
-            window.polytransAssistantData = <?php echo json_encode($assistant); ?>;
-        </script>
-<?php
+        // Render using Twig template
+        echo TemplateRenderer::render('admin/assistants/editor.twig', [
+            'assistant' => $assistant,
+            'is_new' => $is_new,
+            'available_assistant_providers' => $available_assistant_providers,
+            'provider_manifests' => $provider_manifests,
+            'models' => $models,
+            'current_provider' => $current_provider,
+            'current_model' => $current_model,
+            'providers' => $providers_js,
+            'expected_output_schema_json' => $expected_output_schema_json,
+            'polytrans_plugin_url' => POLYTRANS_PLUGIN_URL,
+            'polytrans_version' => POLYTRANS_VERSION,
+        ]);
     }
 
     /**
@@ -684,7 +651,7 @@ class AssistantsMenu
             $settings = get_option('polytrans_settings', []);
             
             // Check if provider implements SettingsProviderInterface and has load_models method
-            if ($settings_provider instanceof \PolyTrans\Providers\SettingsProviderInterface) {
+            if ($settings_provider instanceof SettingsProviderInterface) {
                 if (method_exists($settings_provider, 'load_models')) {
                     // Pass force_refresh parameter if method signature supports it
                     // For now, we'll check if cache should be cleared before calling

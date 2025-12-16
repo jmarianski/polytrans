@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.8] - 2025-12-15
+
+### Added
+- **Twig Template System**: Migrated AI Assistants admin pages to Twig templates
+  - Added `TemplateRenderer` class with WordPress function/filter integration
+  - Added `TemplateAssets` class for managing asset enqueuing from templates
+  - Created `templates/admin/assistants/list.twig` for assistants list view
+  - Created `templates/admin/assistants/editor.twig` for assistant editor form
+  - Templates support WordPress functions (`esc_html`, `__`, `admin_url`, etc.)
+  - Asset management via Twig functions (`enqueue_assets`, `localize_script`, `add_inline_script`)
+
+### Changed
+- **Code Quality**: Improved namespace usage throughout codebase
+  - Fixed full namespace references in `TemplateRenderer.php` (added `use Twig\TwigFilter`)
+  - Fixed full namespace references in `AssistantsMenu.php` (added `use PolyTrans\Providers\SettingsProviderInterface`)
+  - All classes now use proper `use` statements instead of full namespace paths
+  - Improved PSR-4 compliance
+
+### Fixed
+- **JSON Formatting**: Fixed Expected Output Schema field to preserve indentation and newlines
+  - Added custom `textarea_safe` Twig filter that escapes only `<` and `>`
+  - JSON formatting with proper indentation now preserved in textarea elements
+  - Matches formatting behavior of User Message Template field
+
 ## [1.6.7] - 2025-12-15
 
 ### Removed
