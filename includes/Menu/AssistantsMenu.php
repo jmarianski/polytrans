@@ -11,6 +11,7 @@ namespace PolyTrans\Menu;
 
 use PolyTrans\Assistants\AssistantManager;
 use PolyTrans\Assistants\AssistantMigration;
+use PolyTrans\Templating\TemplateRenderer;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -207,122 +208,12 @@ class AssistantsMenu
         }
         unset($assistant); // Break reference
 
-?>
-        <div class="wrap">
-            <h1 class="wp-heading-inline"><?php esc_html_e('AI Assistants', 'polytrans'); ?></h1>
-            <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-assistants&action=new')); ?>" class="page-title-action">
-                <?php esc_html_e('Add New', 'polytrans'); ?>
-            </a>
-            <hr class="wp-header-end">
-
-            <p class="description">
-                <?php esc_html_e('Manage AI assistants for content processing, translation enhancement, and workflow automation.', 'polytrans'); ?>
-            </p>
-
-            <?php if ($migration_status['migration_needed']) : ?>
-                <div class="notice notice-warning">
-                    <p>
-                        <strong><?php esc_html_e('Migration Available:', 'polytrans'); ?></strong>
-                        <?php
-                        printf(
-                            esc_html__('Found %d legacy workflow steps that can be migrated to managed assistants.', 'polytrans'),
-                            $migration_status['ai_assistant_steps']
-                        );
-                        ?>
-                    </p>
-                    <p>
-                        <button type="button" id="migrate-workflows-btn" class="button button-primary">
-                            <?php esc_html_e('Migrate Workflows Now', 'polytrans'); ?>
-                        </button>
-                        <span class="spinner" style="float: none; margin: 0 10px;"></span>
-                    </p>
-                </div>
-            <?php endif; ?>
-
-            <?php if (empty($assistants)) : ?>
-                <div class="notice notice-info">
-                    <p><?php esc_html_e('No assistants found. Create your first assistant to get started!', 'polytrans'); ?></p>
-                </div>
-            <?php else : ?>
-                <table class="wp-list-table widefat fixed striped">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="column-name"><?php esc_html_e('Name', 'polytrans'); ?></th>
-                            <th scope="col" class="column-provider"><?php esc_html_e('Provider', 'polytrans'); ?></th>
-                            <th scope="col" class="column-model"><?php esc_html_e('Model', 'polytrans'); ?></th>
-                            <th scope="col" class="column-format"><?php esc_html_e('Response Format', 'polytrans'); ?></th>
-                            <th scope="col" class="column-created"><?php esc_html_e('Created', 'polytrans'); ?></th>
-                            <th scope="col" class="column-actions"><?php esc_html_e('Actions', 'polytrans'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($assistants as $assistant) : ?>
-                            <tr>
-                                <td class="column-name">
-                                    <strong>
-                                        <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-assistants&action=edit&assistant_id=' . $assistant['id'])); ?>">
-                                            <?php echo esc_html($assistant['name']); ?>
-                                        </a>
-                                    </strong>
-                                </td>
-                                <td class="column-provider">
-                                    <?php 
-                                    $provider_name = ucfirst($assistant['provider']);
-                                    $is_provider_enabled = in_array($assistant['provider'], $enabled_providers);
-                                    if (!$is_provider_enabled) {
-                                        echo '<span style="color: #dc3232; font-weight: bold;">' . esc_html($provider_name) . '</span>';
-                                    } else {
-                                        echo esc_html($provider_name);
-                                    }
-                                    ?>
-                                </td>
-                                <td class="column-model">
-                                    <?php 
-                                    if (!empty($assistant['model'])) {
-                                        echo esc_html($assistant['model']);
-                                    } else {
-                                        // Show "default" or red warning if no default model
-                                        if ($assistant['has_default_model']) {
-                                            echo '<span style="color: #666; font-style: italic;">' . esc_html__('default', 'polytrans') . '</span>';
-                                        } else {
-                                            echo '<span style="color: #dc3232; font-weight: bold;">' . esc_html__('default', 'polytrans') . '</span>';
-                                        }
-                                    }
-                                    ?>
-                                </td>
-                                <td class="column-format">
-                                    <?php 
-                                    if (!empty($assistant['response_format'])) {
-                                        echo esc_html(ucfirst($assistant['response_format']));
-                                    } else {
-                                        echo '<span style="color: #666; font-style: italic;">' . esc_html__('default', 'polytrans') . '</span>';
-                                    }
-                                    ?>
-                                </td>
-                                <td class="column-created">
-                                    <?php
-                                    if (!empty($assistant['created_at'])) {
-                                        echo esc_html(mysql2date(get_option('date_format'), $assistant['created_at']));
-                                    } else {
-                                        echo '—';
-                                    }
-                                    ?>
-                                </td>
-                                <td class="column-actions">
-                                    <a href="<?php echo esc_url(admin_url('admin.php?page=polytrans-assistants&action=edit&assistant_id=' . $assistant['id'])); ?>" class="button button-small">
-                                        <?php esc_html_e('Edit', 'polytrans'); ?>
-                                    </a>
-                                    <button type="button" class="button button-small button-link-delete assistant-delete" data-assistant-id="<?php echo esc_attr($assistant['id']); ?>">
-                                        <?php esc_html_e('Delete', 'polytrans'); ?>
-                                    </button>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            <?php endif; ?>
-        </div>
-    <?php
+        // Render using Twig template
+        echo TemplateRenderer::render('admin/assistants/list.twig', [
+            'assistants' => $assistants,
+            'migration_status' => $migration_status,
+            'enabled_providers' => $enabled_providers,
+        ]);
     }
 
     /**
