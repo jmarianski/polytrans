@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.15] - 2025-12-16
+
+### Added
+- **Configurable API Timeout**: Added `api_timeout` setting in Advanced Settings (30-600 seconds, default: 180)
+  - Applies to all AI providers (OpenAI, Claude, Gemini)
+  - Automatic retry on timeout (single retry)
+  - Centralized timeout handling via HttpClient
+
+### Changed
+- **HttpClient Refactoring**: Centralized HTTP request handling and retry logic
+  - Created `HttpClient` and `HttpResponse` utility classes
+  - Migrated OpenAI, Claude, and Gemini clients to use HttpClient
+  - Removed duplicate retry logic from provider classes
+  - Improved error handling and consistency across providers
+- **AI Assistant Workflow Step**: Enhanced provider selection
+  - Added provider dropdown in UI for AI Assistant (Custom) steps
+  - Auto-selects random enabled provider with chat capability if none selected
+  - Shows warning when provider is auto-selected
+  - Fixed provider field sanitization in workflow steps
+
+### Fixed
+- Fixed LogsManager usage in AiAssistantStep (changed from get_instance() to static method)
+- Fixed provider field not being saved in workflow steps
+- Fixed missing max_tokens sanitization in workflow steps
+
 ## [1.6.14] - 2025-12-16
 
 ### Changed
