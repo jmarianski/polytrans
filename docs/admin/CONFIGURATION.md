@@ -13,10 +13,34 @@
 
 1. Get API key from [platform.openai.com](https://platform.openai.com/)
 2. Enter API key (starts with `sk-`)
-3. Map assistants to language pairs:
+3. Click "Validate" to test API key
+4. Select model (e.g., `gpt-4o-mini`)
+5. Map assistants to language pairs (optional, for advanced paths):
    - Format: `en_to_es` → `asst_abc123`
    - Create assistants with translation-specific prompts
-4. Test with built-in test interface
+6. Save Changes
+
+### Claude (Anthropic)
+**Settings → Translation Settings** → Select "Claude"
+
+1. Get API key from [console.anthropic.com](https://console.anthropic.com/)
+2. Enter API key
+3. Click "Validate" to test API key
+4. Select model (e.g., `claude-3-5-sonnet-20241022`)
+5. Save Changes
+
+**Note**: Claude can be used for managed assistants in workflows. See [AI Assistants Guide](../user-guide/ASSISTANTS.md).
+
+### Gemini (Google)
+**Settings → Translation Settings** → Select "Gemini"
+
+1. Get API key from [makersuite.google.com](https://makersuite.google.com/app/apikey)
+2. Enter API key
+3. Click "Validate" to test API key
+4. Select model (e.g., `gemini-pro`)
+5. Save Changes
+
+**Note**: Gemini can be used for managed assistants in workflows. See [AI Assistants Guide](../user-guide/ASSISTANTS.md).
 
 ## Languages
 

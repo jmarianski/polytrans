@@ -17,14 +17,16 @@ X-PolyTrans-Secret: your-secret-token
 
 ## Endpoints
 
-### POST /translate
-Translate a post
+### POST /translation/translate
+Receive and process translation requests (for multi-server setups).
 
 **Request:**
 ```json
 {
   "post_id": 123,
   "target_language": "es",
+  "source_language": "en",
+  "provider": "openai",
   "scope": "regional"
 }
 ```
@@ -33,44 +35,30 @@ Translate a post
 ```json
 {
   "success": true,
-  "message": "Translation started",
+  "message": "Translation request received",
   "task_id": "task_abc123"
 }
 ```
 
-### GET /status/{task_id}
-Check translation status
+**Note**: This endpoint is primarily for multi-server setups where translation work is distributed. For single-server setups, translations are triggered via the WordPress admin interface.
 
-**Response:**
-```json
-{
-  "status": "completed|processing|failed",
-  "post_id": 456,
-  "progress": 100
-}
-```
-
-### GET /translations/{post_id}
-Get all translations for a post
-
-**Response:**
-```json
-{
-  "translations": {
-    "es": 456,
-    "fr": 789
-  }
-}
-```
-
-### POST /workflow/execute
-Execute a workflow on a post
+### POST /translation/receive-post
+Receive completed translations from external translation services.
 
 **Request:**
 ```json
 {
-  "workflow_id": 1,
-  "post_id": 123
+  "post_id": 123,
+  "target_language": "es",
+  "translated_content": {
+    "post_title": "Título traducido",
+    "post_content": "Contenido traducido...",
+    "post_excerpt": "Resumen traducido..."
+  },
+  "metadata": {
+    "translation_provider": "openai",
+    "translation_time": "2025-12-16T10:00:00Z"
+  }
 }
 ```
 
@@ -78,26 +66,25 @@ Execute a workflow on a post
 ```json
 {
   "success": true,
-  "execution_id": "exec_abc123",
-  "status": "running"
+  "message": "Translation received and processed",
+  "translated_post_id": 456
 }
 ```
 
-### GET /workflows
-List available workflows
+**Note**: This endpoint is used in multi-server setups where a separate translation server sends completed translations back to the main server.
 
-**Response:**
-```json
-{
-  "workflows": [
-    {
-      "id": 1,
-      "name": "SEO Optimization",
-      "target_language": "es"
-    }
-  ]
-}
-```
+---
+
+## ⚠️ Note on API Endpoints
+
+The plugin currently focuses on WordPress admin interface for most operations. REST API endpoints are primarily designed for:
+- **Multi-server setups** - Distributed translation workflows
+- **External integrations** - Custom translation services
+
+For single-server setups, use the WordPress admin interface:
+- **Translation**: Edit post → Translation Scheduler meta box
+- **Workflows**: PolyTrans → Post-Processing
+- **Status**: PolyTrans → Translation Logs
 
 ## Error Responses
 
@@ -149,30 +136,42 @@ Register webhook URLs to receive notifications:
 
 ## PHP Examples
 
-### Translate a Post
+### Request Translation (Multi-Server Setup)
 ```php
-$response = wp_remote_post('https://example.com/wp-json/polytrans/v1/translate', [
+$response = wp_remote_post('https://translator-server.com/wp-json/polytrans/v1/translation/translate', [
     'headers' => [
         'Authorization' => 'Bearer ' . $api_key,
         'Content-Type' => 'application/json'
     ],
     'body' => json_encode([
         'post_id' => 123,
-        'target_language' => 'es'
+        'target_language' => 'es',
+        'source_language' => 'en',
+        'provider' => 'openai'
     ])
 ]);
 
 $result = json_decode(wp_remote_retrieve_body($response), true);
 ```
 
-### Check Status
+### Receive Completed Translation
 ```php
-$response = wp_remote_get(
-    'https://example.com/wp-json/polytrans/v1/status/' . $task_id,
-    ['headers' => ['Authorization' => 'Bearer ' . $api_key]]
-);
+$response = wp_remote_post('https://main-server.com/wp-json/polytrans/v1/translation/receive-post', [
+    'headers' => [
+        'Authorization' => 'Bearer ' . $api_key,
+        'Content-Type' => 'application/json'
+    ],
+    'body' => json_encode([
+        'post_id' => 123,
+        'target_language' => 'es',
+        'translated_content' => [
+            'post_title' => 'Título traducido',
+            'post_content' => 'Contenido traducido...'
+        ]
+    ])
+]);
 
-$status = json_decode(wp_remote_retrieve_body($response), true);
+$result = json_decode(wp_remote_retrieve_body($response), true);
 ```
 
 ## Hooks for Developers
