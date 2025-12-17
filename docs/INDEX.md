@@ -87,7 +87,9 @@ docs/
 └── archive/                    # Archived documentation
     ├── phase-0/                # Phase 0 (complete)
     ├── roadmap/               # Old roadmaps (VERSION_1.6.0_*)
-    └── planning/               # Old planning docs
+    ├── planning/               # Old planning docs
+    ├── analysis/               # Analysis documents (proposals implemented)
+    └── completed/              # Completed features documentation
 ```
 
 ## 🎯 Current Status
