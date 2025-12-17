@@ -126,11 +126,10 @@ class GeminiChatClientAdapter implements ChatClientInterface
         
         // Make API request
         // Gemini uses query string for API key
-        $url = '/models/' . urlencode($model) . ':generateContent';
-        $full_url = $this->http_client->get_base_url() . $url . '?key=' . urlencode($this->api_key);
+        $url = '/models/' . urlencode($model) . ':generateContent?key=' . urlencode($this->api_key);
         
         // HttpClient will handle retry on timeout
-        $response = $this->http_client->post($full_url, $body, [
+        $response = $this->http_client->post($url, $body, [
             'timeout' => $api_timeout,
             'retry_on_timeout' => true,
         ]);
