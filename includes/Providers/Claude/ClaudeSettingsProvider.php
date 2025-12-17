@@ -205,12 +205,11 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
                 
                 if (!is_wp_error($response)) {
                     $status_code = wp_remote_retrieve_response_code($response);
-                    if ($status_code === 200) {
-                        $response_body = wp_remote_retrieve_body($response);
-                        $data = json_decode($response_body, true);
+                    if ($response->get_status_code() === 200) {
+                        $data = $response->get_json(true);
                         
                         // Log response for debugging
-                        error_log('PolyTrans: Claude prompts API (' . $endpoint_url . ') response: ' . substr($response_body, 0, 500));
+                        error_log('PolyTrans: Claude prompts API (' . $endpoint_url . ') response received');
                         
                         // Claude Prompts API might return prompts in 'data' array or directly
                         $prompts = $data['data'] ?? $data['prompts'] ?? (is_array($data) && !isset($data['error']) ? $data : []);
@@ -239,9 +238,9 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
                                 return $assistants;
                             }
                         }
-                    } else if ($status_code !== 404) {
+                    } else if ($response->get_status_code() !== 404) {
                         // Log non-404 errors (404 means endpoint doesn't exist, which is expected for some endpoints)
-                        error_log('PolyTrans: Claude prompts API (' . $endpoint_url . ') returned status ' . $status_code);
+                        error_log('PolyTrans: Claude prompts API (' . $endpoint_url . ') returned status ' . $response->get_status_code());
                     }
                 } else {
                     error_log('PolyTrans: Failed to fetch Claude prompts from ' . $endpoint_url . ': ' . $response->get_error_message());
@@ -317,22 +316,20 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
             
             $response = $client->get('/models');
             
-            if (is_wp_error($response)) {
+            if ($response->is_error()) {
                 error_log('PolyTrans: Failed to fetch Claude models: ' . $response->get_error_message());
                 return [];
             }
             
-            $status_code = wp_remote_retrieve_response_code($response);
-            if ($status_code !== 200) {
-                error_log('PolyTrans: Claude models API returned status ' . $status_code);
+            if ($response->get_status_code() !== 200) {
+                error_log('PolyTrans: Claude models API returned status ' . $response->get_status_code());
                 return [];
             }
             
-            $response_body = wp_remote_retrieve_body($response);
-            $data = json_decode($response_body, true);
+            $data = $response->get_json(true);
             
             if (!isset($data['data']) || !is_array($data['data'])) {
-                error_log('PolyTrans: Claude models API response missing data. Response: ' . substr($response_body, 0, 500));
+                error_log('PolyTrans: Claude models API response missing data.');
                 return [];
             }
             

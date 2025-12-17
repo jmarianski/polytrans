@@ -104,13 +104,13 @@ if ($response->is_success()) {
 ```
 
 **Refaktoryzacja**:
-- [ ] Utwórz `Core\Http\HttpClient`
-- [ ] Utwórz `Core\Http\HttpResponse`
-- [ ] Refaktoryzuj `OpenAIClient` używając HttpClient
-- [ ] Refaktoryzuj `GeminiChatClientAdapter` używając HttpClient
-- [ ] Refaktoryzuj `ClaudeChatClientAdapter` używając HttpClient
-- [ ] Refaktoryzuj `GeminiSettingsProvider` (fetch models)
-- [ ] Refaktoryzuj `ClaudeSettingsProvider` (fetch models)
+- [x] Utwórz `Core\Http\HttpClient`
+- [x] Utwórz `Core\Http\HttpResponse`
+- [x] Refaktoryzuj `OpenAIClient` używając HttpClient
+- [x] Refaktoryzuj `GeminiChatClientAdapter` używając HttpClient
+- [x] Refaktoryzuj `ClaudeChatClientAdapter` używając HttpClient
+- [x] Refaktoryzuj `GeminiSettingsProvider` (fetch models)
+- [x] Refaktoryzuj `ClaudeSettingsProvider` (fetch models)
 - [ ] Testy dla HttpClient
 
 **Szacowana redukcja**: ~400 linii duplikacji → ~200 linii utility

@@ -264,17 +264,15 @@ class GeminiSettingsProvider implements SettingsProviderInterface
                 return [];
             }
             
-            $status_code = wp_remote_retrieve_response_code($response);
-            if ($status_code !== 200) {
-                error_log('PolyTrans: Gemini models API returned status ' . $status_code);
+            if ($response->get_status_code() !== 200) {
+                error_log('PolyTrans: Gemini models API returned status ' . $response->get_status_code());
                 return [];
             }
             
-            $response_body = wp_remote_retrieve_body($response);
-            $data = json_decode($response_body, true);
+            $data = $response->get_json(true);
             
             if (!isset($data['models']) || !is_array($data['models'])) {
-                error_log('PolyTrans: Gemini models API response missing data. Response: ' . substr($response_body, 0, 500));
+                error_log('PolyTrans: Gemini models API response missing data.');
                 return [];
             }
             
