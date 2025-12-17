@@ -433,88 +433,116 @@ class AiAssistantStep implements WorkflowStepInterface
         if (is_string($temperature)) {
             $temperature = floatval($temperature);
         }
-        // Clamp temperature to valid range
-        $temperature = max(0.0, min(1.0, $temperature));
+        // Clamp temperature to valid range (provider-specific)
+        $provider_id = $provider_settings['provider'] ?? 'openai';
+        $max_temp = ($provider_id === 'openai') ? 2.0 : 1.0;
+        $temperature = max(0.0, min($max_temp, $temperature));
 
-        $request = [
-            'model' => $provider_settings['model'],
-            'messages' => [
-                [
-                    'role' => 'system',
-                    'content' => $system_prompt
-                ],
-                [
-                    'role' => 'user',
-                    'content' => $user_message
-                ]
-            ],
-            'temperature' => $temperature
+        // Build messages array
+        $messages = [];
+        
+        // Add system message if provider supports it
+        if (!empty($system_prompt)) {
+            $messages[] = [
+                'role' => 'system',
+                'content' => $system_prompt
+            ];
+        }
+        
+        // Add user message
+        $messages[] = [
+            'role' => 'user',
+            'content' => $user_message
         ];
-
 
         // For JSON format, ensure system prompt includes JSON instruction
         if (($step_config['expected_format'] ?? 'text') === 'json') {
             // Only add JSON instruction if not already present in system prompt
             if (stripos($system_prompt, 'json') === false) {
-                $request['messages'][0]['content'] .= "\n\nPlease respond with valid JSON only.";
+                if (!empty($messages) && isset($messages[0]['content'])) {
+                    $messages[0]['content'] .= "\n\nPlease respond with valid JSON only.";
+                }
             }
         }
 
-        return $request;
+        return [
+            'messages' => $messages,
+            'temperature' => $temperature,
+            'model' => $provider_settings['model'] ?? '',
+            'max_tokens' => $step_config['max_tokens'] ?? null,
+        ];
     }
 
     /**
-     * Call AI API
+     * Call AI API using ChatClientInterface
      */
     private function call_ai_api($request, $provider_settings)
     {
-        $api_url = rtrim($provider_settings['base_url'], '/') . '/chat/completions';
-
-        $args = [
-            'method' => 'POST',
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $provider_settings['api_key']
-            ],
-            'body' => json_encode($request),
-            'timeout' => 120
+        $provider_id = $provider_settings['provider'] ?? 'openai';
+        $settings = get_option('polytrans_settings', []);
+        
+        // Use ChatClientFactory to get the appropriate client
+        $chat_client = \PolyTrans\Core\ChatClientFactory::create($provider_id, $settings);
+        
+        if (!$chat_client) {
+            return [
+                'success' => false,
+                'error' => sprintf('Chat client for provider "%s" could not be created. Please check API key configuration.', $provider_id)
+            ];
+        }
+        
+        // Prepare parameters for chat_completion
+        $parameters = [
+            'temperature' => $request['temperature'] ?? 0.7,
         ];
-
-        $response = wp_remote_request($api_url, $args);
-
-        if (is_wp_error($response)) {
+        
+        // Add model if provided
+        if (!empty($request['model'])) {
+            $parameters['model'] = $request['model'];
+        }
+        
+        // Add max_tokens if provided
+        if (!empty($request['max_tokens'])) {
+            $parameters['max_tokens'] = $request['max_tokens'];
+        }
+        
+        // Call chat_completion
+        $response = $chat_client->chat_completion($request['messages'], $parameters);
+        
+        if (!$response['success']) {
             return [
                 'success' => false,
-                'error' => $response->get_error_message()
+                'error' => $response['error'] ?? 'AI API call failed'
             ];
         }
-
-        $status_code = wp_remote_retrieve_response_code($response);
-        $body = wp_remote_retrieve_body($response);
-
-        if ($status_code !== 200) {
-            $error_data = json_decode($body, true);
-            $error_message = $error_data['error']['message'] ?? "API returned status code {$status_code}";
-
+        
+        // Extract content using the client's extract_content method
+        $content = $chat_client->extract_content($response['data']);
+        
+        if ($content === null) {
             return [
                 'success' => false,
-                'error' => $error_message
+                'error' => 'Failed to extract content from AI response'
             ];
         }
-
-        $response_data = json_decode($body, true);
-
-        if (!$response_data || !isset($response_data['choices'][0]['message']['content'])) {
-            return [
-                'success' => false,
-                'error' => 'Invalid API response format'
-            ];
+        
+        // Try to extract tokens_used from response data if available
+        $tokens_used = 0;
+        if (isset($response['data']) && is_array($response['data'])) {
+            // OpenAI format: usage.total_tokens
+            if (isset($response['data']['usage']['total_tokens'])) {
+                $tokens_used = (int) $response['data']['usage']['total_tokens'];
+            }
+            // Claude format: usage.input_tokens + usage.output_tokens
+            elseif (isset($response['data']['usage']['input_tokens']) || isset($response['data']['usage']['output_tokens'])) {
+                $tokens_used = (int) ($response['data']['usage']['input_tokens'] ?? 0) + (int) ($response['data']['usage']['output_tokens'] ?? 0);
+            }
         }
-
+        
         return [
             'success' => true,
-            'data' => $response_data['choices'][0]['message']['content'],
-            'tokens_used' => $response_data['usage']['total_tokens'] ?? 0
+            'data' => $content,
+            'tokens_used' => $tokens_used
         ];
     }
 

@@ -808,6 +808,72 @@ class PostprocessingMenu
 
 
     /**
+     * Get chat providers for JavaScript
+     */
+    private function get_chat_providers_for_js()
+    {
+        $settings = get_option('polytrans_settings', []);
+        $enabled_providers = $settings['enabled_translation_providers'] ?? ['google'];
+        $registry = \PolyTrans_Provider_Registry::get_instance();
+        $all_providers = $registry->get_providers();
+        
+        $chat_providers = [];
+        
+        foreach ($all_providers as $provider_id => $provider) {
+            // Check if provider is enabled
+            if (!in_array($provider_id, $enabled_providers)) {
+                continue;
+            }
+            
+            // Check if provider supports chat capability
+            $settings_provider_class = $provider->get_settings_provider_class();
+            if ($settings_provider_class && class_exists($settings_provider_class)) {
+                $settings_provider = new $settings_provider_class();
+                if (method_exists($settings_provider, 'get_provider_manifest')) {
+                    $manifest = $settings_provider->get_provider_manifest($settings);
+                    $capabilities = $manifest['capabilities'] ?? [];
+                    
+                    // Only include providers with 'chat' capability
+                    if (in_array('chat', $capabilities)) {
+                        // Check if API key is configured
+                        $api_key_setting = $manifest['api_key_setting'] ?? '';
+                        $api_key_configured = false;
+                        
+                        if (!empty($api_key_setting)) {
+                            $api_key = $settings[$api_key_setting] ?? '';
+                            $api_key_configured = !empty($api_key);
+                        }
+                        
+                        // Only include if API key is configured
+                        if ($api_key_configured) {
+                            $chat_providers[$provider_id] = [
+                                'id' => $provider_id,
+                                'name' => $provider->get_name(),
+                                'supports_system_prompt' => in_array('system_prompt', $capabilities),
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Fallback to hardcoded list if no providers found
+        if (empty($chat_providers)) {
+            // Check OpenAI specifically
+            $openai_key = $settings['openai_api_key'] ?? '';
+            if (!empty($openai_key)) {
+                $chat_providers['openai'] = [
+                    'id' => 'openai',
+                    'name' => 'OpenAI',
+                    'supports_system_prompt' => true,
+                ];
+            }
+        }
+        
+        return $chat_providers;
+    }
+
+    /**
      * Get OpenAI models from the settings provider
      */
     private function get_openai_models($selected_model = null)
