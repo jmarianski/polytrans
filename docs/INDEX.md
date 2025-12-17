@@ -41,11 +41,11 @@ Core infrastructure improvements:
 - [Version 1.7.0 Plan](roadmap/VERSION_1.7.0_PLAN.md) - Comprehensive refactoring & extensibility
 - [Version 1.7.0 Proposal](roadmap/VERSION_1.7.0_PROPOSAL.md) - Initial extensibility proposal
 
-### Planning Documents
-**Location**: `docs/planning/`
+### Planning Documents (Archived)
+**Location**: `docs/archive/completed/`
 
-- [Assistants System Plan](planning/ASSISTANTS_SYSTEM_PLAN.md) - Phase 1 roadmap
-- [Implementation Plan](planning/IMPLEMENTATION_PLAN.md) - Overall architecture plan
+- [Assistants System Plan](../archive/completed/ASSISTANTS_SYSTEM_PLAN.md) - Phase 1 roadmap (✅ Complete)
+- [Implementation Plan](../archive/completed/IMPLEMENTATION_PLAN.md) - Overall architecture plan (✅ Phase 0 & Phase 1 Complete)
 
 ## 🧪 Testing Documentation
 
@@ -77,7 +77,12 @@ docs/
 ├── roadmap/                     # Version roadmaps
 │   ├── VERSION_1.7.0_PLAN.md   # Comprehensive 1.7.0 plan
 │   └── VERSION_1.7.0_PROPOSAL.md
-├── planning/                   # Future plans and roadmaps
+├── archive/                    # Archived documentation
+    ├── phase-0/                # Phase 0 (complete)
+    ├── roadmap/               # Old roadmaps (VERSION_1.6.0_*)
+    ├── planning/               # Old planning docs
+    ├── analysis/               # Analysis documents (proposals implemented)
+    └── completed/               # Completed features documentation
 ├── testing/                    # Testing documentation
 └── archive/                    # Archived documentation
     ├── phase-0/                # Phase 0 (complete)
