@@ -3,6 +3,8 @@
 namespace PolyTrans\Providers\Claude;
 
 use PolyTrans\Providers\SettingsProviderInterface;
+use PolyTrans\Core\Http\HttpClient;
+use PolyTrans\Core\Http\HttpResponse;
 
 /**
  * Claude Settings Provider
@@ -134,29 +136,24 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
         // Validate by calling /models endpoint (similar to OpenAI)
         // This is more efficient than making a /messages request
         try {
-            $response = wp_remote_get('https://api.anthropic.com/v1/models', [
-                'headers' => [
-                    'x-api-key' => $api_key,
-                    'anthropic-version' => '2023-06-01',
-                ],
-                'timeout' => 10,
-            ]);
+            $client = new HttpClient('https://api.anthropic.com/v1', 10);
+            $client->set_api_key($api_key, 'x-api-key')
+                   ->set_header('anthropic-version', '2023-06-01');
             
-            if (is_wp_error($response)) {
+            $response = $client->get('/models');
+            
+            if ($response->is_error()) {
                 error_log('PolyTrans Claude API validation error: ' . $response->get_error_message());
                 return false;
             }
-            
-            $status_code = wp_remote_retrieve_response_code($response);
             
             // 200 = valid key and successful request
             // 401 = invalid/unauthorized key
             // 403 = forbidden (key valid but no access)
             
-            if ($status_code === 200) {
+            if ($response->get_status_code() === 200) {
                 // Verify we got actual models data
-                $response_body = wp_remote_retrieve_body($response);
-                $data = json_decode($response_body, true);
+                $data = $response->get_json(true);
                 
                 // Check if we have models data
                 if (isset($data['data']) && is_array($data['data']) && !empty($data['data'])) {
@@ -259,23 +256,15 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
         
         // Fallback: Try Claude Projects API (older approach, might be deprecated)
         try {
-            $response = wp_remote_get('https://api.anthropic.com/v1/projects', [
-                'headers' => [
-                    'x-api-key' => $api_key,
-                    'anthropic-version' => '2023-06-01',
-                ],
-                'timeout' => 10,
-            ]);
+            $response = $client->get('https://api.anthropic.com/v1/projects');
             
-            if (is_wp_error($response)) {
+            if ($response->is_error()) {
                 error_log('PolyTrans: Failed to fetch Claude projects: ' . $response->get_error_message());
                 return $assistants; // Return whatever we got from prompts
             }
             
-            $status_code = wp_remote_retrieve_response_code($response);
-            if ($status_code === 200) {
-                $response_body = wp_remote_retrieve_body($response);
-                $data = json_decode($response_body, true);
+            if ($response->get_status_code() === 200) {
+                $data = $response->get_json(true);
                 
                 // Claude Projects API returns projects in 'data' array
                 if (isset($data['data']) && is_array($data['data'])) {
@@ -322,13 +311,11 @@ class ClaudeSettingsProvider implements SettingsProviderInterface
         
         // Fetch models from Claude API /models endpoint
         try {
-            $response = wp_remote_get('https://api.anthropic.com/v1/models', [
-                'headers' => [
-                    'x-api-key' => $api_key,
-                    'anthropic-version' => '2023-06-01',
-                ],
-                'timeout' => 10,
-            ]);
+            $client = new HttpClient('https://api.anthropic.com/v1', 10);
+            $client->set_api_key($api_key, 'x-api-key')
+                   ->set_header('anthropic-version', '2023-06-01');
+            
+            $response = $client->get('/models');
             
             if (is_wp_error($response)) {
                 error_log('PolyTrans: Failed to fetch Claude models: ' . $response->get_error_message());

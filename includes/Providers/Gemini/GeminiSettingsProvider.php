@@ -3,6 +3,8 @@
 namespace PolyTrans\Providers\Gemini;
 
 use PolyTrans\Providers\SettingsProviderInterface;
+use PolyTrans\Core\Http\HttpClient;
+use PolyTrans\Core\Http\HttpResponse;
 
 /**
  * Gemini Settings Provider
@@ -145,25 +147,18 @@ class GeminiSettingsProvider implements SettingsProviderInterface
         
         // Validate by calling /models endpoint
         try {
-            $response = wp_remote_get('https://generativelanguage.googleapis.com/v1beta/models?key=' . urlencode($api_key), [
-                'timeout' => 10,
-            ]);
+            $client = new HttpClient('https://generativelanguage.googleapis.com/v1beta', 10);
+            $url = '/models?key=' . urlencode($api_key);
+            $response = $client->get($url);
             
-            if (is_wp_error($response)) {
+            if ($response->is_error()) {
                 error_log('PolyTrans: Gemini API validation error: ' . $response->get_error_message());
                 return false;
             }
             
-            $status_code = wp_remote_retrieve_response_code($response);
-            
             // 200 = valid key and successful request
-            // 400 = invalid request (might be key issue)
-            // 401/403 = invalid/unauthorized key
-            
-            if ($status_code === 200) {
-                // Verify we got actual models data
-                $response_body = wp_remote_retrieve_body($response);
-                $data = json_decode($response_body, true);
+            if ($response->get_status_code() === 200) {
+                $data = $response->get_json(true);
                 
                 // Check if we have models data
                 if (isset($data['models']) && is_array($data['models']) && !empty($data['models'])) {
@@ -175,8 +170,7 @@ class GeminiSettingsProvider implements SettingsProviderInterface
             }
             
             // Log for debugging
-            $response_body = wp_remote_retrieve_body($response);
-            error_log('PolyTrans: Gemini API validation failed. Status: ' . $status_code . ', Response: ' . substr($response_body, 0, 200));
+            error_log('PolyTrans: Gemini API validation failed. Status: ' . $response->get_status_code());
             
             return false;
         } catch (\Exception $e) {
@@ -197,19 +191,17 @@ class GeminiSettingsProvider implements SettingsProviderInterface
         
         // Load Gemini Agents from Agents API
         try {
-            $response = wp_remote_get('https://generativelanguage.googleapis.com/v1beta/agents?key=' . urlencode($api_key), [
-                'timeout' => 10,
-            ]);
+            $client = new HttpClient('https://generativelanguage.googleapis.com/v1beta', 10);
+            $url = '/agents?key=' . urlencode($api_key);
+            $response = $client->get($url);
             
-            if (is_wp_error($response)) {
+            if ($response->is_error()) {
                 error_log('PolyTrans: Failed to fetch Gemini agents: ' . $response->get_error_message());
                 return [];
             }
             
-            $status_code = wp_remote_retrieve_response_code($response);
-            if ($status_code === 200) {
-                $response_body = wp_remote_retrieve_body($response);
-                $data = json_decode($response_body, true);
+            if ($response->get_status_code() === 200) {
+                $data = $response->get_json(true);
                 
                 // Gemini Agents API returns agents in 'agents' array
                 if (isset($data['agents']) && is_array($data['agents'])) {
@@ -263,9 +255,9 @@ class GeminiSettingsProvider implements SettingsProviderInterface
         
         // Fetch models from Gemini API /models endpoint
         try {
-            $response = wp_remote_get('https://generativelanguage.googleapis.com/v1beta/models?key=' . urlencode($api_key), [
-                'timeout' => 10,
-            ]);
+            $client = new HttpClient('https://generativelanguage.googleapis.com/v1beta', 10);
+            $url = '/models?key=' . urlencode($api_key);
+            $response = $client->get($url);
             
             if (is_wp_error($response)) {
                 error_log('PolyTrans: Failed to fetch Gemini models: ' . $response->get_error_message());
