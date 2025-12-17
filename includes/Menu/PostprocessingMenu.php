@@ -977,11 +977,17 @@ class PostprocessingMenu
             // Sanitize step-specific fields
             switch ($sanitized_step['type']) {
                 case 'ai_assistant':
+                    $sanitized_step['provider'] = sanitize_text_field($step['provider'] ?? '');
                     $sanitized_step['system_prompt'] = $this->sanitize_prompt_field($step['system_prompt'] ?? '');
                     $sanitized_step['user_message'] = $this->sanitize_prompt_field($step['user_message'] ?? '');
                     $sanitized_step['model'] = $this->sanitize_model_field($step['model'] ?? '');
                     $sanitized_step['expected_format'] = sanitize_text_field($step['expected_format'] ?? 'text');
                     $sanitized_step['temperature'] = !empty($step['temperature']) ? floatval($step['temperature']) : 0.7;
+                    
+                    // Handle max_tokens if provided
+                    if (isset($step['max_tokens']) && !empty($step['max_tokens'])) {
+                        $sanitized_step['max_tokens'] = absint($step['max_tokens']);
+                    }
 
                     if (isset($step['output_variables']) && is_array($step['output_variables'])) {
                         $sanitized_step['output_variables'] = array_map('sanitize_text_field', $step['output_variables']);
