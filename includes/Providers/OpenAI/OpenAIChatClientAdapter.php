@@ -56,20 +56,63 @@ class OpenAIChatClientAdapter implements ChatClientInterface
             ];
         }
         
-        // Make API request
-        $response = wp_remote_post(
-            $this->base_url . '/chat/completions',
-            [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    'Authorization' => 'Bearer ' . $this->api_key,
-                ],
-                'body' => wp_json_encode($body),
-                'timeout' => 120,
-            ]
-        );
+        // Get API timeout from settings (default: 180 seconds)
+        $settings = get_option('polytrans_settings', []);
+        $api_timeout = absint($settings['api_timeout'] ?? 180);
+        $api_timeout = max(30, min(600, $api_timeout)); // Clamp between 30-600 seconds
         
-        // Handle errors
+        // Make API request with retry on timeout
+        $max_attempts = 2; // Initial attempt + 1 retry
+        $last_response = null;
+        
+        for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
+            $response = wp_remote_post(
+                $this->base_url . '/chat/completions',
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $this->api_key,
+                    ],
+                    'body' => wp_json_encode($body),
+                    'timeout' => $api_timeout,
+                ]
+            );
+            
+            // Check for timeout errors
+            if (is_wp_error($response)) {
+                $error_message = $response->get_error_message();
+                
+                // If timeout and we have attempts left, retry
+                if ($attempt < $max_attempts && 
+                    (strpos(strtolower($error_message), 'timeout') !== false || 
+                     strpos(strtolower($error_message), 'timed out') !== false)) {
+                    error_log(sprintf(
+                        '[PolyTrans OpenAI Chat] Request timeout on attempt %d/%d, retrying...',
+                        $attempt,
+                        $max_attempts
+                    ));
+                    $last_response = $response;
+                    continue; // Retry
+                }
+                
+                // Non-timeout error or all attempts exhausted
+                return [
+                    'success' => false,
+                    'data' => null,
+                    'error' => $error_message
+                ];
+            }
+            
+            // Success - break out of retry loop
+            break;
+        }
+        
+        // Use last response if we exhausted attempts
+        if (is_wp_error($response) && $last_response) {
+            $response = $last_response;
+        }
+        
+        // Handle errors (after retries)
         if (is_wp_error($response)) {
             return [
                 'success' => false,
