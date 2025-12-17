@@ -41,9 +41,9 @@ Edit Post → Translation Scheduler → Select Languages → Translate
 ```
 POST /wp-json/polytrans/v1/translation/translate
 POST /wp-json/polytrans/v1/translation/receive-post
-GET  /wp-json/polytrans/v1/status/{task_id}
-POST /wp-json/polytrans/v1/workflow/execute
 ```
+
+**Note**: These endpoints are primarily for multi-server setups. For single-server usage, use the WordPress admin interface.
 
 See [API Documentation](developer/API-DOCUMENTATION.md) for complete reference.
 

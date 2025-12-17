@@ -53,18 +53,21 @@
 
 #### 1.4. Aktualizacja Indeksów i Naprawa Dokumentacji
 - [x] Zaktualizuj `INDEX.md` (wersja 1.3.5 → 1.7.0)
-- [ ] Zaktualizuj `README.md` (wersja 1.5.0 → 1.6.14, linki, struktura)
-- [ ] Napraw wszystkie broken links (phase-0/, QUICK_START.md)
-- [ ] Standaryzuj formatowanie
+- [x] Zaktualizuj `README.md` (wersja 1.5.0 → 1.6.14, linki, struktura)
+- [x] Napraw wszystkie broken links (phase-0/, QUICK_START.md)
+- [x] Standaryzuj formatowanie
 
 #### 1.5. Aktualizacja Zawartości Dokumentacji
-- [ ] Utworzyć zawartość `QUICK_START.md` (pusty plik)
-- [ ] Zaktualizować `polytrans.php` POLYTRANS_VERSION (1.6.12 → 1.6.14)
-- [ ] Ujednolicić PHP requirements (8.1+ wszędzie)
-- [ ] Zaktualizować `CONTRIBUTING.md` (PSR-4 zamiast PolyTrans_Class_Name)
-- [ ] Dodać Claude i Gemini do `INSTALLATION.md`
-- [ ] Zweryfikować i zsynchronizować API endpoints
-- [ ] Dodać Quick Start do `PROVIDER_EXTENSIBILITY_GUIDE.md`
+- [x] Utworzyć zawartość `QUICK_START.md` (pusty plik)
+- [x] Zaktualizować `polytrans.php` POLYTRANS_VERSION (1.6.12 → 1.6.14)
+- [x] Ujednolicić PHP requirements (8.1+ wszędzie)
+- [x] Zaktualizować `CONTRIBUTING.md` (PSR-4 zamiast PolyTrans_Class_Name)
+- [x] Dodać Claude i Gemini do `INSTALLATION.md`
+- [x] Zweryfikować i zsynchronizować API endpoints
+- [x] Dodać Quick Start do `PROVIDER_EXTENSIBILITY_GUIDE.md`
+- [x] Zaktualizować `CONFIGURATION.md` z Claude i Gemini
+- [x] Zaktualizować `INTERFACE.md` z poprawną strukturą menu
+- [x] Zaktualizować `API-DOCUMENTATION.md` z rzeczywistymi endpointami
 
 **Deliverables**: Czysta struktura dokumentacji, zaktualizowane indeksy, aktualna zawartość
 
