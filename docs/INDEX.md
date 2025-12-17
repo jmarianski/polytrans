@@ -77,12 +77,6 @@ docs/
 ├── roadmap/                     # Version roadmaps
 │   ├── VERSION_1.7.0_PLAN.md   # Comprehensive 1.7.0 plan
 │   └── VERSION_1.7.0_PROPOSAL.md
-├── archive/                    # Archived documentation
-    ├── phase-0/                # Phase 0 (complete)
-    ├── roadmap/               # Old roadmaps (VERSION_1.6.0_*)
-    ├── planning/               # Old planning docs
-    ├── analysis/               # Analysis documents (proposals implemented)
-    └── completed/               # Completed features documentation
 ├── testing/                    # Testing documentation
 └── archive/                    # Archived documentation
     ├── phase-0/                # Phase 0 (complete)
