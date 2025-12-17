@@ -35,18 +35,50 @@ Post-processing automation that runs after translation. Use cases:
 
 ### Output Actions
 
-What to do with step results:
+What to do with step results. See [Complete Output Actions Reference](WORKFLOW_OUTPUT_ACTIONS.md) for full details.
+
+**Available Actions:**
+- `update_post_title` - Update post title
 - `update_post_content` - Replace post content
-- `update_post_meta` - Set custom field
 - `update_post_excerpt` - Update excerpt
+- `update_post_meta` - Set custom field (requires `target` parameter)
+- `update_post_status` - Change post status (publish, draft, pending, etc.)
+- `update_post_date` - Schedule post (supports natural language)
+- `append_to_post_content` - Add content at end
+- `prepend_to_post_content` - Add content at beginning
+- `save_to_option` - Save to WordPress option (requires `target` parameter)
+
+**Quick Example:**
+```json
+{
+  "action": "update_post_content",
+  "source_variable": "content",
+  "target": ""
+}
+```
 
 ### Variables
 
-Available in templates:
-- `{content}` - Post content
-- `{title}` - Post title
-- `{excerpt}` - Post excerpt
-- `{custom_field_name}` - Any custom field
+Available in templates. See [Complete Variables Reference](WORKFLOW_VARIABLES.md) for full details.
+
+**Quick Reference:**
+- `{{ title }}`, `{{ content }}`, `{{ excerpt }}` - Translated post fields
+- `{{ original.title }}`, `{{ original.content }}` - Original post fields
+- `{{ translated.title }}`, `{{ translated.content }}` - Translated post fields
+- `{{ original.meta.KEY }}`, `{{ translated.meta.KEY }}` - Meta fields
+- `{{ target_language }}`, `{{ source_language }}` - Context variables
+
+**Example:**
+```twig
+Translate from {{ source_language }} to {{ target_language }}:
+
+Original: {{ original.title }}
+Content: {{ original.content }}
+
+Current translation: {{ translated.content }}
+```
+
+**Note:** Use Twig syntax (`{{ }}`) instead of legacy (`{}`).
 
 ## Triggering Workflows
 
@@ -156,3 +188,9 @@ Filter by:
 - Review execution logs
 
 See [WORKFLOW-LOGGING.md](WORKFLOW-LOGGING.md) for log details.
+
+## Related Documentation
+
+- **[Workflow Output Actions](WORKFLOW_OUTPUT_ACTIONS.md)** - Complete reference for all 9 output actions
+- **[Workflow Variables](WORKFLOW_VARIABLES.md)** - Complete guide to available variables
+- **[Workflow Logging](WORKFLOW-LOGGING.md)** - Monitoring and debugging workflows

@@ -135,4 +135,4 @@ add_action('polytrans_translation_complete', function($post_id, $lang) {
 }, 10, 2);
 ```
 
-See [API-DOCUMENTATION.md](../developer/API-DOCUMENTATION.md) for full hook reference.
+See [Hooks and Filters](../developer/HOOKS_AND_FILTERS.md) for complete hook reference.

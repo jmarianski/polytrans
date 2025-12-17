@@ -3,17 +3,32 @@
 ## 📚 Quick Links
 
 ### Getting Started
-- [README](../README.md) - Main plugin documentation
-- [Quick Start Guide](../QUICK_START.md) - Get up and running quickly
-- [Changelog](../CHANGELOG.md) - Version history and changes
 
-### For Users
-- [User Guide](user-guide/) - How to use PolyTrans features
-- [Admin Guide](admin/) - WordPress admin configuration
+**New Users:**
+1. [Quick Start Guide](../QUICK_START.md) - Get up and running in 5 minutes
+2. [Installation Guide](user-guide/INSTALLATION.md) - Detailed setup instructions
+3. [User Interface Guide](user-guide/INTERFACE.md) - Learn the admin interface
+4. [FAQ](user-guide/FAQ.md) - Common questions and troubleshooting
 
-### For Developers
-- [Developer Guide](developer/) - Contributing and extending PolyTrans
-- [Development Docs](development/) - Implementation details and architecture
+**Administrators:**
+1. [Configuration Guide](admin/CONFIGURATION.md) - Complete settings reference
+2. [Workflow Management](admin/WORKFLOW-TRIGGERING.md) - Creating and managing workflows
+3. [Workflow Output Actions](admin/WORKFLOW_OUTPUT_ACTIONS.md) - Complete actions reference
+4. [Workflow Variables](admin/WORKFLOW_VARIABLES.md) - Available variables guide
+5. [Workflow Logging](admin/WORKFLOW-LOGGING.md) - Monitoring execution
+
+**Developers:**
+1. [Development Setup](developer/DEVELOPMENT_SETUP.md) - Local dev environment
+2. [Architecture](developer/ARCHITECTURE.md) - System design
+3. [Provider Extensibility Guide](developer/PROVIDER_EXTENSIBILITY_GUIDE.md) - Adding custom providers
+4. [Hooks and Filters](developer/HOOKS_AND_FILTERS.md) - Complete hook reference
+5. [API Documentation](developer/API-DOCUMENTATION.md) - REST API reference
+6. [Contributing](developer/CONTRIBUTING.md) - Contribution guidelines
+
+**Contributors:**
+1. [Contributing Guidelines](developer/CONTRIBUTING.md) - Code standards and workflow
+2. [Testing Setup](testing/TESTING_SETUP.md) - How to run tests
+3. [Architecture](developer/ARCHITECTURE.md) - Understanding the codebase
 
 ## 🏗️ Development Documentation
 

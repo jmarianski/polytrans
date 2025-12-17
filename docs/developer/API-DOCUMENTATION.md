@@ -193,4 +193,4 @@ add_filter('polytrans_workflow_context', function($context, $workflow) {
 }, 10, 2);
 ```
 
-See source code for full hook reference.
+See [Hooks and Filters](HOOKS_AND_FILTERS.md) for complete hook reference.
