@@ -33,15 +33,12 @@
 ## 🏗️ Development Documentation
 
 ### Phase 0: Foundation (✅ Complete - v1.3.5)
-**Location**: `docs/archive/phase-0/` (archived)
 
-Core infrastructure improvements:
+Core infrastructure improvements completed in v1.3.0-1.3.5:
 - **Twig Integration** - Modern templating engine
 - **Variable Structure Refactor** - Clean, consistent variable access
 - **Context Refresh Logic** - Multi-step workflow data consistency
 - **UI Redesign** - Variable sidebar/pills responsive layout
-
-[View Phase 0 Details →](../archive/phase-0/)
 
 ### Current Development Plans
 **Location**: `docs/development/`
@@ -56,11 +53,6 @@ Core infrastructure improvements:
 - [Version 1.7.0 Plan](roadmap/VERSION_1.7.0_PLAN.md) - Comprehensive refactoring & extensibility
 - [Version 1.7.0 Proposal](roadmap/VERSION_1.7.0_PROPOSAL.md) - Initial extensibility proposal
 
-### Planning Documents (Archived)
-**Location**: `docs/archive/completed/`
-
-- [Assistants System Plan](../archive/completed/ASSISTANTS_SYSTEM_PLAN.md) - Phase 1 roadmap (✅ Complete)
-- [Implementation Plan](../archive/completed/IMPLEMENTATION_PLAN.md) - Overall architecture plan (✅ Phase 0 & Phase 1 Complete)
 
 ## 🧪 Testing Documentation
 
@@ -92,13 +84,7 @@ docs/
 ├── roadmap/                     # Version roadmaps
 │   ├── VERSION_1.7.0_PLAN.md   # Comprehensive 1.7.0 plan
 │   └── VERSION_1.7.0_PROPOSAL.md
-├── testing/                    # Testing documentation
-└── archive/                    # Archived documentation
-    ├── phase-0/                # Phase 0 (complete)
-    ├── roadmap/               # Old roadmaps (VERSION_1.6.0_*)
-    ├── planning/               # Old planning docs
-    ├── analysis/               # Analysis documents (proposals implemented)
-    └── completed/              # Completed features documentation
+└── testing/                    # Testing documentation
 ```
 
 ## 🎯 Current Status

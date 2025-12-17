@@ -9,7 +9,6 @@ A comprehensive WordPress plugin for managing multilingual content translation w
 - **[Full Documentation Index](docs/INDEX.md)** - Complete documentation structure
 - **[Quick Start Guide](QUICK_START.md)** - Get started in 5 minutes
 - **[Changelog](CHANGELOG.md)** - Version history and changes
-- **[Phase 0 Summary](docs/archive/phase-0/)** - Latest improvements (v1.3.0-1.3.5) ✅ Complete
 
 ## Table of Contents
 
