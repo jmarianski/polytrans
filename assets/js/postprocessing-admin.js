@@ -636,6 +636,7 @@
         const expectedFormat = step.expected_format || 'text';
         const model = step.model || '';
         const temperature = step.temperature !== undefined ? step.temperature : 0.7;
+        const selectedProvider = step.provider || '';
 
         // Handle output_variables - it could be an array or a string
         let outputVariables = '';
@@ -647,7 +648,32 @@
             }
         }
 
+        // Generate provider options
+        let providerOptions = '<option value="">' + (typeof polytransWorkflows !== 'undefined' && polytransWorkflows.strings ? polytransWorkflows.strings.noProviderSelected : 'Auto-select (random enabled provider)') + '</option>';
+        
+        if (typeof polytransWorkflows !== 'undefined' && polytransWorkflows.chatProviders) {
+            for (const [providerId, provider] of Object.entries(polytransWorkflows.chatProviders)) {
+                const selected = (selectedProvider === providerId) ? 'selected' : '';
+                providerOptions += `<option value="${providerId}" ${selected}>${escapeHtml(provider.name)}</option>`;
+            }
+        }
+        
+        // Show warning if no provider selected
+        const warningHtml = selectedProvider ? '' : `
+            <div class="notice notice-warning inline workflow-provider-warning" style="margin: 10px 0;" data-step-index="${index}">
+                <p><strong>⚠️ ${typeof polytransWorkflows !== 'undefined' && polytransWorkflows.strings ? polytransWorkflows.strings.noProviderSelected : 'No provider selected'}</strong> - A random enabled provider with chat capability will be used automatically.</p>
+            </div>
+        `;
+        
         return `
+            <div class="workflow-step-field">
+                <label for="step-${index}-provider">AI Provider</label>
+                <select id="step-${index}-provider" name="steps[${index}][provider]" class="workflow-provider-select">
+                    ${providerOptions}
+                </select>
+                <small>🤖 Choose an AI provider for this step. If not selected, a random enabled provider will be used.</small>
+            </div>
+            ${warningHtml}
             <div class="workflow-step-field workflow-field-with-variables">
                 <label for="step-${index}-system-prompt">System Prompt</label>
                 <div class="field-wrapper">
@@ -1307,6 +1333,7 @@
 
             // Add type-specific fields
             if (stepData.type === 'ai_assistant') {
+                stepData.provider = $(`#step-${index}-provider`).val() || '';
                 stepData.system_prompt = $(`#step-${index}-system-prompt`).val();
                 stepData.user_message = $(`#step-${index}-user-message`).val();
                 stepData.model = $(`#step-${index}-model`).val();

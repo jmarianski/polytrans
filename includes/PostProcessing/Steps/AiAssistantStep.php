@@ -76,10 +76,27 @@ class AiAssistantStep implements WorkflowStepInterface
             if (!$provider_settings) {
                 return [
                     'success' => false,
-                    'error' => 'AI provider not configured. Please configure OpenAI settings.',
+                    'error' => 'No AI provider with chat capability is configured. Please configure at least one provider (OpenAI, Claude, or Gemini) in settings.',
                     'interpolated_system_prompt' => $interpolated_system_prompt,
                     'interpolated_user_message' => $interpolated_user_message
                 ];
+            }
+            
+            // Log warning if provider was auto-selected
+            $selected_provider = $step_config['provider'] ?? '';
+            if (empty($selected_provider)) {
+                $logs_manager = \PolyTrans_Logs_Manager::get_instance();
+                $logs_manager->log(
+                    sprintf(
+                        'AI Assistant step: No provider selected, using auto-selected provider: %s',
+                        $provider_settings['provider']
+                    ),
+                    'warning',
+                    [
+                        'step_config' => $step_config,
+                        'selected_provider' => $provider_settings['provider']
+                    ]
+                );
             }
 
             // Prepare AI request with separate system and user messages
@@ -260,34 +277,150 @@ class AiAssistantStep implements WorkflowStepInterface
      */
     private function get_ai_provider_settings($step_config = [])
     {
-        // Get PolyTrans settings to find which AI provider is configured
         $polytrans_settings = get_option('polytrans_settings', []);
-        $translation_provider = $polytrans_settings['translation_provider'] ?? 'openai';
-
-        // For now, we'll use OpenAI settings from the translation provider
-        if ($translation_provider === 'openai') {
-            $api_key = $polytrans_settings['openai_api_key'] ?? '';
-            if (empty($api_key)) {
-                return false;
-            }
-
-            // Check for step-specific model override, otherwise use global setting
-            $model = $step_config['model'] ?? $polytrans_settings['openai_model'] ?? 'gpt-4o-mini';
-
-            // If step config has empty model, use global setting
-            if (empty($model)) {
-                $model = $polytrans_settings['openai_model'] ?? 'gpt-4o-mini';
-            }
-
-            return [
-                'provider' => 'openai',
-                'api_key' => $api_key,
-                'model' => $model,
-                'base_url' => $polytrans_settings['openai_base_url'] ?? 'https://api.openai.com/v1'
-            ];
+        $selected_provider = $step_config['provider'] ?? '';
+        
+        // If provider is selected, use it
+        if (!empty($selected_provider)) {
+            return $this->get_provider_settings($selected_provider, $step_config, $polytrans_settings);
         }
-
-        return false;
+        
+        // Fallback: Get random enabled provider with chat capability
+        $available_providers = $this->get_available_chat_providers($polytrans_settings);
+        
+        if (empty($available_providers)) {
+            return false;
+        }
+        
+        // Log warning that we're using a random provider
+        $random_provider = $available_providers[array_rand($available_providers)];
+        error_log(sprintf(
+            '[PolyTrans] AI Assistant step: No provider selected, using random enabled provider: %s',
+            $random_provider
+        ));
+        
+        return $this->get_provider_settings($random_provider, $step_config, $polytrans_settings);
+    }
+    
+    /**
+     * Get settings for a specific provider
+     */
+    private function get_provider_settings($provider_id, $step_config, $polytrans_settings)
+    {
+        $registry = \PolyTrans_Provider_Registry::get_instance();
+        $provider = $registry->get_provider($provider_id);
+        
+        if (!$provider) {
+            return false;
+        }
+        
+        // Get provider manifest to find API key setting
+        $settings_provider_class = $provider->get_settings_provider_class();
+        if (!$settings_provider_class || !class_exists($settings_provider_class)) {
+            return false;
+        }
+        
+        $settings_provider = new $settings_provider_class();
+        if (!method_exists($settings_provider, 'get_provider_manifest')) {
+            return false;
+        }
+        
+        $manifest = $settings_provider->get_provider_manifest($polytrans_settings);
+        $api_key_setting = $manifest['api_key_setting'] ?? '';
+        
+        if (empty($api_key_setting)) {
+            return false;
+        }
+        
+        $api_key = $polytrans_settings[$api_key_setting] ?? '';
+        if (empty($api_key)) {
+            return false;
+        }
+        
+        // Get model - check step config first, then provider-specific setting
+        $model = $step_config['model'] ?? '';
+        
+        // If no model in step config, try provider-specific setting
+        if (empty($model)) {
+            $model_setting = $provider_id . '_model';
+            $model = $polytrans_settings[$model_setting] ?? '';
+        }
+        
+        // Get base URL
+        $base_url_setting = $provider_id . '_base_url';
+        $base_url = $polytrans_settings[$base_url_setting] ?? '';
+        
+        // Provider-specific defaults
+        switch ($provider_id) {
+            case 'openai':
+                if (empty($model)) {
+                    $model = $polytrans_settings['openai_model'] ?? 'gpt-4o-mini';
+                }
+                if (empty($base_url)) {
+                    $base_url = $polytrans_settings['openai_base_url'] ?? 'https://api.openai.com/v1';
+                }
+                break;
+            case 'claude':
+                if (empty($base_url)) {
+                    $base_url = 'https://api.anthropic.com/v1';
+                }
+                break;
+            case 'gemini':
+                if (empty($base_url)) {
+                    $base_url = 'https://generativelanguage.googleapis.com/v1beta';
+                }
+                break;
+        }
+        
+        return [
+            'provider' => $provider_id,
+            'api_key' => $api_key,
+            'model' => $model,
+            'base_url' => $base_url,
+        ];
+    }
+    
+    /**
+     * Get available providers with chat capability
+     */
+    private function get_available_chat_providers($settings)
+    {
+        $enabled_providers = $settings['enabled_translation_providers'] ?? ['google'];
+        $registry = \PolyTrans_Provider_Registry::get_instance();
+        $all_providers = $registry->get_providers();
+        
+        $chat_providers = [];
+        
+        foreach ($all_providers as $provider_id => $provider) {
+            // Check if provider is enabled
+            if (!in_array($provider_id, $enabled_providers)) {
+                continue;
+            }
+            
+            // Check if provider supports chat capability
+            $settings_provider_class = $provider->get_settings_provider_class();
+            if ($settings_provider_class && class_exists($settings_provider_class)) {
+                $settings_provider = new $settings_provider_class();
+                if (method_exists($settings_provider, 'get_provider_manifest')) {
+                    $manifest = $settings_provider->get_provider_manifest($settings);
+                    $capabilities = $manifest['capabilities'] ?? [];
+                    
+                    // Only include providers with 'chat' capability
+                    if (in_array('chat', $capabilities)) {
+                        // Check if API key is configured
+                        $api_key_setting = $manifest['api_key_setting'] ?? '';
+                        if (!empty($api_key_setting)) {
+                            $api_key = $settings[$api_key_setting] ?? '';
+                            if (!empty($api_key)) {
+                                $chat_providers[] = $provider_id;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return $chat_providers;
     }
 
     /**

@@ -48,6 +48,7 @@ class PostprocessingMenu
         // Deprecated - use polytrans_load_assistants instead
         add_action('wp_ajax_polytrans_load_openai_assistants_for_workflow', [$this, 'ajax_load_openai_assistants_for_workflow']);
         add_action('wp_ajax_polytrans_load_managed_assistants', [$this, 'ajax_load_managed_assistants']);
+        add_action('wp_ajax_polytrans_get_chat_providers', [$this, 'ajax_get_chat_providers']);
     }
 
     /**
@@ -118,12 +119,16 @@ class PostprocessingMenu
             // Localize script
             $settings = get_option('polytrans_settings', []);
             $selected_model = $settings['openai_model'] ?? 'gpt-4o-mini';
+            // Get available chat providers for AI Assistant step
+            $chat_providers = $this->get_chat_providers_for_js();
+            
             wp_localize_script('polytrans-workflows', 'polytransWorkflows', [
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('polytrans_workflows_nonce'),
                 'openai_nonce' => wp_create_nonce('polytrans_openai_nonce'),
                 'models' => $this->get_openai_models($selected_model),
                 'selected_model' => $selected_model,
+                'chatProviders' => $chat_providers,
                 'strings' => [
                     'confirmDelete' => __('Are you sure you want to delete this workflow?', 'polytrans'),
                     'confirmDuplicate' => __('Create a copy of this workflow?', 'polytrans'),
@@ -138,7 +143,8 @@ class PostprocessingMenu
                     'removeStep' => __('Remove Step', 'polytrans'),
                     'moveUp' => __('Move Up', 'polytrans'),
                     'moveDown' => __('Move Down', 'polytrans'),
-                    'clearSelection' => __('Clear', 'polytrans')
+                    'clearSelection' => __('Clear', 'polytrans'),
+                    'noProviderSelected' => __('No provider selected. A random enabled provider will be used.', 'polytrans'),
                 ]
             ]);
 
