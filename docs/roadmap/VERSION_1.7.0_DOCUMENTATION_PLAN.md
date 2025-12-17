@@ -77,7 +77,7 @@ PolyTrans (main menu)
 **Status**: 2 broken links
 
 **Naprawić**:
-- `README.md` linia 12: `docs/development/phase-0/` → `docs/archive/phase-0/`
+- `README.md` linia 12: Usunięto link do phase-0 (archiwum usunięte)
 - `QUICK_START.md` - utworzyć zawartość
 
 ---
@@ -160,7 +160,7 @@ PolyTrans (main menu)
 
 ### Krytyczne (Zrobić teraz)
 - [ ] Utworzyć zawartość QUICK_START.md
-- [ ] Naprawić link phase-0/ w README.md
+- [x] Usunięto link phase-0/ w README.md (archiwum usunięte)
 - [ ] Zaktualizować wersję w README.md (1.5.0 → 1.6.14)
 - [ ] Naprawić POLYTRANS_VERSION w polytrans.php (1.6.12 → 1.6.14)
 - [ ] Ujednolicić PHP requirements (8.1+ wszędzie)
