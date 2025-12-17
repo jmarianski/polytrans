@@ -3,6 +3,8 @@
 namespace PolyTrans\Providers\Gemini;
 
 use PolyTrans\Providers\ChatClientInterface;
+use PolyTrans\Core\Http\HttpClient;
+use PolyTrans\Core\Http\HttpResponse;
 
 /**
  * Gemini Chat Client Adapter
@@ -17,11 +19,17 @@ class GeminiChatClientAdapter implements ChatClientInterface
 {
     private $api_key;
     private $base_url;
+    private $http_client;
     
     public function __construct($api_key, $base_url = 'https://generativelanguage.googleapis.com/v1beta')
     {
         $this->api_key = $api_key;
         $this->base_url = rtrim($base_url, '/');
+        
+        // Initialize HTTP client
+        // Note: Gemini uses query string for API key, not headers
+        $this->http_client = new HttpClient($this->base_url, 120);
+        $this->http_client->set_header('Content-Type', 'application/json');
     }
     
     public function get_provider_id()
@@ -107,49 +115,32 @@ class GeminiChatClientAdapter implements ChatClientInterface
         }
         
         // Make API request
-        $response = wp_remote_post(
-            $this->base_url . '/models/' . urlencode($model) . ':generateContent?key=' . urlencode($this->api_key),
-            [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                ],
-                'body' => wp_json_encode($body),
-                'timeout' => 120,
-            ]
-        );
+        // Gemini uses query string for API key
+        $url = '/models/' . urlencode($model) . ':generateContent';
+        $query_params = ['key' => $this->api_key];
+        
+        $response = $this->http_client->post($url, $body, [
+            'timeout' => 120,
+        ]);
+        
+        // Add API key to query string (Gemini requirement)
+        $full_url = $this->http_client->get_base_url() . $url . '?key=' . urlencode($this->api_key);
+        $response = $this->http_client->post($full_url, $body, [
+            'timeout' => 120,
+        ]);
         
         // Handle errors
-        if (is_wp_error($response)) {
+        if ($response->is_error()) {
             return [
                 'success' => false,
                 'data' => null,
-                'error' => $response->get_error_message()
+                'error' => $response->get_error_message(),
+                'error_code' => $response->get_status_code() === 429 ? 'rate_limit' : 'api_error',
+                'status' => $response->get_status_code(),
             ];
         }
         
-        $status_code = wp_remote_retrieve_response_code($response);
-        $body_data = json_decode(wp_remote_retrieve_body($response), true);
-        
-        // Handle API errors
-        if ($status_code !== 200) {
-            $error_message = 'Unknown API error';
-            
-            if (isset($body_data['error'])) {
-                if (is_array($body_data['error'])) {
-                    $error_message = $body_data['error']['message'] ?? $body_data['error']['status'] ?? 'Unknown API error';
-                } else {
-                    $error_message = $body_data['error'];
-                }
-            }
-            
-            return [
-                'success' => false,
-                'data' => null,
-                'error' => $error_message,
-                'error_code' => $status_code === 429 ? 'rate_limit' : 'api_error',
-                'status' => $status_code,
-            ];
-        }
+        $body_data = $response->get_json(true);
         
         return [
             'success' => true,
