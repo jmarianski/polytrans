@@ -52,6 +52,10 @@ Manage workflows:
 - Execute manually
 - View execution logs
 
+**Submenu items:**
+- **Post-Processing** - List and manage workflows
+- **Execute Workflow** - Manual workflow execution wizard
+
 ### Settings → Translation Settings
 
 Configure:

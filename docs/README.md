@@ -39,10 +39,13 @@ Edit Post → Translation Scheduler → Select Languages → Translate
 
 ### API Endpoints
 ```
-POST /wp-json/polytrans/v1/translate
+POST /wp-json/polytrans/v1/translation/translate
+POST /wp-json/polytrans/v1/translation/receive-post
 GET  /wp-json/polytrans/v1/status/{task_id}
 POST /wp-json/polytrans/v1/workflow/execute
 ```
+
+See [API Documentation](developer/API-DOCUMENTATION.md) for complete reference.
 
 ## Support
 

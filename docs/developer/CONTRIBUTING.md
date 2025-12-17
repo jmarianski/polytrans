@@ -20,13 +20,26 @@ See [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md) for details.
 
 ## Code Standards
 
-**Follow WordPress Coding Standards:**
+**Follow WordPress Coding Standards with PSR-4:**
 
 ```php
-// Classes: PolyTrans_Class_Name
-// Functions: polytrans_function_name()
-// Variables: $variable_name
+// ✅ Classes: PSR-4 namespaces
+namespace PolyTrans\Core;
+
+class LogsManager {
+    // ...
+}
+
+// ✅ Functions: polytrans_function_name()
+function polytrans_helper_function() {
+    // ...
+}
+
+// ✅ Variables: $variable_name
+$post_id = 123;
 ```
+
+**⚠️ Note**: The project uses PSR-4 autoloading. Legacy `PolyTrans_Class_Name` classes are deprecated and maintained only for backward compatibility. New code should use PSR-4 namespaces.
 
 **PHPDoc required for all public methods:**
 

@@ -3,7 +3,7 @@
 ## Requirements
 
 - WordPress 5.0+
-- PHP 7.4+
+- PHP 8.1+
 - Polylang plugin (recommended)
 
 ## Install
@@ -26,10 +26,32 @@
 2. **Settings → Translation Settings**
 3. Provider: Select "OpenAI"
 4. Enter API key
-5. Create OpenAI assistants for each language pair
-6. Map assistants (e.g., `en_to_es` → `asst_abc123`)
-7. Test configuration
-8. Save
+5. Click "Validate" to test API key
+6. Create OpenAI assistants for each language pair (optional, for advanced paths)
+7. Map assistants (e.g., `en_to_es` → `asst_abc123`) (optional)
+8. Save Changes
+
+### With Claude (Anthropic)
+1. Get API key from [console.anthropic.com](https://console.anthropic.com/)
+2. **Settings → Translation Settings**
+3. Provider: Select "Claude"
+4. Enter API key
+5. Click "Validate" to test API key
+6. Select model (e.g., `claude-3-5-sonnet-20241022`)
+7. Save Changes
+
+**Note**: Claude can be used for managed assistants in workflows. See [AI Assistants Guide](ASSISTANTS.md) for details.
+
+### With Gemini (Google)
+1. Get API key from [makersuite.google.com](https://makersuite.google.com/app/apikey)
+2. **Settings → Translation Settings**
+3. Provider: Select "Gemini"
+4. Enter API key
+5. Click "Validate" to test API key
+6. Select model (e.g., `gemini-pro`)
+7. Save Changes
+
+**Note**: Gemini can be used for managed assistants in workflows. See [AI Assistants Guide](ASSISTANTS.md) for details.
 
 ## Configure Languages
 

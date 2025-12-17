@@ -1,5 +1,19 @@
 # Guide: Dodawanie Własnego Providera do PolyTrans
 
+## Quick Start (5 minut)
+
+Chcesz szybko dodać własnego providera? Oto minimalna implementacja:
+
+### Minimum: 2 pliki + 1 linijka kodu
+
+1. **SettingsProvider** (`includes/YourSettingsProvider.php`) - ~50 linii
+2. **ChatClientAdapter** (`includes/YourChatClientAdapter.php`) - ~80 linii
+3. **Rejestracja** w main file - 1 linijka
+
+**Pełny przykład**: Zobacz `docs/examples/polytrans-deepseek/` - kompletny plugin z wszystkimi plikami.
+
+---
+
 ## Wprowadzenie
 
 PolyTrans został zaprojektowany z myślą o pełnej ekstensybilności. Możesz łatwo dodać własnego providera (np. DeepSeek, Mistral, itp.) bez modyfikowania kodu głównego pluginu.
