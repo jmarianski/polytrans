@@ -85,8 +85,7 @@ class AiAssistantStep implements WorkflowStepInterface
             // Log warning if provider was auto-selected
             $selected_provider = $step_config['provider'] ?? '';
             if (empty($selected_provider)) {
-                $logs_manager = \PolyTrans_Logs_Manager::get_instance();
-                $logs_manager->log(
+                \PolyTrans\Core\LogsManager::log(
                     sprintf(
                         'AI Assistant step: No provider selected, using auto-selected provider: %s',
                         $provider_settings['provider']
