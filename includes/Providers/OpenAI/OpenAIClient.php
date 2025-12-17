@@ -2,6 +2,9 @@
 
 namespace PolyTrans\Providers\OpenAI;
 
+use PolyTrans\Core\Http\HttpClient;
+use PolyTrans\Core\Http\HttpResponse;
+
 /**
  * OpenAI API Client
  * 
@@ -18,6 +21,7 @@ class OpenAIClient
     private $api_key;
     private $base_url;
     private $default_timeout;
+    private $http_client;
 
     /**
      * Constructor
@@ -31,6 +35,14 @@ class OpenAIClient
         $this->api_key = $api_key;
         $this->base_url = rtrim($base_url, '/');
         $this->default_timeout = $default_timeout;
+        
+        // Initialize HTTP client
+        $this->http_client = new HttpClient($this->base_url, $default_timeout);
+        $this->http_client
+            ->set_auth('bearer', $api_key)
+            ->set_header('Content-Type', 'application/json')
+            ->set_header('OpenAI-Beta', 'assistants=v2')
+            ->set_header('User-Agent', 'PolyTrans/1.0');
     }
 
     /**
@@ -96,7 +108,7 @@ class OpenAIClient
      */
     public function get_models()
     {
-        $url = $this->base_url . '/models';
+        $url = '/models';
         $response = $this->make_request('GET', $url);
 
         if (!$response['success']) {
@@ -114,7 +126,7 @@ class OpenAIClient
      */
     public function create_thread($messages = [])
     {
-        $url = $this->base_url . '/threads';
+        $url = '/threads';
         $body = ['messages' => $messages];
 
         $response = $this->make_request('POST', $url, $body, 120);
@@ -142,7 +154,7 @@ class OpenAIClient
      */
     public function add_message($thread_id, $role, $content)
     {
-        $url = $this->base_url . "/threads/{$thread_id}/messages";
+        $url = "/threads/{$thread_id}/messages";
         $body = [
             'role' => $role,
             'content' => $content
@@ -173,7 +185,7 @@ class OpenAIClient
      */
     public function run_assistant($thread_id, $assistant_id, $additional_params = [])
     {
-        $url = $this->base_url . "/threads/{$thread_id}/runs";
+        $url = "/threads/{$thread_id}/runs";
         $body = array_merge(['assistant_id' => $assistant_id], $additional_params);
 
         $response = $this->make_request('POST', $url, $body, 120);
@@ -201,7 +213,7 @@ class OpenAIClient
      */
     public function get_run_status($thread_id, $run_id)
     {
-        $url = $this->base_url . "/threads/{$thread_id}/runs/{$run_id}";
+        $url = "/threads/{$thread_id}/runs/{$run_id}";
         $response = $this->make_request('GET', $url, null, 120);
 
         if (!$response['success']) {
@@ -285,7 +297,10 @@ class OpenAIClient
             'order' => $order
         ];
 
-        $url = add_query_arg($query_params, $this->base_url . "/threads/{$thread_id}/messages");
+        $url = "/threads/{$thread_id}/messages";
+        if (!empty($query_params)) {
+            $url = add_query_arg($query_params, $url);
+        }
         $response = $this->make_request('GET', $url, null, 30);
 
         if (!$response['success']) {
@@ -343,28 +358,16 @@ class OpenAIClient
      * Make an HTTP request to the OpenAI API
      * 
      * @param string $method HTTP method (GET, POST, etc.)
-     * @param string $url Full URL to request
+     * @param string $url Full URL or path (relative to base_url)
      * @param array|null $body Request body (for POST/PUT requests)
      * @param int|null $timeout Timeout in seconds (uses default if not specified)
      * @return array Response with 'success', 'data' or 'error'
      */
     private function make_request($method, $url, $body = null, $timeout = null)
     {
-        $timeout = $timeout ?? $this->default_timeout;
-
-        $args = [
-            'method' => $method,
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->api_key,
-                'Content-Type' => 'application/json',
-                'OpenAI-Beta' => 'assistants=v2',
-                'User-Agent' => 'PolyTrans/1.0'
-            ],
-            'timeout' => $timeout
-        ];
-
-        if ($body !== null) {
-            $args['body'] = json_encode($body);
+        $options = [];
+        if ($timeout !== null) {
+            $options['timeout'] = $timeout;
         }
 
         // Try up to 2 times (initial attempt + 1 retry)
@@ -372,40 +375,39 @@ class OpenAIClient
         $last_error = null;
 
         for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
-            $response = wp_remote_request($url, $args);
+            $response = $this->http_client->request($method, $url, $body, $options);
 
-            if (is_wp_error($response)) {
-                $last_error = $response->get_error_message();
-
+            if ($response->is_error()) {
+                $error_message = $response->get_error_message();
+                
                 // If this was a timeout and we have attempts left, retry
-                if ($attempt < $max_attempts && strpos($last_error, 'timeout') !== false) {
+                if ($attempt < $max_attempts && strpos($error_message, 'timeout') !== false) {
                     error_log("PolyTrans OpenAI: Request timeout on attempt {$attempt}, retrying...");
                     continue;
                 }
 
                 return [
                     'success' => false,
-                    'error' => $last_error
+                    'error' => $error_message,
+                    'status_code' => $response->get_status_code()
                 ];
             }
 
-            $status_code = wp_remote_retrieve_response_code($response);
-            $response_body = wp_remote_retrieve_body($response);
-            $data = json_decode($response_body, true);
-
-            if ($status_code < 200 || $status_code >= 300) {
-                $error_message = $data['error']['message'] ?? 'Unknown API error';
+            // Success - get JSON data
+            $data = $response->get_json(true);
+            
+            if ($data === null) {
                 return [
                     'success' => false,
-                    'error' => $error_message,
-                    'status_code' => $status_code
+                    'error' => 'Invalid JSON response',
+                    'status_code' => $response->get_status_code()
                 ];
             }
 
             return [
                 'success' => true,
                 'data' => $data,
-                'status_code' => $status_code
+                'status_code' => $response->get_status_code()
             ];
         }
 
