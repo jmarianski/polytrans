@@ -28,15 +28,23 @@ class OpenAIClient
      * 
      * @param string $api_key OpenAI API key
      * @param string $base_url Base URL for OpenAI API (default: https://api.openai.com/v1)
-     * @param int $default_timeout Default timeout for requests in seconds (default: 30)
+     * @param int|null $default_timeout Default timeout for requests in seconds (null = use setting)
      */
-    public function __construct($api_key, $base_url = 'https://api.openai.com/v1', $default_timeout = 30)
+    public function __construct($api_key, $base_url = 'https://api.openai.com/v1', $default_timeout = null)
     {
         $this->api_key = $api_key;
         $this->base_url = rtrim($base_url, '/');
+        
+        // Get API timeout from settings if not provided
+        if ($default_timeout === null) {
+            $settings = get_option('polytrans_settings', []);
+            $default_timeout = absint($settings['api_timeout'] ?? 180);
+            $default_timeout = max(30, min(600, $default_timeout)); // Clamp between 30-600 seconds
+        }
+        
         $this->default_timeout = $default_timeout;
         
-        // Initialize HTTP client
+        // Initialize HTTP client with configurable timeout
         $this->http_client = new HttpClient($this->base_url, $default_timeout);
         $this->http_client
             ->set_auth('bearer', $api_key)

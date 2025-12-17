@@ -26,9 +26,14 @@ class GeminiChatClientAdapter implements ChatClientInterface
         $this->api_key = $api_key;
         $this->base_url = rtrim($base_url, '/');
         
-        // Initialize HTTP client
+        // Get API timeout from settings (default: 180 seconds)
+        $settings = get_option('polytrans_settings', []);
+        $api_timeout = absint($settings['api_timeout'] ?? 180);
+        $api_timeout = max(30, min(600, $api_timeout)); // Clamp between 30-600 seconds
+        
+        // Initialize HTTP client with configurable timeout
         // Note: Gemini uses query string for API key, not headers
-        $this->http_client = new HttpClient($this->base_url, 120);
+        $this->http_client = new HttpClient($this->base_url, $api_timeout);
         $this->http_client->set_header('Content-Type', 'application/json');
     }
     
@@ -114,19 +119,20 @@ class GeminiChatClientAdapter implements ChatClientInterface
             $body['generationConfig'] = $generation_config;
         }
         
+        // Get API timeout from settings (default: 180 seconds)
+        $settings = get_option('polytrans_settings', []);
+        $api_timeout = absint($settings['api_timeout'] ?? 180);
+        $api_timeout = max(30, min(600, $api_timeout)); // Clamp between 30-600 seconds
+        
         // Make API request
         // Gemini uses query string for API key
         $url = '/models/' . urlencode($model) . ':generateContent';
-        $query_params = ['key' => $this->api_key];
-        
-        $response = $this->http_client->post($url, $body, [
-            'timeout' => 120,
-        ]);
-        
-        // Add API key to query string (Gemini requirement)
         $full_url = $this->http_client->get_base_url() . $url . '?key=' . urlencode($this->api_key);
+        
+        // HttpClient will handle retry on timeout
         $response = $this->http_client->post($full_url, $body, [
-            'timeout' => 120,
+            'timeout' => $api_timeout,
+            'retry_on_timeout' => true,
         ]);
         
         // Handle errors

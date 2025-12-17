@@ -93,12 +93,12 @@ class HttpClient
     }
 
     /**
-     * Make HTTP request
+     * Make HTTP request with automatic retry on timeout
      * 
      * @param string $method HTTP method (GET, POST, PUT, DELETE, etc.)
      * @param string $url Full URL or path (if base_url is set)
      * @param array|null $data Request body data (will be JSON encoded)
-     * @param array $options Additional options (timeout, headers, sslverify, etc.)
+     * @param array $options Additional options (timeout, headers, sslverify, retry_on_timeout, etc.)
      * @return HttpResponse Response wrapper
      */
     public function request($method, $url, $data = null, array $options = []): HttpResponse
@@ -109,11 +109,18 @@ class HttpClient
         // Merge headers
         $headers = array_merge($this->default_headers, $options['headers'] ?? []);
 
+        // Get timeout (from options, or default)
+        $timeout = $options['timeout'] ?? $this->default_timeout;
+        
+        // Check if retry on timeout is enabled (default: true)
+        $retry_on_timeout = $options['retry_on_timeout'] ?? true;
+        $max_attempts = $retry_on_timeout ? 2 : 1; // Initial attempt + 1 retry
+
         // Build request args
         $args = [
             'method' => strtoupper($method),
             'headers' => $headers,
-            'timeout' => $options['timeout'] ?? $this->default_timeout,
+            'timeout' => $timeout,
             'sslverify' => $options['sslverify'] ?? $this->default_sslverify,
         ];
 
@@ -146,10 +153,37 @@ class HttpClient
             $args['redirection'] = $options['redirection'];
         }
 
-        // Make request
-        $response = wp_remote_request($full_url, $args);
-
-        return new HttpResponse($response);
+        // Make request with retry logic
+        $last_response = null;
+        for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
+            $response = wp_remote_request($full_url, $args);
+            $http_response = new HttpResponse($response);
+            
+            // Check if this was a timeout error
+            if ($http_response->is_error()) {
+                $error_message = $http_response->get_error_message();
+                
+                // If timeout and we have attempts left, retry
+                if ($attempt < $max_attempts && 
+                    (strpos(strtolower($error_message), 'timeout') !== false || 
+                     strpos(strtolower($error_message), 'timed out') !== false)) {
+                    error_log(sprintf(
+                        '[PolyTrans HttpClient] Request timeout on attempt %d/%d, retrying... URL: %s',
+                        $attempt,
+                        $max_attempts,
+                        $full_url
+                    ));
+                    $last_response = $http_response;
+                    continue; // Retry
+                }
+            }
+            
+            // Success or non-timeout error - return immediately
+            return $http_response;
+        }
+        
+        // All attempts exhausted - return last response
+        return $last_response ?? new HttpResponse(new \WP_Error('unknown', 'Request failed'));
     }
 
     /**

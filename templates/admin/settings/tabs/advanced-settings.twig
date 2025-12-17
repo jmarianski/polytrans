@@ -51,6 +51,18 @@
 <input type="url" name="edit_link_base_url" value="{{ settings.edit_link_base_url|default('')|esc_attr }}" style="width:100%" placeholder="https://example.com/wp-admin" />
 <br><small>{{ __('Base URL for edit links in email notifications (e.g., https://example.com/wp-admin). If left empty, the system will attempt to use the default WordPress admin URL. This is useful when notifications are sent from background processes or external services that don\'t have proper WordPress context.', 'polytrans') }}</small><br><br>
 
+<h2>{{ __('API Request Settings', 'polytrans') }}</h2>
+<div class="translation-api-settings">
+    {% set api_timeout = settings.api_timeout|default(180) %}
+    <p>
+        <label for="api-timeout"><strong>{{ __('API Request Timeout (seconds)', 'polytrans') }}</strong></label><br>
+        <input type="number" id="api-timeout" name="api_timeout" value="{{ api_timeout|esc_attr }}" min="30" max="600" step="10" style="width:200px;" />
+    </p>
+    <small>
+        {{ __('Timeout for AI provider API requests (OpenAI, Claude, Gemini). Default: 180 seconds (3 minutes). Increase this value if you experience timeout errors with long translations or complex workflows. The system will automatically retry once on timeout.', 'polytrans') }}
+    </small>
+</div><br>
+
 <h2>{{ __('Logging Options', 'polytrans') }}</h2>
 <div class="translation-logging-options">
     {% set enable_db_logging = settings.enable_db_logging|default(true) %}

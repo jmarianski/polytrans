@@ -28,8 +28,13 @@ class ClaudeChatClientAdapter implements ChatClientInterface
         $this->base_url = rtrim($base_url, '/');
         $this->api_version = $api_version;
         
-        // Initialize HTTP client
-        $this->http_client = new HttpClient($this->base_url, 120);
+        // Get API timeout from settings (default: 180 seconds)
+        $settings = get_option('polytrans_settings', []);
+        $api_timeout = absint($settings['api_timeout'] ?? 180);
+        $api_timeout = max(30, min(600, $api_timeout)); // Clamp between 30-600 seconds
+        
+        // Initialize HTTP client with configurable timeout
+        $this->http_client = new HttpClient($this->base_url, $api_timeout);
         $this->http_client
             ->set_api_key($api_key, 'x-api-key')
             ->set_header('anthropic-version', $api_version)
@@ -103,9 +108,15 @@ class ClaudeChatClientAdapter implements ChatClientInterface
             $body['top_k'] = $parameters['top_k'];
         }
         
-        // Make API request
+        // Get API timeout from settings (default: 180 seconds)
+        $settings = get_option('polytrans_settings', []);
+        $api_timeout = absint($settings['api_timeout'] ?? 180);
+        $api_timeout = max(30, min(600, $api_timeout)); // Clamp between 30-600 seconds
+        
+        // Make API request (HttpClient will handle retry on timeout)
         $response = $this->http_client->post('/messages', $body, [
-            'timeout' => 120,
+            'timeout' => $api_timeout,
+            'retry_on_timeout' => true,
         ]);
         
         // Handle errors

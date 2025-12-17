@@ -207,6 +207,9 @@ class TranslationSettings
         $settings['translation_receiver_secret_method'] = sanitize_text_field(wp_unslash($_POST['translation_receiver_secret_method'] ?? 'header_bearer'));
         $settings['translation_receiver_secret_custom_header'] = sanitize_text_field(wp_unslash($_POST['translation_receiver_secret_custom_header'] ?? 'x-polytrans-secret'));
         $settings['edit_link_base_url'] = esc_url_raw(wp_unslash($_POST['edit_link_base_url'] ?? ''));
+        $settings['api_timeout'] = absint(wp_unslash($_POST['api_timeout'] ?? 180));
+        // Ensure timeout is within reasonable bounds (30-600 seconds)
+        $settings['api_timeout'] = max(30, min(600, $settings['api_timeout']));
         $settings['enable_db_logging'] = isset($_POST['enable_db_logging']) ? '1' : '0';
         $settings['allowed_sources'] = isset($_POST['allowed_sources']) ? array_map('sanitize_text_field', wp_unslash($_POST['allowed_sources'])) : [];
         $settings['allowed_targets'] = isset($_POST['allowed_targets']) ? array_map('sanitize_text_field', wp_unslash($_POST['allowed_targets'])) : [];
