@@ -2364,4 +2364,17 @@ ${escapeHtml(userMessage)}
         return div.innerHTML;
     }
 
+    // Handle provider selection change - show/hide warning
+    $(document).on('change', '.workflow-provider-select', function() {
+        const $select = $(this);
+        const stepIndex = $select.closest('.workflow-step').index();
+        const $warning = $(`.workflow-provider-warning[data-step-index="${stepIndex}"]`);
+        
+        if ($select.val()) {
+            $warning.fadeOut();
+        } else {
+            $warning.fadeIn();
+        }
+    });
+
 })(jQuery);
