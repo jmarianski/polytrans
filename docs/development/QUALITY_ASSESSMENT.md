@@ -518,5 +518,151 @@ Po wprowadzeniu tych zmian, projekt będzie na poziomie **9/10** - production-re
 
 ---
 
-**Ostatnia aktualizacja**: 2025-12-16
+---
+
+## 📋 Quality Improvements Roadmap
+
+**Status**: In Progress  
+**Started**: 2025-12-10  
+**Goal**: Streamline codebase, improve testability, enhance maintainability
+
+### ✅ Completed
+
+#### Documentation (2025-12-10)
+- ✅ Reorganized docs structure (15 MD → 3 in root)
+- ✅ Created docs/INDEX.md
+- ✅ Created Phase 0 summary
+- ✅ Logical grouping (development/, planning/, testing/)
+
+#### Testing (2025-12-10)
+- ✅ Added TwigEngineTest.php (comprehensive)
+- ✅ Added PostDataProviderTest.php
+- ✅ Added VariableManagerTest.php
+- ✅ Tests ready for WordPress integration testing
+
+#### Code Quality (2025-12-10)
+- ✅ Added type hints to Post Data Provider
+- ✅ Enhanced PHPDoc blocks
+- ✅ Better IDE support
+
+### 🔄 In Progress
+
+#### PHP Code Quality
+**Priority**: High  
+**Effort**: Medium
+
+Remaining classes to refactor:
+- [ ] Variable Manager - add type hints
+- [ ] Workflow Output Processor - add type hints
+- [ ] Workflow Storage Manager - add type hints
+- [ ] Workflow Executor - add type hints
+
+**Tasks**:
+1. Add return type hints (`: string`, `: array`, `: void`)
+2. Add parameter type hints (`array $context`, `string $template`)
+3. Enhance PHPDoc with `@param` and `@return`
+4. Add `@throws` documentation where applicable
+5. Use strict types (`declare(strict_types=1);`) where appropriate
+
+#### Test Coverage
+**Priority**: High  
+**Effort**: High
+
+**Current State**:
+- Architecture tests: ✅ Working
+- Unit tests: ⚠️ Need WordPress environment
+- Integration tests: ❌ Not implemented
+- Coverage report: ❌ Not available
+
+**Tasks**:
+1. [ ] Setup WordPress test environment
+2. [ ] Run existing unit tests
+3. [ ] Add integration tests for workflows
+4. [ ] Add integration tests for multi-step execution
+5. [ ] Setup code coverage reporting
+6. [ ] Target: 70%+ coverage for Phase 0 components
+
+#### Legacy Code Cleanup
+**Priority**: Medium  
+**Effort**: Low
+
+**Files to Review/Remove**:
+- Legacy test files (`test-*.php`)
+- `LegacyAutoloader.php` (po zakończeniu migracji PSR-4)
+
+**Tasks**:
+1. [ ] Review each legacy test file
+2. [ ] Migrate useful tests to Pest format
+3. [ ] Remove obsolete tests
+4. [ ] Document what was kept/removed
+
+#### Frontend Code Quality
+**Priority**: Medium  
+**Effort**: Medium
+
+**JavaScript**:
+- [ ] Add JSDoc comments to functions
+- [ ] Consistent error handling
+- [ ] Extract magic numbers to constants
+- [ ] Add input validation
+
+**CSS**:
+- [ ] Extract colors to CSS variables
+- [ ] Consolidate duplicate styles
+- [ ] Add comments for complex selectors
+- [ ] Improve mobile responsiveness
+
+#### Security Audit
+**Priority**: High  
+**Effort**: Low
+
+**Areas to Review**:
+1. [ ] Input sanitization (nonce verification)
+2. [ ] Output escaping (XSS prevention)
+3. [ ] SQL injection prevention (prepared statements)
+4. [ ] File upload validation
+5. [ ] Capability checks (user permissions)
+
+#### Performance Optimization
+**Priority**: Low  
+**Effort**: Medium
+
+**Areas to Optimize**:
+1. [ ] Database queries (N+1 problem)
+2. [ ] Twig cache effectiveness
+3. [ ] Asset loading (minification, concatenation)
+4. [ ] Lazy loading for heavy components
+
+---
+
+## 📊 Success Metrics
+
+### Code Quality
+- [ ] All Phase 0 classes have type hints
+- [ ] All public methods have PHPDoc
+- [ ] No PHP warnings/notices
+- [ ] PSR-12 coding standards compliance
+
+### Testing
+- [ ] 70%+ code coverage
+- [ ] All critical paths tested
+- [ ] Integration tests passing
+- [ ] CI/CD pipeline setup
+
+### Performance
+- [ ] Workflow execution < 2s (simple)
+- [ ] Page load < 1s (admin)
+- [ ] Database queries < 20 per request
+- [ ] Memory usage < 128MB
+
+### Security
+- [ ] No XSS vulnerabilities
+- [ ] No SQL injection points
+- [ ] All inputs sanitized
+- [ ] All outputs escaped
+
+---
+
+**Ostatnia aktualizacja**: 2025-12-16  
+**Zintegrowano z**: [VERSION_1.7.0_PLAN.md](../roadmap/VERSION_1.7.0_PLAN.md)
 

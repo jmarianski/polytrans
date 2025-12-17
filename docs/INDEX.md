@@ -18,7 +18,7 @@
 ## 🏗️ Development Documentation
 
 ### Phase 0: Foundation (✅ Complete - v1.3.5)
-**Location**: `docs/development/phase-0/`
+**Location**: `docs/archive/phase-0/` (archived)
 
 Core infrastructure improvements:
 - **Twig Integration** - Modern templating engine
@@ -26,7 +26,20 @@ Core infrastructure improvements:
 - **Context Refresh Logic** - Multi-step workflow data consistency
 - **UI Redesign** - Variable sidebar/pills responsive layout
 
-[View Phase 0 Details →](development/phase-0/)
+[View Phase 0 Details →](../archive/phase-0/)
+
+### Current Development Plans
+**Location**: `docs/development/`
+
+- [Refactoring Plan](development/REFACTORING_PLAN.md) - DRY approach with design patterns
+- [Quality Assessment](development/QUALITY_ASSESSMENT.md) - Code quality analysis and improvements roadmap
+- [Docs Cleanup Plan](development/DOCS_CLEANUP_PLAN.md) - Documentation organization plan
+
+### Roadmap
+**Location**: `docs/roadmap/`
+
+- [Version 1.7.0 Plan](roadmap/VERSION_1.7.0_PLAN.md) - Comprehensive refactoring & extensibility
+- [Version 1.7.0 Proposal](roadmap/VERSION_1.7.0_PROPOSAL.md) - Initial extensibility proposal
 
 ### Planning Documents
 **Location**: `docs/planning/`
@@ -55,19 +68,28 @@ docs/
 ├── INDEX.md                    # This file
 ├── README.md                   # Docs overview
 ├── admin/                      # Admin documentation
-├── user-guide/                 # End-user guides
+├── user-guide/                 # End-user guides (includes ASSISTANTS.md)
 ├── developer/                  # Developer guides
-├── development/                # Implementation details
-│   └── phase-0/               # Phase 0 documentation
+├── development/                # Implementation details & plans
+│   ├── REFACTORING_PLAN.md    # Refactoring plan (DRY approach)
+│   ├── QUALITY_ASSESSMENT.md  # Quality assessment & improvements
+│   └── DOCS_CLEANUP_PLAN.md   # Documentation cleanup plan
+├── roadmap/                     # Version roadmaps
+│   ├── VERSION_1.7.0_PLAN.md   # Comprehensive 1.7.0 plan
+│   └── VERSION_1.7.0_PROPOSAL.md
 ├── planning/                   # Future plans and roadmaps
-└── testing/                    # Testing documentation
+├── testing/                    # Testing documentation
+└── archive/                    # Archived documentation
+    ├── phase-0/                # Phase 0 (complete)
+    ├── roadmap/               # Old roadmaps (VERSION_1.6.0_*)
+    └── planning/               # Old planning docs
 ```
 
 ## 🎯 Current Status
 
-**Version**: 1.3.5  
-**Phase**: 0 Complete ✅  
-**Next**: Phase 1 - Assistants System
+**Version**: 1.6.14 → **1.7.0** (in development)  
+**Phase**: Twig Migration Complete ✅  
+**Next**: Version 1.7.0 - Comprehensive Refactoring & Extensibility
 
 ### What's Working
 - ✅ Twig template engine with WordPress integration
@@ -77,12 +99,15 @@ docs/
 - ✅ Markdown rendering in AI responses
 - ✅ Reusable Prompt Editor module
 - ✅ Testing infrastructure (Pest PHP)
+- ✅ All admin pages migrated to Twig templates
 
-### What's Next
-- Phase 1: Assistants System (centralized AI configurations)
-- Deep unit tests for Phase 0 components
-- Performance optimization
-- Advanced Twig features (custom filters, functions)
+### What's Next (Version 1.7.0)
+- 🔄 Complete PSR-4 migration (377 references to fix)
+- 🔄 Utility classes refactoring (HttpClient, BaseAjaxHandler, etc.)
+- 🔄 Extensibility hooks system (27 new hooks)
+- 🔄 Path resolution interceptors (modify pathing behavior)
+- 🔄 Manifest extensions (custom endpoint handlers)
+- 🔄 Documentation cleanup and reorganization
 
 ## 🔗 External Resources
 
@@ -92,6 +117,7 @@ docs/
 
 ---
 
-**Last Updated**: 2025-12-10  
+**Last Updated**: 2025-12-16  
+**Version**: 1.7.0 (planning)  
 **Maintained By**: PolyTrans Team
 

@@ -1,8 +1,9 @@
-# Plan Refaktoryzacji Dużych Klas
+# Plan Refaktoryzacji - Podejście DRY z Wzorcami Projektowymi
 
 **Data utworzenia**: 2025-12-16  
-**Wersja**: 1.0  
-**Cel**: Zmniejszenie klas z 700-1100 linii do ~200 linii każda
+**Wersja**: 2.0  
+**Cel**: Wyekstraktować wspólne wzorce i duplikacje zamiast przenosić kod  
+**Zintegrowano z**: Planem wersji 1.7.0
 
 ---
 
@@ -20,941 +21,381 @@
 
 ---
 
-## 1. OpenAISettingsProvider (1,127 linii) 🔴 **PRIORYTET 1**
+## 🔍 Analiza Duplikacji i Wspólnych Wzorców
 
-### Obecna Struktura
+### 1. Duplikacje w WorkflowOutputProcessor
 
-**Główne odpowiedzialności**:
-1. Renderowanie UI ustawień (render_settings_ui)
-2. Walidacja ustawień (validate_settings)
-3. Zarządzanie asystentami (render_assistant_mapping_table, ajax_load_openai_assistants)
-4. Zarządzanie modelami (get_grouped_models, ajax_get_openai_models, fetch_models_from_api)
-5. Zarządzanie path rules (render_path_rules_table)
-6. Walidacja API key (ajax_validate_openai_key, validate_api_key)
-7. AJAX handlers (register_ajax_handlers)
-8. Provider manifest (get_provider_manifest)
+**Problem**: Wszystkie metody `update_post_*` mają identyczną strukturę (~300 linii duplikacji).
 
-**Metody** (34 metody):
-- Interface methods: `get_provider_id()`, `get_tab_label()`, `get_tab_description()`, `get_settings_keys()`, `get_required_js_files()`, `get_required_css_files()`
-- UI Rendering: `render_settings_ui()`, `render_assistant_mapping_table()`, `render_model_selection()`, `render_path_rules_table()`
-- Validation: `validate_settings()`, `validate_openai_api_key()`, `validate_api_key()`
-- API Integration: `fetch_models_from_api()`, `load_assistants()`, `load_models()`
-- AJAX Handlers: `ajax_validate_openai_key()`, `ajax_load_openai_assistants()`, `ajax_get_openai_models()`, `ajax_get_providers_config()`
-- Helpers: `get_language_pairs()`, `get_language_name()`, `get_model_group()`, `get_model_label()`, `get_fallback_models()`, `get_grouped_models()`, `get_all_available_models()`
+**Wzorzec**: Strategy Pattern + Template Method
 
-### Plan Refaktoryzacji
-
-#### Krok 1: Wyodrębnij AssistantManager
-**Nowa klasa**: `OpenAI\Settings\AssistantManager`
-
-```php
-namespace PolyTrans\Providers\OpenAI\Settings;
-
-class AssistantManager {
-    public function render_mapping_table($languages, $language_names, $assistants, $source_language): string;
-    public function load_assistants(array $settings): array;
-    public function ajax_load_assistants(): void;
-    private function fetch_assistants_from_api(string $api_key): array;
-}
-```
-
-**Metody do przeniesienia**:
-- `render_assistant_mapping_table()` (~80 linii)
-- `ajax_load_openai_assistants()` (~160 linii)
-- `load_assistants()` (~50 linii)
-- Logika związana z asystentami
-
-**Szacowany rozmiar**: ~300 linii
+**Rozwiązanie**: `PostProcessing\Output\Actions\PostUpdateAction` (abstract) + concrete actions
 
 ---
 
-#### Krok 2: Wyodrębnij ModelManager
-**Nowa klasa**: `OpenAI\Settings\ModelManager`
+### 2. Duplikacje w AJAX Handlers
 
-```php
-namespace PolyTrans\Providers\OpenAI\Settings;
+**Problem**: Wszystkie AJAX handlers mają identyczną strukturę (~200 linii duplikacji).
 
-class ModelManager {
-    public function render_model_selection($selected_model): string;
-    public function get_grouped_models($selected_model = null): array;
-    public function load_models(array $settings): array;
-    public function ajax_get_models(): void;
-    private function fetch_models_from_api(string $api_key): array;
-    private function get_model_group(string $model_id): string;
-    private function get_model_label(string $model_id): string;
-    private function get_fallback_models(): array;
-    private function get_all_available_models(): array;
-}
-```
+**Wzorzec**: Template Method Pattern + Base AJAX Handler
 
-**Metody do przeniesienia**:
-- `render_model_selection()` (~40 linii)
-- `get_grouped_models()` (~30 linii)
-- `fetch_models_from_api()` (~80 linii)
-- `get_model_group()`, `get_model_label()`, `get_fallback_models()`, `get_all_available_models()` (~150 linii)
-- `ajax_get_openai_models()` (~40 linii)
-- `load_models()` (~25 linii)
-
-**Szacowany rozmiar**: ~365 linii
+**Rozwiązanie**: `Core\Ajax\BaseAjaxHandler`
 
 ---
 
-#### Krok 3: Wyodrębnij PathRulesManager
-**Nowa klasa**: `OpenAI\Settings\PathRulesManager`
+### 3. Duplikacje w API Requests
 
-```php
-namespace PolyTrans\Providers\OpenAI\Settings;
+**Problem**: Wiele klas wykonuje podobne API requests (~400 linii duplikacji).
 
-class PathRulesManager {
-    public function render_path_rules_table($path_rules, $languages, $language_names): string;
-    public function validate_path_rules(array $rules): array;
-    private function get_language_pairs(array $languages): array;
-    private function get_language_name(string $lang_code, array $languages, array $language_names): string;
-}
-```
+**Wzorzec**: HTTP Client Wrapper + Response Parser
 
-**Metody do przeniesienia**:
-- `render_path_rules_table()` (~70 linii)
-- Logika walidacji path rules z `validate_settings()` (~50 linii)
-- `get_language_pairs()` (~20 linii)
-- `get_language_name()` (~15 linii)
-
-**Szacowany rozmiar**: ~155 linii
+**Rozwiązanie**: `Core\Http\HttpClient` + `HttpResponse`
 
 ---
 
-#### Krok 4: Wyodrębnij ApiKeyValidator
-**Nowa klasa**: `OpenAI\Settings\ApiKeyValidator`
+### 4. Duplikacje w Renderowaniu Tabel
 
-```php
-namespace PolyTrans\Providers\OpenAI\Settings;
+**Problem**: Wiele miejsc renderuje podobne tabele HTML (~200 linii duplikacji).
 
-class ApiKeyValidator {
-    public function validate_api_key(string $api_key): bool;
-    public function ajax_validate_key(): void;
-    private function validate_openai_api_key(string $api_key): bool;
-}
-```
+**Wzorzec**: Table Builder / Renderer Utility
 
-**Metody do przeniesienia**:
-- `validate_api_key()` (~10 linii)
-- `ajax_validate_openai_key()` (~35 linii)
-- `validate_openai_api_key()` (~10 linii)
-
-**Szacowany rozmiar**: ~55 linii
+**Rozwiązanie**: `Core\UI\TableRenderer`
 
 ---
 
-#### Krok 5: Wyodrębnij SettingsRenderer
-**Nowa klasa**: `OpenAI\Settings\SettingsRenderer`
+### 5. Duplikacje w Walidacji
 
-```php
-namespace PolyTrans\Providers\OpenAI\Settings;
+**Problem**: Podobna logika walidacji w wielu miejscach (~150 linii duplikacji).
 
-class SettingsRenderer {
-    public function render(array $settings, array $languages, array $language_names): string;
-    private function render_api_key_field(string $api_key): string;
-    private function render_source_language_field(string $source_lang, array $languages): string;
-}
-```
+**Wzorzec**: Validator Utility Classes
 
-**Metody do przeniesienia**:
-- Główna logika renderowania z `render_settings_ui()` (~80 linii)
-- Inline styles (~50 linii)
-
-**Szacowany rozmiar**: ~130 linii
+**Rozwiązanie**: `Core\Validation\*`
 
 ---
 
-#### Krok 6: Refaktoryzuj główną klasę
-**Nowa struktura**: `OpenAISettingsProvider`
+## 🎯 Proponowane Rozwiązania
+
+### 1. Strategy Pattern dla Post Updates
+
+**Utility Class**: `PostProcessing\Output\Actions\PostUpdateAction`
 
 ```php
-namespace PolyTrans\Providers\OpenAI;
+namespace PolyTrans\PostProcessing\Output\Actions;
 
-use PolyTrans\Providers\OpenAI\Settings\AssistantManager;
-use PolyTrans\Providers\OpenAI\Settings\ModelManager;
-use PolyTrans\Providers\OpenAI\Settings\PathRulesManager;
-use PolyTrans\Providers\OpenAI\Settings\ApiKeyValidator;
-use PolyTrans\Providers\OpenAI\Settings\SettingsRenderer;
-
-class OpenAISettingsProvider implements SettingsProviderInterface {
-    private AssistantManager $assistant_manager;
-    private ModelManager $model_manager;
-    private PathRulesManager $path_rules_manager;
-    private ApiKeyValidator $api_key_validator;
-    private SettingsRenderer $renderer;
-    
-    public function __construct() {
-        $this->assistant_manager = new AssistantManager();
-        $this->model_manager = new ModelManager();
-        $this->path_rules_manager = new PathRulesManager();
-        $this->api_key_validator = new ApiKeyValidator();
-        $this->renderer = new SettingsRenderer(
-            $this->assistant_manager,
-            $this->model_manager,
-            $this->path_rules_manager
-        );
+abstract class PostUpdateAction {
+    protected function get_post_id(array $context): ?int {
+        return $context['translated_post_id'] ?? $context['original_post_id'] ?? null;
     }
     
-    // Interface methods (delegacja)
-    public function render_settings_ui(...) {
-        return $this->renderer->render(...);
-    }
-    
-    public function validate_settings(...) {
-        // Orchestracja walidacji
-    }
-    
-    public function get_ajax_handlers() {
-        return [
-            'polytrans_validate_openai_key' => [$this->api_key_validator, 'ajax_validate_key'],
-            'polytrans_load_openai_assistants' => [$this->assistant_manager, 'ajax_load_assistants'],
-            'polytrans_get_openai_models' => [$this->model_manager, 'ajax_get_models'],
-            // ...
-        ];
-    }
-}
-```
-
-**Szacowany rozmiar**: ~200 linii
-
----
-
-### Podsumowanie Refaktoryzacji OpenAISettingsProvider
-
-| Klasa | Szacowany rozmiar | Odpowiedzialność |
-|-------|------------------|------------------|
-| `OpenAISettingsProvider` | ~200 linii | Orchestracja, interface implementation |
-| `AssistantManager` | ~300 linii | Zarządzanie asystentami |
-| `ModelManager` | ~365 linii | Zarządzanie modelami |
-| `PathRulesManager` | ~155 linii | Zarządzanie path rules |
-| `ApiKeyValidator` | ~55 linii | Walidacja API key |
-| `SettingsRenderer` | ~130 linii | Renderowanie UI |
-| **RAZEM** | **~1,205 linii** | (podzielone na 6 klas) |
-
-**Redukcja**: Z 1,127 linii w jednej klasie → ~200 linii w głównej klasie + 5 pomocniczych klas
-
----
-
-## 2. WorkflowOutputProcessor (1,105 linii) 🔴 **PRIORYTET 2**
-
-### Obecna Struktura
-
-**Główne odpowiedzialności**:
-1. Przetwarzanie output actions (`process_step_outputs`)
-2. Tworzenie change objects (`create_change_object`, `enhance_change_object_for_display`)
-3. Wykonywanie zmian (`execute_change`, `apply_change_to_context`)
-4. Aktualizacja postów (update_post_title, update_post_content, update_post_excerpt, update_post_meta, etc.)
-5. Parsowanie wartości (parse_post_status, parse_post_date)
-6. Zarządzanie kontekstem (`ensure_context_has_post_data`, `refresh_context_from_database`)
-7. User attribution
-
-**Metody** (24 metody):
-- Main: `process_step_outputs()`
-- Action processing: `process_single_action()`, `get_variable_value()`, `auto_detect_response_value()`
-- Post updates: `update_post_title()`, `update_post_content()`, `update_post_excerpt()`, `update_post_meta()`, `append_to_post_content()`, `prepend_to_post_content()`, `update_post_status()`, `update_post_date()`
-- Change objects: `create_change_object()`, `enhance_change_object_for_display()`, `apply_change_to_context()`, `execute_change()`
-- Parsing: `parse_post_status()`, `parse_post_date()`
-- Context: `ensure_context_has_post_data()`, `refresh_context_from_database()`
-- Helpers: `get_valid_post_statuses()`
-
-### Plan Refaktoryzacji
-
-#### Krok 1: Wyodrębnij ActionExecutors
-**Nowa klasa**: `PostProcessing\Output\ActionExecutors\PostTitleUpdater`
-
-```php
-namespace PolyTrans\PostProcessing\Output\ActionExecutors;
-
-class PostTitleUpdater {
-    public function update(string $value, array $context): array;
-}
-```
-
-**Podobnie dla**:
-- `PostContentUpdater`
-- `PostExcerptUpdater`
-- `PostMetaUpdater`
-- `PostStatusUpdater`
-- `PostDateUpdater`
-- `PostContentAppender`
-- `PostContentPrepend`
-- `OptionSaver`
-
-**Szacowany rozmiar**: ~50-80 linii każda (9 klas × ~65 linii = ~585 linii)
-
----
-
-#### Krok 2: Wyodrębnij ChangeObjectFactory
-**Nowa klasa**: `PostProcessing\Output\ChangeObjectFactory`
-
-```php
-namespace PolyTrans\PostProcessing\Output;
-
-class ChangeObjectFactory {
-    public function create(array $step_results, array $action, array $context): array;
-    public function enhance_for_display(array $change, array $context): array;
-    private function get_variable_value(array $step_results, string $variable_path);
-    private function auto_detect_response_value(array $data);
-}
-```
-
-**Metody do przeniesienia**:
-- `create_change_object()` (~45 linii)
-- `enhance_change_object_for_display()` (~80 linii)
-- `get_variable_value()` (~30 linii)
-- `auto_detect_response_value()` (~40 linii)
-
-**Szacowany rozmiar**: ~195 linii
-
----
-
-#### Krok 3: Wyodrębnij ValueParsers
-**Nowa klasa**: `PostProcessing\Output\Parsers\ValueParser`
-
-```php
-namespace PolyTrans\PostProcessing\Output\Parsers;
-
-class ValueParser {
-    public function parse_post_status(string $value): string;
-    public function parse_post_date(string $value): ?string;
-    public function get_valid_post_statuses(): array;
-}
-```
-
-**Metody do przeniesienia**:
-- `parse_post_status()` (~50 linii)
-- `parse_post_date()` (~50 linii)
-- `get_valid_post_statuses()` (~15 linii)
-
-**Szacowany rozmiar**: ~115 linii
-
----
-
-#### Krok 4: Wyodrębnij ContextManager
-**Nowa klasa**: `PostProcessing\Output\ContextManager`
-
-```php
-namespace PolyTrans\PostProcessing\Output;
-
-class ContextManager {
-    public function ensure_has_post_data(array $context): array;
-    public function refresh_from_database(array $context): array;
-    public function apply_change(array $context, array $change): array;
-}
-```
-
-**Metody do przeniesienia**:
-- `ensure_context_has_post_data()` (~35 linii)
-- `refresh_context_from_database()` (~70 linii)
-- `apply_change_to_context()` (~80 linii)
-
-**Szacowany rozmiar**: ~185 linii
-
----
-
-#### Krok 5: Wyodrębnij UserAttributionManager
-**Nowa klasa**: `PostProcessing\Output\UserAttributionManager`
-
-```php
-namespace PolyTrans\PostProcessing\Output;
-
-class UserAttributionManager {
-    public function set_attribution_user(?int $user_id, array $workflow): ?int;
-    public function restore_original_user(int $original_user_id, ?int $attribution_user_id): void;
-}
-```
-
-**Metody do przeniesienia**:
-- Logika user attribution z `process_step_outputs()` (~30 linii)
-
-**Szacowany rozmiar**: ~50 linii
-
----
-
-#### Krok 6: Refaktoryzuj główną klasę
-**Nowa struktura**: `WorkflowOutputProcessor`
-
-```php
-namespace PolyTrans\PostProcessing;
-
-use PolyTrans\PostProcessing\Output\ChangeObjectFactory;
-use PolyTrans\PostProcessing\Output\ContextManager;
-use PolyTrans\PostProcessing\Output\UserAttributionManager;
-use PolyTrans\PostProcessing\Output\ActionExecutors\PostTitleUpdater;
-// ... inne executors
-
-class WorkflowOutputProcessor {
-    private ChangeObjectFactory $change_factory;
-    private ContextManager $context_manager;
-    private UserAttributionManager $attribution_manager;
-    private array $executors = [];
-    
-    public function __construct() {
-        $this->change_factory = new ChangeObjectFactory();
-        $this->context_manager = new ContextManager();
-        $this->attribution_manager = new UserAttributionManager();
-        $this->init_executors();
-    }
-    
-    private function init_executors(): void {
-        $this->executors = [
-            'update_post_title' => new PostTitleUpdater(),
-            'update_post_content' => new PostContentUpdater(),
-            // ...
-        ];
-    }
-    
-    public function process_step_outputs(...): array {
-        // Orchestracja
-    }
-    
-    private function execute_change(array $change, array $context): array {
-        $executor = $this->executors[$change['type']] ?? null;
-        if (!$executor) {
-            return ['success' => false, 'error' => 'Unknown action type'];
+    protected function validate_post_id(?int $post_id): array {
+        if (!$post_id) {
+            return ['success' => false, 'error' => 'No post ID found in context'];
         }
-        return $executor->execute($change, $context);
-    }
-}
-```
-
-**Szacowany rozmiar**: ~200 linii
-
----
-
-### Podsumowanie Refaktoryzacji WorkflowOutputProcessor
-
-| Klasa | Szacowany rozmiar | Odpowiedzialność |
-|-------|------------------|------------------|
-| `WorkflowOutputProcessor` | ~200 linii | Orchestracja |
-| `ChangeObjectFactory` | ~195 linii | Tworzenie change objects |
-| `ContextManager` | ~185 linii | Zarządzanie kontekstem |
-| `ValueParser` | ~115 linii | Parsowanie wartości |
-| `UserAttributionManager` | ~50 linii | User attribution |
-| `PostTitleUpdater` | ~65 linii | Update title |
-| `PostContentUpdater` | ~65 linii | Update content |
-| `PostExcerptUpdater` | ~65 linii | Update excerpt |
-| `PostMetaUpdater` | ~65 linii | Update meta |
-| `PostStatusUpdater` | ~65 linii | Update status |
-| `PostDateUpdater` | ~65 linii | Update date |
-| `PostContentAppender` | ~65 linii | Append content |
-| `PostContentPrepend` | ~65 linii | Prepend content |
-| `OptionSaver` | ~65 linii | Save option |
-| **RAZEM** | **~1,265 linii** | (podzielone na 14 klas) |
-
-**Redukcja**: Z 1,105 linii w jednej klasie → ~200 linii w głównej klasie + 13 pomocniczych klas
-
----
-
-## 3. LogsManager (1,095 linii) 🔴 **PRIORYTET 3**
-
-### Obecna Struktura
-
-**Główne odpowiedzialności**:
-1. Tworzenie tabeli bazy danych (`create_logs_table`, `check_and_adapt_table_structure`)
-2. Zapisywanie logów (`log`, `log_to_database`)
-3. Pobieranie logów (`get_logs`, `ajax_refresh_logs`)
-4. Filtrowanie i paginacja
-5. Renderowanie UI (admin_logs_page - już zmigrowane do Twig)
-
-### Plan Refaktoryzacji
-
-#### Krok 1: Wyodrębnij DatabaseSchemaManager
-**Nowa klasa**: `Core\Logs\DatabaseSchemaManager`
-
-```php
-namespace PolyTrans\Core\Logs;
-
-class DatabaseSchemaManager {
-    public function create_table(): bool;
-    public function check_and_adapt_structure(string $table_name): void;
-    private function get_table_column_details(string $table_name): array;
-    private function migrate_table_structure(string $table_name, array $existing_columns): void;
-}
-```
-
-**Metody do przeniesienia**:
-- `create_logs_table()` (~50 linii)
-- `check_and_adapt_table_structure()` (~200 linii)
-- Helpery związane ze schematem
-
-**Szacowany rozmiar**: ~300 linii
-
----
-
-#### Krok 2: Wyodrębnij LogWriter
-**Nowa klasa**: `Core\Logs\LogWriter`
-
-```php
-namespace PolyTrans\Core\Logs;
-
-class LogWriter {
-    public function write(string $message, string $level, array $context = []): void;
-    private function log_to_database(string $message, string $level, array $context): void;
-    private function log_to_error_log(string $message, string $level, array $context): void;
-    private function is_db_logging_enabled(): bool;
-}
-```
-
-**Metody do przeniesienia**:
-- `log()` (~100 linii)
-- `log_to_database()` (~150 linii)
-- `is_db_logging_enabled()` (~20 linii)
-
-**Szacowany rozmiar**: ~270 linii
-
----
-
-#### Krok 3: Wyodrębnij LogReader
-**Nowa klasa**: `Core\Logs\LogReader`
-
-```php
-namespace PolyTrans\Core\Logs;
-
-class LogReader {
-    public function get_logs(array $filters = [], int $page = 1, int $per_page = 50): array;
-    public function get_log_count(array $filters = []): int;
-    private function build_query(array $filters): array;
-}
-```
-
-**Metody do przeniesienia**:
-- `get_logs()` (~200 linii)
-- Logika budowania zapytań SQL
-
-**Szacowany rozmiar**: ~250 linii
-
----
-
-#### Krok 4: Wyodrębnij LogFilters
-**Nowa klasa**: `Core\Logs\LogFilters`
-
-```php
-namespace PolyTrans\Core\Logs;
-
-class LogFilters {
-    public function apply_filters(array $logs, array $filters): array;
-    public function filter_by_level(array $logs, string $level): array;
-    public function filter_by_source(array $logs, string $source): array;
-    public function filter_by_date_range(array $logs, string $start_date, string $end_date): array;
-}
-```
-
-**Metody do przeniesienia**:
-- Logika filtrowania z `get_logs()` (~100 linii)
-
-**Szacowany rozmiar**: ~120 linii
-
----
-
-#### Krok 5: Refaktoryzuj główną klasę
-**Nowa struktura**: `LogsManager`
-
-```php
-namespace PolyTrans\Core;
-
-use PolyTrans\Core\Logs\DatabaseSchemaManager;
-use PolyTrans\Core\Logs\LogWriter;
-use PolyTrans\Core\Logs\LogReader;
-use PolyTrans\Core\Logs\LogFilters;
-
-class LogsManager {
-    private static DatabaseSchemaManager $schema_manager;
-    private static LogWriter $writer;
-    private static LogReader $reader;
-    private static LogFilters $filters;
-    
-    public static function init(): void {
-        self::$schema_manager = new DatabaseSchemaManager();
-        self::$writer = new LogWriter();
-        self::$reader = new LogReader();
-        self::$filters = new LogFilters();
+        return ['success' => true];
     }
     
-    public static function create_logs_table(): bool {
-        return self::$schema_manager->create_table();
+    protected function update_post(array $post_data): array {
+        $result = wp_update_post($post_data);
+        
+        if (is_wp_error($result)) {
+            return [
+                'success' => false,
+                'error' => sprintf('Failed to update post: %s', $result->get_error_message())
+            ];
+        }
+        
+        return ['success' => true, 'post_id' => $result];
     }
     
-    public static function log(string $message, string $level = 'info', array $context = []): void {
-        self::$writer->write($message, $level, $context);
+    abstract protected function prepare_post_data($value, int $post_id): array;
+    abstract protected function get_action_name(): string;
+    
+    public function execute($value, array $context): array {
+        $validation = $this->validate_post_id($this->get_post_id($context));
+        if (!$validation['success']) {
+            return $validation;
+        }
+        
+        $post_id = $this->get_post_id($context);
+        $post_data = $this->prepare_post_data($value, $post_id);
+        $result = $this->update_post($post_data);
+        
+        if ($result['success']) {
+            $result['message'] = sprintf(
+                'Updated %s for post ID %d',
+                $this->get_action_name(),
+                $post_id
+            );
+        }
+        
+        return $result;
+    }
+}
+
+// Concrete implementations (9 klas)
+class PostTitleUpdateAction extends PostUpdateAction { /* ... */ }
+class PostContentUpdateAction extends PostUpdateAction { /* ... */ }
+class PostExcerptUpdateAction extends PostUpdateAction { /* ... */ }
+class PostMetaUpdateAction extends PostUpdateAction { /* ... */ }
+class PostStatusUpdateAction extends PostUpdateAction { /* ... */ }
+class PostDateUpdateAction extends PostUpdateAction { /* ... */ }
+class PostContentAppender extends PostUpdateAction { /* ... */ }
+class PostContentPrepend extends PostUpdateAction { /* ... */ }
+class OptionSaver extends PostUpdateAction { /* ... */ }
+```
+
+**Korzyści**:
+- Eliminuje ~300 linii duplikacji
+- Łatwe dodawanie nowych typów akcji
+- Centralna obsługa błędów
+- Testowalne
+
+---
+
+### 2. Base AJAX Handler (Template Method Pattern)
+
+**Utility Class**: `Core\Ajax\BaseAjaxHandler`
+
+```php
+namespace PolyTrans\Core\Ajax;
+
+abstract class BaseAjaxHandler {
+    final public function handle(): void {
+        if (!$this->verify_nonce()) {
+            $this->send_error(__('Security check failed.', 'polytrans'));
+            return;
+        }
+        
+        if (!$this->check_capabilities()) {
+            $this->send_error(__('You do not have sufficient permissions.', 'polytrans'));
+            return;
+        }
+        
+        $input = $this->sanitize_input();
+        $validation = $this->validate_input($input);
+        if (!$validation['valid']) {
+            $this->send_error($validation['error']);
+            return;
+        }
+        
+        try {
+            $result = $this->execute_action($input);
+            $this->send_success($result);
+        } catch (\Exception $e) {
+            $this->send_error($e->getMessage());
+        }
     }
     
-    public static function get_logs(array $filters = [], int $page = 1, int $per_page = 50): array {
-        return self::$reader->get_logs($filters, $page, $per_page);
+    abstract protected function get_nonce_action(): string;
+    abstract protected function get_required_capability(): string;
+    abstract protected function sanitize_input(): array;
+    abstract protected function validate_input(array $input): array;
+    abstract protected function execute_action(array $input): array;
+    
+    // Helper methods...
+}
+```
+
+**Korzyści**:
+- Eliminuje ~200 linii duplikacji w AJAX handlers
+- Centralna obsługa security
+- Spójny error handling
+- Łatwe testowanie
+
+---
+
+### 3. HTTP Client Wrapper
+
+**Utility Class**: `Core\Http\HttpClient` + `HttpResponse`
+
+```php
+namespace PolyTrans\Core\Http;
+
+class HttpClient {
+    private string $base_url;
+    private array $default_headers = [];
+    private int $timeout = 120;
+    
+    public function set_auth(string $type, string $value): self {
+        if ($type === 'bearer') {
+            $this->default_headers['Authorization'] = 'Bearer ' . $value;
+        }
+        return $this;
     }
     
-    // AJAX handlers
-    public static function ajax_refresh_logs(): void {
-        // Delegacja do LogReader
-    }
-}
-```
-
-**Szacowany rozmiar**: ~150 linii
-
----
-
-### Podsumowanie Refaktoryzacji LogsManager
-
-| Klasa | Szacowany rozmiar | Odpowiedzialność |
-|-------|------------------|------------------|
-| `LogsManager` | ~150 linii | Facade, static interface |
-| `DatabaseSchemaManager` | ~300 linii | Zarządzanie schematem DB |
-| `LogWriter` | ~270 linii | Zapisywanie logów |
-| `LogReader` | ~250 linii | Czytanie logów |
-| `LogFilters` | ~120 linii | Filtrowanie logów |
-| **RAZEM** | **~1,090 linii** | (podzielone na 5 klas) |
-
-**Redukcja**: Z 1,095 linii w jednej klasie → ~150 linii w głównej klasie + 4 pomocnicze klasy
-
----
-
-## 4. BackgroundProcessor (995 linii) 🔴 **PRIORYTET 5**
-
-### Obecna Struktura
-
-**Główne odpowiedzialności**:
-1. Spawning procesów (`spawn`, `spawn_exec`, `spawn_http_request`)
-2. Wykonywanie zadań (`process_task`)
-3. Zarządzanie tokenami i transients
-4. Logowanie
-
-### Plan Refaktoryzacji
-
-#### Krok 1: Wyodrębnij ProcessSpawner
-**Nowa klasa**: `Core\Background\ProcessSpawner`
-
-```php
-namespace PolyTrans\Core\Background;
-
-class ProcessSpawner {
-    public function spawn(array $args, string $action): bool;
-    private function spawn_exec(array $args, string $action): bool;
-    private function spawn_http_request(array $args, string $action): bool;
-    private function is_exec_available(): bool;
-}
-```
-
-**Metody do przeniesienia**:
-- `spawn()` (~30 linii)
-- `spawn_exec()` (~100 linii)
-- `spawn_http_request()` (~80 linii)
-- `is_exec_available()` (~25 linii)
-
-**Szacowany rozmiar**: ~235 linii
-
----
-
-#### Krok 2: Wyodrębnij TaskProcessor
-**Nowa klasa**: `Core\Background\TaskProcessor`
-
-```php
-namespace PolyTrans\Core\Background;
-
-class TaskProcessor {
-    public function process(array $args, string $action): void;
-    private function process_translation_task(array $args): void;
-    private function process_workflow_test(array $args): void;
-    private function process_workflow_execute(array $args): void;
-}
-```
-
-**Metody do przeniesienia**:
-- `process_task()` (~700 linii) - podzielić na mniejsze metody
-
-**Szacowany rozmiar**: ~300 linii
-
----
-
-#### Krok 3: Wyodrębnij TokenManager
-**Nowa klasa**: `Core\Background\TokenManager`
-
-```php
-namespace PolyTrans\Core\Background;
-
-class TokenManager {
-    public function generate_token(): string;
-    public function store_task_data(string $token, array $args, string $action): void;
-    public function get_task_data(string $token): ?array;
-    public function cleanup_token(string $token): void;
-}
-```
-
-**Metody do przeniesienia**:
-- Logika tokenów z `spawn()` i `process_task()` (~50 linii)
-
-**Szacowany rozmiar**: ~80 linii
-
----
-
-#### Krok 4: Refaktoryzuj główną klasę
-**Nowa struktura**: `BackgroundProcessor`
-
-```php
-namespace PolyTrans\Core;
-
-use PolyTrans\Core\Background\ProcessSpawner;
-use PolyTrans\Core\Background\TaskProcessor;
-use PolyTrans\Core\Background\TokenManager;
-
-class BackgroundProcessor {
-    private static ProcessSpawner $spawner;
-    private static TaskProcessor $processor;
-    private static TokenManager $token_manager;
-    
-    public static function init(): void {
-        self::$spawner = new ProcessSpawner();
-        self::$processor = new TaskProcessor();
-        self::$token_manager = new TokenManager();
+    public function post(string $endpoint, array $data = []): HttpResponse {
+        // Implementation...
     }
     
-    public static function spawn(array $args, string $action = 'process-translation'): bool {
-        return self::$spawner->spawn($args, $action);
-    }
-    
-    public static function process_task(array $args, string $action): void {
-        self::$processor->process($args, $action);
+    public function get(string $endpoint, array $query = []): HttpResponse {
+        // Implementation...
     }
 }
-```
 
-**Szacowany rozmiar**: ~50 linii
-
----
-
-### Podsumowanie Refaktoryzacji BackgroundProcessor
-
-| Klasa | Szacowany rozmiar | Odpowiedzialność |
-|-------|------------------|------------------|
-| `BackgroundProcessor` | ~50 linii | Facade, static interface |
-| `ProcessSpawner` | ~235 linii | Spawning procesów |
-| `TaskProcessor` | ~300 linii | Wykonywanie zadań |
-| `TokenManager` | ~80 linii | Zarządzanie tokenami |
-| **RAZEM** | **~665 linii** | (podzielone na 4 klasy) |
-
-**Redukcja**: Z 995 linii w jednej klasie → ~50 linii w głównej klasie + 3 pomocnicze klasy
-
----
-
-## 5. WorkflowManager (927 linii) 🔴 **PRIORYTET 6**
-
-### Obecna Struktura
-
-**Główne odpowiedzialności**:
-1. Zarządzanie workflow (CRUD)
-2. Triggerowanie workflow (`trigger_workflows`)
-3. Wykonywanie workflow (`execute_workflow`)
-4. Warunki workflow (`should_execute_workflow`, `evaluate_workflow_conditions`)
-5. AJAX handlers
-6. Zarządzanie data providers i steps
-
-### Plan Refaktoryzacji
-
-#### Krok 1: Wyodrębnij WorkflowConditionEvaluator
-**Nowa klasa**: `PostProcessing\Workflow\ConditionEvaluator`
-
-```php
-namespace PolyTrans\PostProcessing\Workflow;
-
-class ConditionEvaluator {
-    public function should_execute(array $workflow, array $context): bool;
-    public function evaluate_conditions(array $conditions, array $context): bool;
-    private function evaluate_single_condition(array $condition, array $context): bool;
+class HttpResponse {
+    public function is_success(): bool { /* ... */ }
+    public function get_json(): ?array { /* ... */ }
+    public function get_error_message(): string { /* ... */ }
 }
 ```
 
-**Metody do przeniesienia**:
-- `should_execute_workflow()` (~70 linii)
-- `evaluate_workflow_conditions()` (~40 linii)
-
-**Szacowany rozmiar**: ~150 linii
-
----
-
-#### Krok 2: Wyodrębnij WorkflowScheduler
-**Nowa klasa**: `PostProcessing\Workflow\WorkflowScheduler`
-
-```php
-namespace PolyTrans\PostProcessing\Workflow;
-
-class WorkflowScheduler {
-    public function schedule_execution(array $workflow, array $context): void;
-    public function check_execution_status(string $execution_id): ?array;
-}
-```
-
-**Metody do przeniesienia**:
-- `schedule_workflow_execution()` (~15 linii)
-- `ajax_check_execution_status()` (~50 linii)
-
-**Szacowany rozmiar**: ~100 linii
+**Korzyści**:
+- Eliminuje ~400 linii duplikacji w API calls
+- Spójna obsługa błędów
+- Łatwe testowanie (mock HttpClient)
+- Centralna konfiguracja
 
 ---
 
-#### Krok 3: Wyodrębnij WorkflowAjaxHandlers
-**Nowa klasa**: `PostProcessing\Workflow\AjaxHandlers`
+### 4. Table Renderer Utility
+
+**Utility Class**: `Core\UI\TableRenderer`
 
 ```php
-namespace PolyTrans\PostProcessing\Workflow;
+namespace PolyTrans\Core\UI;
 
-class AjaxHandlers {
-    public function execute_workflow(): void;
-    public function test_workflow(): void;
-    public function execute_workflow_manual(): void;
-    public function get_workflows_for_post(): void;
-}
-```
-
-**Metody do przeniesienia**:
-- `ajax_execute_workflow()` (~70 linii)
-- `ajax_test_workflow()` (~100 linii)
-- `ajax_execute_workflow_manual()` (~150 linii)
-- `ajax_get_workflows_for_post()` (~30 linii)
-
-**Szacowany rozmiar**: ~350 linii
-
----
-
-#### Krok 4: Refaktoryzuj główną klasę
-**Nowa struktura**: `WorkflowManager`
-
-```php
-namespace PolyTrans\PostProcessing;
-
-use PolyTrans\PostProcessing\Workflow\ConditionEvaluator;
-use PolyTrans\PostProcessing\Workflow\WorkflowScheduler;
-use PolyTrans\PostProcessing\Workflow\AjaxHandlers;
-
-class WorkflowManager {
-    private WorkflowStorageManager $storage_manager;
-    private WorkflowExecutor $executor;
-    private VariableManager $variable_manager;
-    private ConditionEvaluator $condition_evaluator;
-    private WorkflowScheduler $scheduler;
-    private AjaxHandlers $ajax_handlers;
-    
-    public function trigger_workflows(...): void {
-        // Użyj condition_evaluator
-    }
-    
-    public function execute_workflow(...): array {
-        // Orchestracja
+class TableRenderer {
+    public static function render(array $config): string {
+        // Unified table rendering logic
     }
 }
 ```
 
-**Szacowany rozmiar**: ~200 linii
+**Korzyści**:
+- Eliminuje ~200 linii duplikacji w renderowaniu tabel
+- Spójny wygląd tabel
+- Łatwe utrzymanie
 
 ---
 
-### Podsumowanie Refaktoryzacji WorkflowManager
+### 5. Validator Utility Classes
 
-| Klasa | Szacowany rozmiar | Odpowiedzialność |
-|-------|------------------|------------------|
-| `WorkflowManager` | ~200 linii | Orchestracja |
-| `ConditionEvaluator` | ~150 linii | Ewaluacja warunków |
-| `WorkflowScheduler` | ~100 linii | Planowanie wykonania |
-| `AjaxHandlers` | ~350 linii | AJAX handlers |
-| **RAZEM** | **~800 linii** | (podzielone na 4 klasy) |
+**Utility Classes**: `Core\Validation\*`
 
-**Redukcja**: Z 927 linii w jednej klasie → ~200 linii w głównej klasie + 3 pomocnicze klasy
+```php
+namespace PolyTrans\Core\Validation;
+
+abstract class BaseValidator {
+    abstract public function validate($value, array $context = []): array;
+}
+
+class ApiKeyValidator extends BaseValidator { /* ... */ }
+class SettingsValidator { /* ... */ }
+```
+
+**Korzyści**:
+- Eliminuje ~150 linii duplikacji w walidacji
+- Spójna walidacja
+- Łatwe rozszerzanie
 
 ---
 
-## 📋 Harmonogram Implementacji
+## 📊 Podsumowanie Refaktoryzacji
 
-### Faza 1: OpenAISettingsProvider (1 tydzień)
-1. Dzień 1-2: Utwórz `AssistantManager` i `ModelManager`
-2. Dzień 3: Utwórz `PathRulesManager` i `ApiKeyValidator`
-3. Dzień 4: Utwórz `SettingsRenderer`
-4. Dzień 5: Refaktoryzuj główną klasę i testy
+### Przed Refaktoryzacją
 
-### Faza 2: WorkflowOutputProcessor (1 tydzień)
-1. Dzień 1-2: Utwórz `ActionExecutors` (9 klas)
-2. Dzień 3: Utwórz `ChangeObjectFactory` i `ValueParser`
-3. Dzień 4: Utwórz `ContextManager` i `UserAttributionManager`
-4. Dzień 5: Refaktoryzuj główną klasę i testy
+| Klasa | Rozmiar | Duplikacje |
+|-------|---------|------------|
+| `WorkflowOutputProcessor` | 1,105 linii | ~300 linii (update methods) |
+| `OpenAISettingsProvider` | 1,127 linii | ~200 linii (AJAX handlers) |
+| Różne API clients | ~500 linii | ~400 linii (HTTP requests) |
+| Różne renderers | ~300 linii | ~200 linii (tables) |
+| Różne validators | ~200 linii | ~150 linii (validation) |
 
-### Faza 3: LogsManager (3-4 dni)
-1. Dzień 1: Utwórz `DatabaseSchemaManager`
-2. Dzień 2: Utwórz `LogWriter` i `LogReader`
-3. Dzień 3: Utwórz `LogFilters` i refaktoryzuj główną klasę
-4. Dzień 4: Testy
+**Łączne duplikacje**: ~1,250 linii
 
-### Faza 4: BackgroundProcessor (2-3 dni)
-1. Dzień 1: Utwórz `ProcessSpawner` i `TaskProcessor`
-2. Dzień 2: Utwórz `TokenManager` i refaktoryzuj główną klasę
-3. Dzień 3: Testy
+### Po Refaktoryzacji
 
-### Faza 5: WorkflowManager (3-4 dni)
-1. Dzień 1: Utwórz `ConditionEvaluator`
-2. Dzień 2: Utwórz `WorkflowScheduler` i `AjaxHandlers`
-3. Dzień 3: Refaktoryzuj główną klasę
-4. Dzień 4: Testy
+**Nowe Utility Classes**:
+1. `PostProcessing\Output\Actions\PostUpdateAction` (Strategy) - ~150 linii
+2. `Core\Ajax\BaseAjaxHandler` (Template Method) - ~100 linii
+3. `Core\Http\HttpClient` + `HttpResponse` - ~200 linii
+4. `Core\UI\TableRenderer` - ~100 linii
+5. `Core\Validation\*` - ~150 linii
+
+**Razem**: ~700 linii utility classes
+
+**Redukcja duplikacji**: ~1,250 linii → ~700 linii (44% redukcja)
+
+**Redukcja w głównych klasach**:
+- `WorkflowOutputProcessor`: 1,105 → ~400 linii (-64%)
+- `OpenAISettingsProvider`: 1,127 → ~600 linii (-47%)
+- API clients: ~500 → ~200 linii (-60%)
+
+---
+
+## 🎯 Plan Implementacji (zgodnie z 1.7.0)
+
+### Faza 2: Utility Classes & Refactoring (1.5 tygodnia)
+
+#### 2.1. HTTP Client Wrapper
+- [ ] Utwórz `Core\Http\HttpClient`
+- [ ] Utwórz `Core\Http\HttpResponse`
+- [ ] Refaktoryzuj `OpenAIClient` używając HttpClient
+- [ ] Refaktoryzuj `GeminiChatClientAdapter` używając HttpClient
+- [ ] Refaktoryzuj `ClaudeChatClientAdapter` używając HttpClient
+- [ ] Testy dla HttpClient
+
+#### 2.2. Base AJAX Handler
+- [ ] Utwórz `Core\Ajax\BaseAjaxHandler`
+- [ ] Refaktoryzuj `OpenAISettingsProvider::ajax_validate_openai_key()`
+- [ ] Refaktoryzuj inne AJAX handlers w providerach
+- [ ] Testy dla BaseAjaxHandler
+
+#### 2.3. Background Processor Refactoring
+- [ ] Utwórz `Core\Background\ProcessSpawner`
+- [ ] Utwórz `Core\Background\TaskProcessor`
+- [ ] Utwórz `Core\Background\TokenManager`
+- [ ] Refaktoryzuj `BackgroundProcessor` jako facade
+- [ ] Testy
+
+#### 2.4. Post Update Actions (Strategy Pattern)
+- [ ] Utwórz abstract `PostUpdateAction`
+- [ ] Utwórz wszystkie concrete actions (9 klas)
+- [ ] Refaktoryzuj `WorkflowOutputProcessor` używając actions
+- [ ] Testy
 
 ---
 
 ## ✅ Checklist Refaktoryzacji
 
-### OpenAISettingsProvider
-- [ ] Utwórz `AssistantManager`
-- [ ] Utwórz `ModelManager`
-- [ ] Utwórz `PathRulesManager`
-- [ ] Utwórz `ApiKeyValidator`
-- [ ] Utwórz `SettingsRenderer`
-- [ ] Refaktoryzuj główną klasę
-- [ ] Zaktualizuj testy
-- [ ] Zaktualizuj dokumentację
+### Utility Classes
+- [ ] Utwórz `Core\Http\HttpClient` + `HttpResponse`
+- [ ] Utwórz `Core\Ajax\BaseAjaxHandler`
+- [ ] Utwórz `Core\Background\ProcessSpawner`, `TaskProcessor`, `TokenManager`
+- [ ] Utwórz `PostProcessing\Output\Actions\PostUpdateAction` + 9 concrete actions
+- [ ] Utwórz `Core\UI\TableRenderer`
+- [ ] Utwórz `Core\Validation\*`
 
-### WorkflowOutputProcessor
-- [ ] Utwórz wszystkie `ActionExecutors` (9 klas)
-- [ ] Utwórz `ChangeObjectFactory`
-- [ ] Utwórz `ValueParser`
-- [ ] Utwórz `ContextManager`
-- [ ] Utwórz `UserAttributionManager`
-- [ ] Refaktoryzuj główną klasę
-- [ ] Zaktualizuj testy
+### Refaktoryzacja z użyciem Utilities
+- [ ] Refaktoryzuj `WorkflowOutputProcessor` używając `PostUpdateAction`
+- [ ] Refaktoryzuj AJAX handlers używając `BaseAjaxHandler`
+- [ ] Refaktoryzuj API clients używając `HttpClient`
+- [ ] Refaktoryzuj `BackgroundProcessor` jako facade
 
-### LogsManager
-- [ ] Utwórz `DatabaseSchemaManager`
-- [ ] Utwórz `LogWriter`
-- [ ] Utwórz `LogReader`
-- [ ] Utwórz `LogFilters`
-- [ ] Refaktoryzuj główną klasę
-- [ ] Zaktualizuj testy
-
-### BackgroundProcessor
-- [ ] Utwórz `ProcessSpawner`
-- [ ] Utwórz `TaskProcessor`
-- [ ] Utwórz `TokenManager`
-- [ ] Refaktoryzuj główną klasę
-- [ ] Zaktualizuj testy
-
-### WorkflowManager
-- [ ] Utwórz `ConditionEvaluator`
-- [ ] Utwórz `WorkflowScheduler`
-- [ ] Utwórz `AjaxHandlers`
-- [ ] Refaktoryzuj główną klasę
-- [ ] Zaktualizuj testy
+### Testy
+- [ ] Testy dla utility classes
+- [ ] Testy dla refaktoryzowanych klas
+- [ ] Integration tests
 
 ---
 
-## 🎯 Metryki Sukcesu
+## 📈 Metryki Sukcesu
 
 ### Przed Refaktoryzacją
 - Największa klasa: 1,127 linii
 - Średnia wielkość klasy: ~500 linii
 - Liczba klas > 500 linii: 7
+- Duplikacje: ~1,250 linii
 
 ### Po Refaktoryzacji
 - Największa klasa: ~300 linii (max)
 - Średnia wielkość klasy: ~200 linii
 - Liczba klas > 500 linii: 0
-- Liczba nowych klas: ~35
+- Liczba nowych utility classes: 15+
+- Duplikacje: ~700 linii (44% redukcja)
 
 ---
 
-**Ostatnia aktualizacja**: 2025-12-16
-
+**Ostatnia aktualizacja**: 2025-12-16  
+**Zintegrowano z**: [VERSION_1.7.0_PLAN.md](../roadmap/VERSION_1.7.0_PLAN.md)
