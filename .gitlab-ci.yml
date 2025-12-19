@@ -1,0 +1,179 @@
+stages:
+  - build
+  - release
+
+variables:
+  PHP_VERSION: "8.1"
+
+# Build plugin release (triggered only by version tags)
+build:
+  stage: build
+  tags:
+    - vps
+  before_script:
+    - echo "Building PolyTrans release..."
+    - php --version
+    - composer --version
+  script:
+    # Get version from tag
+    - export VERSION=${CI_COMMIT_TAG#v}
+    - echo "Building version $VERSION"
+
+    # Install Composer dependencies (production only)
+    - composer install --no-dev --optimize-autoloader --no-interaction
+
+    # Create release directory
+    - mkdir -p release
+    - |
+      rsync -av --exclude='.git' \
+                --exclude='.github' \
+                --exclude='.gitlab' \
+                --exclude='node_modules' \
+                --exclude='tests' \
+                --exclude='docs/planning' \
+                --exclude='docs/development' \
+                --exclude='docs/testing' \
+                --exclude='.gitignore' \
+                --exclude='.gitattributes' \
+                --exclude='composer.json' \
+                --exclude='composer.lock' \
+                --exclude='phpunit.xml' \
+                --exclude='phpunit.xml.dist' \
+                --exclude='pest.php' \
+                --exclude='docker-compose.yml' \
+                --exclude='Dockerfile' \
+                --exclude='.env.example' \
+                --exclude='release' \
+                . release/polytrans/
+
+    # Create ZIP archives
+    - cd release
+    - zip -r polytrans-${VERSION}.zip polytrans/
+    - zip -r polytrans.zip polytrans/
+    - cd ..
+
+    # Generate checksums
+    - cd release
+    - sha256sum polytrans-${VERSION}.zip > polytrans-${VERSION}.zip.sha256
+    - sha256sum polytrans.zip > polytrans.zip.sha256
+    - cd ..
+
+    - echo "✅ Build complete! Archives created:"
+    - ls -lh release/*.zip
+  artifacts:
+    paths:
+      - release/*.zip
+      - release/*.sha256
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+
+# Create GitLab Release
+release:
+  stage: release
+  tags:
+    - vps
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: build
+      artifacts: true
+  before_script:
+    - apk add --no-cache bash sed
+  script:
+    # Get version from tag
+    - export VERSION=${CI_COMMIT_TAG#v}
+    - echo "Creating release for version $VERSION"
+
+    # Extract changelog for this version
+    - |
+      if [ -f CHANGELOG.md ]; then
+        # Try to extract section between [VERSION] and next [VERSION]
+        CHANGELOG=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d')
+
+        # If empty (no next version marker), get from version to end
+        if [ -z "$CHANGELOG" ]; then
+          CHANGELOG=$(sed -n "/## \[$VERSION\]/,\$p" CHANGELOG.md)
+        fi
+
+        # Save to file
+        echo "$CHANGELOG" > /tmp/changelog.txt
+      else
+        echo "No CHANGELOG.md found" > /tmp/changelog.txt
+      fi
+
+    # Create release description
+    - |
+      cat > /tmp/release_description.md << 'RELEASE_EOF'
+      ## PolyTrans v${VERSION}
+
+      ### 📦 Installation
+
+      **For WordPress Installation (Recommended):**
+      1. Download `polytrans.zip` ⬅️ Use this one!
+      2. Upload to WordPress via Plugins > Add New > Upload Plugin
+      3. Activate the plugin
+
+      **For Archival/Version Tracking:**
+      - Download `polytrans-${VERSION}.zip` if you need version-specific archive
+
+      **Note:** Both ZIPs contain identical files. The `polytrans.zip` ensures WordPress installs the plugin in the correct `polytrans/` directory.
+
+      ### ✅ What's Included
+
+      - All plugin files
+      - Composer dependencies (vendor/)
+      - Production-optimized autoloader
+
+      ### 🔐 Verification
+
+      Verify the download integrity:
+      ```bash
+      # For WordPress installation:
+      sha256sum -c polytrans.zip.sha256
+
+      # For versioned archive:
+      sha256sum -c polytrans-${VERSION}.zip.sha256
+      ```
+
+      ---
+
+      RELEASE_EOF
+
+    # Append changelog
+    - cat /tmp/changelog.txt >> /tmp/release_description.md
+
+    # Append footer
+    - |
+      cat >> /tmp/release_description.md << 'FOOTER_EOF'
+
+      ---
+
+      **Full Changelog:** [CHANGELOG.md](${CI_PROJECT_URL}/-/blob/main/CHANGELOG.md)
+      FOOTER_EOF
+
+    # Substitute variables in description
+    - sed -i "s/\${VERSION}/$VERSION/g" /tmp/release_description.md
+    - sed -i "s|\${CI_PROJECT_URL}|$CI_PROJECT_URL|g" /tmp/release_description.md
+
+    - echo "Release description created:"
+    - cat /tmp/release_description.md
+  release:
+    name: 'PolyTrans v$VERSION'
+    description: '/tmp/release_description.md'
+    tag_name: '$CI_COMMIT_TAG'
+    assets:
+      links:
+        - name: 'polytrans.zip (WordPress Installation)'
+          url: '${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/release/polytrans.zip'
+          link_type: 'package'
+        - name: 'polytrans.zip.sha256'
+          url: '${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/release/polytrans.zip.sha256'
+          link_type: 'other'
+        - name: 'polytrans-${VERSION}.zip (Versioned Archive)'
+          url: '${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/release/polytrans-${VERSION}.zip'
+          link_type: 'package'
+        - name: 'polytrans-${VERSION}.zip.sha256'
+          url: '${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/release/polytrans-${VERSION}.zip.sha256'
+          link_type: 'other'
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
