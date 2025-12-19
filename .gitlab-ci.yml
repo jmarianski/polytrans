@@ -176,22 +176,22 @@ release:
             \"links\": [
               {
                 \"name\": \"polytrans.zip (WordPress Installation)\",
-                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/file/release/polytrans.zip\",
+                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/raw/release/polytrans.zip\",
                 \"link_type\": \"package\"
               },
               {
                 \"name\": \"polytrans.zip.sha256\",
-                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/file/release/polytrans.zip.sha256\",
+                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/raw/release/polytrans.zip.sha256\",
                 \"link_type\": \"other\"
               },
               {
                 \"name\": \"polytrans-${VERSION}.zip (Versioned Archive)\",
-                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/file/release/polytrans-${VERSION}.zip\",
+                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/raw/release/polytrans-${VERSION}.zip\",
                 \"link_type\": \"package\"
               },
               {
                 \"name\": \"polytrans-${VERSION}.zip.sha256\",
-                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/file/release/polytrans-${VERSION}.zip.sha256\",
+                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/raw/release/polytrans-${VERSION}.zip.sha256\",
                 \"link_type\": \"other\"
               }
             ]
