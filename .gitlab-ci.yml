@@ -155,6 +155,13 @@ release:
     - echo "Release description created:"
     - cat /tmp/release_description.md
 
+    # Get build job ID from this pipeline
+    - |
+      BUILD_JOB_ID=$(curl --silent --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/jobs" | \
+        jq -r '.[] | select(.name == "build") | .id')
+      echo "Build job ID: $BUILD_JOB_ID"
+
     # Create GitLab Release via API
     - |
       DESCRIPTION=$(cat /tmp/release_description.md)
@@ -169,22 +176,22 @@ release:
             \"links\": [
               {
                 \"name\": \"polytrans.zip (WordPress Installation)\",
-                \"url\": \"${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/release/polytrans.zip\",
+                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/file/release/polytrans.zip\",
                 \"link_type\": \"package\"
               },
               {
                 \"name\": \"polytrans.zip.sha256\",
-                \"url\": \"${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/release/polytrans.zip.sha256\",
+                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/file/release/polytrans.zip.sha256\",
                 \"link_type\": \"other\"
               },
               {
                 \"name\": \"polytrans-${VERSION}.zip (Versioned Archive)\",
-                \"url\": \"${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/release/polytrans-${VERSION}.zip\",
+                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/file/release/polytrans-${VERSION}.zip\",
                 \"link_type\": \"package\"
               },
               {
                 \"name\": \"polytrans-${VERSION}.zip.sha256\",
-                \"url\": \"${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/release/polytrans-${VERSION}.zip.sha256\",
+                \"url\": \"${CI_PROJECT_URL}/-/jobs/${BUILD_JOB_ID}/artifacts/file/release/polytrans-${VERSION}.zip.sha256\",
                 \"link_type\": \"other\"
               }
             ]
