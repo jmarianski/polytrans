@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed missing `featured_image` support in managed assistant translation examples
+  - Added `featured_image` to `translation-user-message-full.twig` template
+  - Added `featured_image` schema to `translation-schema-full.json`
+  - Managed assistants now handle featured image metadata (alt, title, caption, description) like regular assistants
+
 ## [1.6.15] - 2025-12-16
 
 ### Added

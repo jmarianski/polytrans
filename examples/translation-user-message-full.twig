@@ -12,8 +12,18 @@ Translate the following WordPress post from {{ source_language }} to {{ target_l
       {% endif %}
     {% endfor %}
     {{ meta_fields|join(',\n    ')|raw }}
-  }
+  }{% if translated.featured_image %},
+  "featured_image": {
+    "id": {{ translated.featured_image.id }},
+    "alt": "{{ translated.featured_image.alt|escape('js') }}",
+    "title": "{{ translated.featured_image.title|escape('js') }}",
+    "caption": "{{ translated.featured_image.caption|escape('js') }}",
+    "description": "{{ translated.featured_image.description|escape('js') }}",
+    "filename": "{{ translated.featured_image.filename|escape('js') }}"
+  }{% endif %}
 }
 
 Return the translated content in the same JSON structure. Translate only the values, keep all keys in English.
+
+For featured_image: translate only the text fields (alt, title, caption, description). Keep id and filename unchanged.
 
