@@ -2,8 +2,6 @@
 
 A comprehensive WordPress plugin for managing multilingual content translation workflows with AI-powered translation support and advanced workflow automation.
 
-**Version**: 1.6.14 | **Status**: PSR-4 Architecture ✅
-
 ## 📚 Documentation
 
 - **[Full Documentation Index](docs/INDEX.md)** - Complete documentation structure
