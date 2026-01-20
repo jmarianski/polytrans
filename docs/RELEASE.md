@@ -7,70 +7,83 @@ This document describes how to create a new release of the PolyTrans plugin.
 - Push access to the repository
 - All changes merged to `main` branch
 - All tests passing
-- CHANGELOG.md updated
 
-## Automated Release Process
+## ⚠️ CRITICAL: Pre-Release Checklist
 
-The plugin uses GitHub Actions to automatically build and release when you push a version tag.
+**BEFORE creating a tag, you MUST complete these steps IN ORDER:**
 
-### Step 1: Update Version Numbers
+### 1. Update CHANGELOG.md
 
-Update version in these files:
+Add a new version section with all changes since the last release:
 
-1. **polytrans.php** (2 places):
-   ```php
-   * Version: 1.5.0
-   define('POLYTRANS_VERSION', '1.5.0');
-   ```
+```markdown
+## [1.7.1] - 2026-01-20
 
-2. **CHANGELOG.md**:
-   ```markdown
-   ## [1.5.0] - 2025-12-10
-   ```
+### Added
+- New feature description
 
-3. **README.md**:
-   ```markdown
-   **Version**: 1.5.0
-   ```
+### Changed
+- Changed feature description
 
-### Step 2: Commit Version Changes
+### Fixed
+- Bug fix description
+```
+
+**Tip:** Use `git log v1.6.15..HEAD --oneline` to see all commits since the last tag.
+
+### 2. Update Version Numbers
+
+Update version in **polytrans.php** (2 places):
+
+```php
+* Version: 1.7.1
+```
+
+```php
+define('POLYTRANS_VERSION', '1.7.1');
+```
+
+### 3. Commit All Changes
 
 ```bash
 git add -A
-git commit -m "chore: Release version 1.5.0"
+git commit -m "chore: Release version 1.7.1"
 git push origin main
 ```
 
-### Step 3: Create and Push Tag
+### 4. Create and Push Tag
 
 ```bash
 # Create annotated tag
-git tag -a v1.5.0 -m "Release version 1.5.0"
+git tag -a v1.7.1 -m "Release version 1.7.1"
 
-# Push tag to GitHub
-git push origin v1.5.0
+# Push tag to GitLab
+git push origin v1.7.1
 ```
 
-### Step 4: Automated Build
+## Automated Release Process (GitLab CI)
 
-GitHub Actions will automatically:
+When you push a version tag (e.g., `v1.7.1`), GitLab CI automatically:
 
 1. ✅ Checkout code
-2. ✅ Install PHP 7.4
+2. ✅ Install PHP 8.1
 3. ✅ Run `composer install --no-dev --optimize-autoloader`
 4. ✅ Create clean release directory (excludes dev files)
-5. ✅ Generate ZIP archive: `polytrans-1.5.0.zip`
-6. ✅ Generate SHA256 checksum
-7. ✅ Create GitHub Release with files attached
-8. ✅ Upload artifact for 30 days
+5. ✅ Generate ZIP archives:
+   - `polytrans.zip` - For WordPress installation
+   - `polytrans-1.7.1.zip` - Versioned archive
+6. ✅ Generate SHA256 checksums
+7. ✅ Create GitLab Release with files attached
+8. ✅ Extract changelog section for release notes
 
-### Step 5: Verify Release
+### Verify Release
 
-1. Go to: https://github.com/YOUR_ORG/polytrans/releases
-2. Check that `polytrans-1.5.0.zip` is attached
-3. Download and verify:
+1. Go to: https://gitlab.com/treetank/polytrans/-/releases
+2. Check that ZIP files are attached
+3. Verify the release notes contain the correct changelog
+4. Download and verify:
    ```bash
-   sha256sum -c polytrans-1.5.0.zip.sha256
+   sha256sum -c polytrans.zip.sha256
    ```
 
 ## What's Included in Release
@@ -80,27 +93,26 @@ GitHub Actions will automatically:
 - All plugin PHP files
 - All assets (JS, CSS, images)
 - Composer dependencies (`vendor/`)
-- Documentation (`docs/`)
+- User documentation (`docs/` - excluding planning/development/testing)
 - Templates (`templates/`)
 - Languages (`languages/`)
 - README.md, CHANGELOG.md, LICENSE
 
 ### ❌ Excluded Files (Development Only)
 
-- `.github/` - GitHub Actions workflows
+- `.git/`, `.github/`, `.gitlab/`
 - `tests/` - Unit tests
-- `docs/planning/` - Planning documents
-- `docs/development/` - Development docs
-- `docs/testing/` - Testing docs
+- `docs/planning/`, `docs/development/`, `docs/testing/`
 - `.gitignore`, `.gitattributes`
 - `composer.json`, `composer.lock`
-- `phpunit.xml`, `pest.php`
+- `phpunit.xml`, `phpunit.xml.dist`, `pest.php`
 - `docker-compose.yml`, `Dockerfile`
 - `.env.example`
+- `release/` directory
 
 ## Manual Release (Fallback)
 
-If GitHub Actions fails, you can build manually:
+If GitLab CI fails, you can build manually:
 
 ```bash
 # Install production dependencies
@@ -110,19 +122,26 @@ composer install --no-dev --optimize-autoloader
 mkdir -p release
 rsync -av --exclude='.git' \
           --exclude='.github' \
+          --exclude='.gitlab' \
+          --exclude='node_modules' \
           --exclude='tests' \
           --exclude='docs/planning' \
+          --exclude='docs/development' \
+          --exclude='docs/testing' \
+          --exclude='release' \
           . release/polytrans/
 
 # Create ZIP
 cd release
-zip -r polytrans-1.5.0.zip polytrans/
+zip -r polytrans-1.7.1.zip polytrans/
+zip -r polytrans.zip polytrans/
 
-# Generate checksum
-sha256sum polytrans-1.5.0.zip > polytrans-1.5.0.zip.sha256
+# Generate checksums
+sha256sum polytrans-1.7.1.zip > polytrans-1.7.1.zip.sha256
+sha256sum polytrans.zip > polytrans.zip.sha256
 ```
 
-Then manually upload to GitHub Releases.
+Then manually upload to GitLab Releases.
 
 ## Versioning
 
@@ -134,32 +153,68 @@ We follow [Semantic Versioning](https://semver.org/):
 
 ### Examples
 
-- `1.5.0` → `1.5.1`: Bug fix (patch)
-- `1.5.0` → `1.6.0`: New feature (minor)
-- `1.5.0` → `2.0.0`: Breaking change (major)
+- `1.7.0` → `1.7.1`: Bug fix or small feature (patch)
+- `1.7.0` → `1.8.0`: New feature (minor)
+- `1.7.0` → `2.0.0`: Breaking change (major)
 
-## Release Checklist
+## Complete Release Checklist
 
+Use this checklist for every release:
+
+```
+PRE-RELEASE (do these BEFORE creating tag):
 - [ ] All tests passing (`./vendor/bin/pest`)
-- [ ] CHANGELOG.md updated with changes
-- [ ] Version updated in `polytrans.php` (2 places)
-- [ ] Version updated in `README.md`
-- [ ] Version updated in `CHANGELOG.md`
-- [ ] Changes committed to `main`
-- [ ] Tag created and pushed (`git tag -a v1.5.0 -m "..."`)
-- [ ] GitHub Actions build successful
-- [ ] Release verified on GitHub
-- [ ] ZIP downloaded and tested in WordPress
+- [ ] CHANGELOG.md updated with new version section
+- [ ] Version updated in `polytrans.php` (header comment)
+- [ ] Version updated in `polytrans.php` (POLYTRANS_VERSION constant)
+- [ ] Changes committed: `git commit -m "chore: Release version X.Y.Z"`
+- [ ] Changes pushed to main: `git push origin main`
+
+CREATE RELEASE:
+- [ ] Tag created: `git tag -a vX.Y.Z -m "Release version X.Y.Z"`
+- [ ] Tag pushed: `git push origin vX.Y.Z`
+
+POST-RELEASE VERIFICATION:
+- [ ] GitLab CI pipeline successful
+- [ ] Release visible in GitLab Releases
+- [ ] ZIP files downloadable
+- [ ] Version number in ZIP matches tag
+- [ ] Plugin tested in WordPress after installation
+```
+
+## Fixing a Bad Release
+
+If you created a tag without updating version/changelog:
+
+```bash
+# Delete remote tag
+git push origin :refs/tags/v1.7.1
+
+# Delete local tag
+git tag -d v1.7.1
+
+# Fix version numbers and changelog
+# ... make your changes ...
+
+# Commit fixes
+git add -A
+git commit -m "chore: Release version 1.7.1"
+git push origin main
+
+# Recreate and push tag
+git tag -a v1.7.1 -m "Release version 1.7.1"
+git push origin v1.7.1
+```
 
 ## Troubleshooting
 
-### GitHub Actions Failed
+### GitLab CI Failed
 
-1. Check workflow logs: https://github.com/YOUR_ORG/polytrans/actions
+1. Check pipeline logs: https://gitlab.com/treetank/polytrans/-/pipelines
 2. Common issues:
    - Composer dependencies failed → Check `composer.json`
    - ZIP creation failed → Check file permissions
-   - Release creation failed → Check `GITHUB_TOKEN` permissions
+   - Release creation failed → Check CI job token permissions
 
 ### ZIP is Too Large
 
@@ -167,24 +222,23 @@ The release ZIP should be < 10 MB. If larger:
 
 1. Check that `node_modules/` is excluded
 2. Check that `tests/` is excluded
-3. Run `composer install --no-dev` (not `--dev`)
+3. Run `composer install --no-dev` (not with `--dev`)
 
 ### Missing Files in ZIP
 
-1. Check `.gitattributes` export-ignore rules
-2. Check `rsync` exclude patterns in workflow
-3. Verify files exist in repository
+1. Check `rsync` exclude patterns in `.gitlab-ci.yml`
+2. Verify files exist in repository
+3. Check if files are in `.gitignore`
 
-## Support
+### Release Created Without Changelog
 
-For issues with the release process:
+The CI extracts changelog from CHANGELOG.md for the release notes. If the section is missing:
 
-1. Check GitHub Actions logs
-2. Review this document
-3. Contact maintainers
+1. Delete the release in GitLab UI
+2. Update CHANGELOG.md
+3. Delete and recreate the tag (see "Fixing a Bad Release")
 
 ---
 
-**Last Updated**: 2025-12-10
-**Current Version**: 1.5.0
-
+**Last Updated**: 2026-01-20
+**CI Platform**: GitLab CI/CD

@@ -216,6 +216,9 @@ class TranslationSettings
         $settings['source_language'] = sanitize_text_field(wp_unslash($_POST['source_language'] ?? 'pl'));
         $settings['base_tags'] = sanitize_textarea_field(wp_unslash($_POST['base_tags'] ?? ''));
 
+        // Field whitelist for dirty check (one pattern per line)
+        $settings['dirty_check_field_whitelist'] = sanitize_textarea_field(wp_unslash($_POST['dirty_check_field_whitelist'] ?? ''));
+
         // Handle provider-specific settings
         // IMPORTANT: Save settings for ALL providers with settings UI, not just the selected provider
         // This allows users to configure multiple providers (e.g., OpenAI for assistants, Google for default translation)

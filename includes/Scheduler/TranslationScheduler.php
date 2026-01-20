@@ -49,6 +49,11 @@ class TranslationScheduler
             $langs = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'slug']) : ['pl', 'en', 'it'];
             $lang_names = function_exists('pll_languages_list') ? pll_languages_list(['fields' => 'name']) : ['Polish', 'English', 'Italian'];
 
+            // Get custom field whitelist from settings (for ignoring background field changes)
+            $field_whitelist = isset($settings['dirty_check_field_whitelist'])
+                ? array_filter(array_map('trim', explode("\n", $settings['dirty_check_field_whitelist'])))
+                : [];
+
             wp_localize_script('polytrans-scheduler', 'PolyTransScheduler', [
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'settings' => $settings,
@@ -57,6 +62,7 @@ class TranslationScheduler
                 'postId' => get_the_ID(),
                 'nonce' => wp_create_nonce('polytrans_schedule_translation'),
                 'edit_url' => admin_url('post.php?post=__ID__&action=edit'),
+                'fieldWhitelist' => $field_whitelist,
                 'i18n' => [
                     'translating' => esc_html__('Translating...', 'polytrans'),
                     'translation_started' => esc_html__('Translation started!', 'polytrans'),
