@@ -13,6 +13,61 @@ jQuery(function ($) {
 
     var postId = PolyTransScheduler.postId;
 
+    // Built-in whitelist of field patterns that should NOT trigger "unsaved changes"
+    // These are fields from known plugins that modify values in the background
+    var builtInFieldWhitelist = [
+        // AIOSEO (All in One SEO)
+        'aioseo',
+        // Yoast SEO
+        'yoast',
+        '_yoast',
+        'wpseo',
+        // Rank Math SEO
+        'rank_math',
+        'rank-math',
+        // SEOPress
+        'seopress',
+        // The SEO Framework
+        'tsf',
+        '_tsf',
+        // WordPress internal (additional patterns)
+        'meta-box',
+        'metabox',
+        // ACF (sometimes changes in background)
+        'acf-',
+        // Gutenberg/Block Editor internal
+        'editor-',
+        'block-editor',
+        // WooCommerce
+        '_wc_',
+        'woocommerce',
+        // Elementor
+        'elementor',
+        // Classic Editor
+        'classic-editor'
+    ];
+
+    // Combine built-in whitelist with user-configured whitelist
+    var customWhitelist = PolyTransScheduler.fieldWhitelist || [];
+    var fieldWhitelist = builtInFieldWhitelist.concat(customWhitelist);
+
+    /**
+     * Check if a field name/id matches any whitelist pattern
+     * @param {string} fieldName - The field name or ID to check
+     * @returns {boolean} - True if field should be ignored (whitelisted)
+     */
+    function isFieldWhitelisted(fieldName) {
+        if (!fieldName) return false;
+        var lowerName = fieldName.toLowerCase();
+        for (var i = 0; i < fieldWhitelist.length; i++) {
+            var pattern = fieldWhitelist[i].toLowerCase();
+            if (lowerName.indexOf(pattern) !== -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Flag to track if translate button is locked by translation process
     var translateButtonLocked = false;
 
@@ -131,14 +186,21 @@ jQuery(function ($) {
                 var $field = $(this);
                 var originalValue = $field.data('original-value');
                 var currentValue = $field.val();
+                var fieldName = $field.attr('name') || '';
+                var fieldId = $field.attr('id') || '';
 
                 // Skip if this is a hidden WordPress field that changes automatically
-                if ($field.attr('name') && (
-                    $field.attr('name').indexOf('_wp') === 0 ||
-                    $field.attr('name').indexOf('_ajax') === 0 ||
-                    $field.attr('name').indexOf('action') === 0 ||
-                    $field.attr('name').indexOf('post_ID') === 0
-                ) || !$field.attr('name')) {
+                if (fieldName && (
+                    fieldName.indexOf('_wp') === 0 ||
+                    fieldName.indexOf('_ajax') === 0 ||
+                    fieldName.indexOf('action') === 0 ||
+                    fieldName.indexOf('post_ID') === 0
+                ) || !fieldName) {
+                    return true; // Continue to next field
+                }
+
+                // Skip if field is in whitelist (known plugins that change values in background)
+                if (isFieldWhitelisted(fieldName) || isFieldWhitelisted(fieldId)) {
                     return true; // Continue to next field
                 }
 
@@ -146,7 +208,7 @@ jQuery(function ($) {
                     $field.data('original-value', currentValue);
                 } else if (originalValue !== currentValue) {
                     isDirty = true;
-                    dirtyReason = 'Form field changed: ' + ($field.attr('name') || $field.attr('id') || 'unknown');
+                    dirtyReason = 'Form field changed: ' + (fieldName || fieldId || 'unknown');
                     return false; // Break out of loop
                 }
             });

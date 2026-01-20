@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.16] - 2026-01-20
+
+### Added
+- **Dirty Check Field Whitelist**: Added configurable whitelist of form field patterns to ignore when checking for unsaved changes
+  - Prevents plugins like AIOSEO, Yoast, Rank Math from triggering false "Unsaved Changes" warnings in translation scheduler
+  - Built-in whitelist includes: `aioseo`, `yoast`, `wpseo`, `rank_math`, `seopress`, `tsf`, `acf-`, `woocommerce`, `elementor`
+  - Custom patterns can be configured in Settings → Advanced → Dirty Check Field Whitelist
+  - Supports partial matching (case-insensitive)
+
+### Fixed
+- Fixed missing `featured_image` support in managed assistant translation examples
+  - Added `featured_image` to `translation-user-message-full.twig` template
+  - Added `featured_image` schema to `translation-schema-full.json`
+  - Managed assistants now handle featured image metadata (alt, title, caption, description) like regular assistants
+
 ## [1.6.15] - 2025-12-16
 
 ### Added

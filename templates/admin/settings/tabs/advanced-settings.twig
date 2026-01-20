@@ -75,3 +75,19 @@
     </small>
 </div><br>
 
+<h2>{{ __('Dirty Check Field Whitelist', 'polytrans') }}</h2>
+<div class="dirty-check-whitelist-options">
+    <p>
+        <textarea name="dirty_check_field_whitelist" id="dirty-check-field-whitelist" rows="6" style="width:100%;max-width:600px;font-family:monospace;">{{ settings.dirty_check_field_whitelist|default('')|esc_textarea }}</textarea>
+    </p>
+    <small>
+        {{ __('Field name patterns to ignore when checking for unsaved changes (one pattern per line). Fields matching these patterns will not trigger the "Unsaved Changes" warning in the translation scheduler. This is useful for plugins that modify field values in the background.', 'polytrans') }}<br><br>
+        <strong>{{ __('Built-in patterns (always active):', 'polytrans') }}</strong><br>
+        <code>aioseo</code>, <code>yoast</code>, <code>wpseo</code>, <code>rank_math</code>, <code>seopress</code>, <code>tsf</code>, <code>acf-</code>, <code>woocommerce</code>, <code>elementor</code><br><br>
+        <strong>{{ __('Example custom patterns:', 'polytrans') }}</strong><br>
+        <code>my-custom-plugin</code><br>
+        <code>jetpack</code><br>
+        <code>wpforms</code>
+    </small>
+</div><br>
+
