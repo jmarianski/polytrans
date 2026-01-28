@@ -9,7 +9,7 @@ jQuery(document).ready(function ($) {
         $.post(ajaxurl, {
             action: "polytrans_save_tag_translation",
             tag_id: tag,
-            lang: lang,
+            target_lang: lang,
             value: value,
             translation_id: translation_id,
             nonce: PolyTransTagTranslation.nonce

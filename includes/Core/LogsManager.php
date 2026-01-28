@@ -293,7 +293,7 @@ class LogsManager
 
     /**
      * Ensure all required indexes exist on the table
-     * 
+     *
      * @param string $table_name The table name
      * @return void
      */
@@ -301,7 +301,7 @@ class LogsManager
     {
         global $wpdb;
 
-        // Define expected indexes
+        // Define expected indexes (index_name => column_name)
         $indexes = [
             'level' => 'level',
             'created_at' => 'created_at',
@@ -310,10 +310,66 @@ class LogsManager
             'post_id' => 'post_id'
         ];
 
+        // Get existing indexes
+        $existing_indexes = self::get_table_indexes($table_name);
+
         foreach ($indexes as $index_name => $column_name) {
-            // Try to add index - MySQL will ignore if it already exists
-            $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `$index_name` (`$column_name`)");
+            // Check if index already exists with the same definition
+            if (isset($existing_indexes[$index_name])) {
+                // Index exists - verify it's on the correct column
+                if ($existing_indexes[$index_name] === $column_name) {
+                    // Index exists and matches - skip
+                    continue;
+                } else {
+                    // Index exists but on different column - drop and recreate
+                    error_log("[polytrans] Index '$index_name' exists but on wrong column (expected '$column_name', found '{$existing_indexes[$index_name]}'). Recreating.");
+                    $wpdb->query("ALTER TABLE `$table_name` DROP INDEX `$index_name`");
+                }
+            }
+
+            // Add the index
+            $result = $wpdb->query("ALTER TABLE `$table_name` ADD INDEX `$index_name` (`$column_name`)");
+            if ($result === false) {
+                error_log("[polytrans] Failed to add index '$index_name' on column '$column_name': " . $wpdb->last_error);
+            }
         }
+    }
+
+    /**
+     * Get existing indexes for a table
+     *
+     * @param string $table_name The table name
+     * @return array Array of index_name => column_name
+     */
+    private static function get_table_indexes($table_name)
+    {
+        global $wpdb;
+        static $indexes_cache = [];
+
+        // Return from cache if available
+        if (isset($indexes_cache[$table_name])) {
+            return $indexes_cache[$table_name];
+        }
+
+        $indexes = [];
+        $results = $wpdb->get_results("SHOW INDEX FROM `$table_name`");
+
+        if ($results) {
+            foreach ($results as $row) {
+                // Skip PRIMARY key
+                if ($row->Key_name === 'PRIMARY') {
+                    continue;
+                }
+                // Store index_name => column_name (for single-column indexes)
+                // If index already exists, it means it's a multi-column index
+                if (!isset($indexes[$row->Key_name])) {
+                    $indexes[$row->Key_name] = $row->Column_name;
+                }
+            }
+        }
+
+        $indexes_cache[$table_name] = $indexes;
+        return $indexes;
     }
 
     /**

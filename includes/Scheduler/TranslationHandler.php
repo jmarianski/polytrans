@@ -528,7 +528,8 @@ class TranslationHandler
         check_ajax_referer('polytrans_schedule_translation');
 
         $post_id = intval($_POST['post_id'] ?? 0);
-        $lang = sanitize_text_field($_POST['lang'] ?? '');
+        // Use target_lang if available, fallback to lang for backward compatibility
+        $lang = sanitize_text_field($_POST['target_lang'] ?? $_POST['lang'] ?? '');
         $langs_key = '_polytrans_translation_langs';
         $scheduled_langs = get_post_meta($post_id, $langs_key, true);
         if (!is_array($scheduled_langs)) $scheduled_langs = [];
@@ -554,7 +555,8 @@ class TranslationHandler
         check_ajax_referer('polytrans_schedule_translation');
 
         $post_id = intval($_POST['post_id'] ?? 0);
-        $lang = sanitize_text_field($_POST['lang'] ?? '');
+        // Use target_lang if available, fallback to lang for backward compatibility
+        $lang = sanitize_text_field($_POST['target_lang'] ?? $_POST['lang'] ?? '');
 
         if (!$post_id || !$lang) {
             wp_send_json_error(['message' => 'Invalid parameters']);

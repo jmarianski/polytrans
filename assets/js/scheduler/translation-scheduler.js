@@ -431,7 +431,7 @@ jQuery(function ($) {
         $.post(PolyTransScheduler.ajax_url, {
             action: 'polytrans_clear_translation_status',
             post_id: postId,
-            lang: lang,
+            target_lang: lang,
             _ajax_nonce: PolyTransScheduler.nonce
         }, function (resp) {
             if (resp && resp.success) {
@@ -456,7 +456,7 @@ jQuery(function ($) {
         $.post(PolyTransScheduler.ajax_url, {
             action: 'polytrans_retry_translation',
             post_id: postId,
-            lang: lang,
+            target_lang: lang,
             _ajax_nonce: PolyTransScheduler.nonce
         }, function (resp) {
             if (resp && resp.success) {
