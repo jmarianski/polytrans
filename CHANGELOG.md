@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.17] - 2026-01-28
+
+### Fixed
+- **Gutenberg + Polylang Compatibility**: Fixed duplicate `lang` parameter issue causing AJAX failures
+  - Changed AJAX parameter from `lang` to `target_lang` to avoid conflict with Polylang's automatic `lang` injection in block editor
+  - Added backward compatibility fallback to support old `lang` parameter
+  - Fixes "Cannot translate to the same language" error when clearing/retrying translations in Gutenberg editor
+  - Affects: Translation scheduler clear/retry buttons, tag translation save
+- **Plugin Activation**: Fixed "generated 1060 characters of unexpected output" warning
+  - Added index existence check in `LogsManager::ensure_table_indexes()` before attempting to create database indexes
+  - Prevents duplicate key SQL errors during plugin activation/reactivation
+  - Improved index verification to check both existence and definition
+
 ## [1.6.16] - 2026-01-20
 
 ### Added

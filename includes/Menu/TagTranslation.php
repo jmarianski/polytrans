@@ -191,7 +191,8 @@ class TagTranslation
         }
 
         $tag_id = intval($_POST['tag_id'] ?? 0);
-        $lang = sanitize_text_field($_POST['lang'] ?? '');
+        // Use target_lang if available, fallback to lang for backward compatibility
+        $lang = sanitize_text_field($_POST['target_lang'] ?? $_POST['lang'] ?? '');
         $translation_name = sanitize_text_field($_POST['value'] ?? '');
 
         if (!$tag_id || !$lang) {
@@ -251,7 +252,8 @@ class TagTranslation
         check_ajax_referer('polytrans_tag_translation', 'nonce');
 
         $search = sanitize_text_field($_POST['search'] ?? '');
-        $lang = sanitize_text_field($_POST['lang'] ?? '');
+        // Use target_lang if available, fallback to lang for backward compatibility
+        $lang = sanitize_text_field($_POST['target_lang'] ?? $_POST['lang'] ?? '');
 
         if (strlen($search) < 2) {
             wp_send_json_success(['tags' => []]);
