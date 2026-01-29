@@ -112,9 +112,11 @@ class WorkflowMetabox
         // Filter workflows by language and enabled status
         $available_workflows = [];
         foreach ($all_workflows as $workflow) {
-            // Must match language AND be enabled
+            // Must match language (or be "all languages") AND be enabled
             $is_enabled = isset($workflow['enabled']) ? $workflow['enabled'] : false;
-            if (!empty($workflow['language']) && $workflow['language'] === $post_language && $is_enabled) {
+            $workflow_lang = $workflow['language'] ?? '';
+            $matches_language = empty($workflow_lang) || $workflow_lang === $post_language;
+            if ($matches_language && $is_enabled) {
                 $available_workflows[] = $workflow;
             }
         }
