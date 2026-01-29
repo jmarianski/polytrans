@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.19] - 2026-01-29
+
+### Fixed
+- **Metabox "All Languages" Support**: Fixed workflows with "All languages" not showing in post metabox
+  - Metabox now correctly displays workflows targeting all languages alongside language-specific ones
+
 ## [1.6.18] - 2026-01-29
 
 ### Added
