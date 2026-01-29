@@ -426,10 +426,10 @@
                         <tr>
                             <th><label for="workflow-language">Target Language</label></th>
                             <td>
-                                <select id="workflow-language" name="workflow_language" required>
+                                <select id="workflow-language" name="workflow_language">
                                     ${renderLanguageOptions()}
                                 </select>
-                                <p class="description">This workflow will run for translations to this language</p>
+                                <p class="description">${escapeHtml(polytransWorkflows.strings.allLanguagesDescription || 'Select a specific language or "All languages" to run this workflow for any translation target')}</p>
                             </td>
                         </tr>
                         <tr>
@@ -508,7 +508,11 @@
      * Render language options
      */
     function renderLanguageOptions() {
-        let options = '';
+        // Add "All languages" option first (empty value means applies to all)
+        const allSelected = !workflowData.language || workflowData.language === '' ? 'selected' : '';
+        const allLangLabel = polytransWorkflows.strings.allLanguagesOption || '— All languages —';
+        let options = `<option value="" ${allSelected}>${escapeHtml(allLangLabel)}</option>`;
+
         for (const [code, name] of Object.entries(languages)) {
             const selected = workflowData.language === code ? 'selected' : '';
             options += `<option value="${escapeHtml(code)}" ${selected}>${escapeHtml(name)}</option>`;

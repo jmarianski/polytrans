@@ -143,7 +143,9 @@
         displayWorkflowDetails: function () {
             if (!this.currentWorkflow) return;
 
-            const languageName = polytransExecuteWorkflow.languages[this.currentWorkflow.language] || this.currentWorkflow.language.toUpperCase();
+            const languageName = this.currentWorkflow.language
+                ? (polytransExecuteWorkflow.languages[this.currentWorkflow.language] || this.currentWorkflow.language.toUpperCase())
+                : (polytransExecuteWorkflow.strings.allLanguages || 'All languages');
             const stepsCount = this.currentWorkflow.steps ? this.currentWorkflow.steps.length : 0;
 
             $('#workflow-language').text(languageName);
@@ -367,7 +369,9 @@
          * Display execution review
          */
         displayExecutionReview: function (data) {
-            const languageName = polytransExecuteWorkflow.languages[this.currentWorkflow.language] || this.currentWorkflow.language.toUpperCase();
+            const languageName = this.currentWorkflow.language
+                ? (polytransExecuteWorkflow.languages[this.currentWorkflow.language] || this.currentWorkflow.language.toUpperCase())
+                : (polytransExecuteWorkflow.strings.allLanguages || 'All languages');
             const stepsCount = this.currentWorkflow.steps ? this.currentWorkflow.steps.length : 0;
 
             const html = `

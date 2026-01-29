@@ -145,6 +145,9 @@ class PostprocessingMenu
                     'moveDown' => __('Move Down', 'polytrans'),
                     'clearSelection' => __('Clear', 'polytrans'),
                     'noProviderSelected' => __('No provider selected. A random enabled provider will be used.', 'polytrans'),
+                    'allLanguages' => __('All languages', 'polytrans'),
+                    'allLanguagesOption' => __('— All languages —', 'polytrans'),
+                    'allLanguagesDescription' => __('Select a specific language or "All languages" to run this workflow for any translation target', 'polytrans'),
                 ]
             ]);
 
@@ -211,6 +214,7 @@ class PostprocessingMenu
                     'languageMismatch' => __('Post translation language does not match workflow language.', 'polytrans'),
                     'permissionDenied' => __('You do not have permission to execute workflows on this post.', 'polytrans'),
                     'timeout' => __('Execution timed out. Please check logs for details.', 'polytrans'),
+                    'allLanguages' => __('All languages', 'polytrans'),
                 ]
             ]);
         }
