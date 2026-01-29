@@ -344,11 +344,9 @@ class WorkflowMetabox
         $_POST['translated_post_id'] = $post_id;
         $_POST['original_post_id'] = $post_id; // Same for manual execution
         
-        // Get workflow to determine target language
-        $workflow = $this->storage_manager->get_workflow($workflow_id);
-        if ($workflow) {
-            $_POST['target_language'] = $workflow['language'] ?? '';
-        }
+        // Determine target language - use post's language (workflow language is for filtering, not execution)
+        $post_language = function_exists('pll_get_post_language') ? pll_get_post_language($post_id) : '';
+        $_POST['target_language'] = $post_language;
 
         // Call the manual execution handler
         $workflow_manager->ajax_execute_workflow_manual();
