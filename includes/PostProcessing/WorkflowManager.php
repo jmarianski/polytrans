@@ -889,8 +889,9 @@ class WorkflowManager
         $executable_workflows = [];
 
         foreach ($all_workflows as $workflow) {
-            // Only include workflows for this language
-            if (($workflow['target_language'] ?? '') !== $post_lang) {
+            // Include workflows for this specific language OR workflows with no language (all languages)
+            $workflow_lang = $workflow['target_language'] ?? '';
+            if ($workflow_lang !== '' && $workflow_lang !== $post_lang) {
                 continue;
             }
 

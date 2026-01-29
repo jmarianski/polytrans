@@ -215,6 +215,10 @@ class WorkflowStorageManager
     /**
      * Get workflows for a specific language
      *
+     * Returns workflows that either:
+     * - Match the specified language exactly
+     * - Have no language specified (applies to all languages)
+     *
      * @param string $language Language code
      * @return array Array of workflows for the language
      */
@@ -223,8 +227,12 @@ class WorkflowStorageManager
         global $wpdb;
         $table_name = $wpdb->prefix . self::TABLE_NAME;
 
+        // Get workflows for this specific language OR workflows with empty language (all languages)
         $results = $wpdb->get_results(
-            $wpdb->prepare("SELECT * FROM $table_name WHERE language = %s ORDER BY name ASC", $language),
+            $wpdb->prepare(
+                "SELECT * FROM $table_name WHERE language = %s OR language = '' OR language IS NULL ORDER BY name ASC",
+                $language
+            ),
             ARRAY_A
         );
 
@@ -392,9 +400,8 @@ class WorkflowStorageManager
             $errors[] = 'Workflow name is required';
         }
 
-        if (!isset($workflow['language']) || empty($workflow['language'])) {
-            $errors[] = 'Workflow language is required';
-        }
+        // Language is optional - empty means "all languages"
+        // No validation error for missing language
 
         if (!isset($workflow['steps']) || !is_array($workflow['steps'])) {
             $errors[] = 'Workflow must have steps array';

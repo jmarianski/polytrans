@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.18] - 2026-01-29
+
+### Added
+- **All Languages Workflow Support**: Workflows can now target all languages instead of a specific one
+  - New "All languages" option in workflow language dropdown
+  - Workflows with no language specified will run for any translation target
+  - Backward compatible - existing workflows with specific language continue to work unchanged
+
 ## [1.6.17] - 2026-01-28
 
 ### Fixed
