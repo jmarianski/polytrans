@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.4] - 2026-01-30
+
+### Added
+- **Translation Server Role**: New setting to configure how this server handles incoming translation requests
+  - `Full Storage` (default): Creates posts locally, runs workflows, full processing
+  - `Translation Only`: Stateless mode - translates and forwards without local storage or workflows
+  - Ideal for dedicated translation servers that don't need to store content
+
+### Changed
+- In `Translation Only` mode, `after_workflows` dispatch is automatically converted to `immediate`
+
 ## [1.7.3] - 2026-01-30
 
 ### Added

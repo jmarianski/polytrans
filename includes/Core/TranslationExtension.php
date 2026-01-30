@@ -178,8 +178,15 @@ class TranslationExtension
             return new WP_REST_Response(['error' => $result['error']], 500);
         }
 
-        // Check dispatch mode
+        // Check server role and dispatch mode
+        $server_role = $settings['translation_server_role'] ?? 'full';
         $dispatch_mode = $settings['outgoing_translation_dispatch_mode'] ?? 'immediate';
+
+        // In "translation_only" mode, always use immediate dispatch (no local storage, no workflows)
+        if ($server_role === 'translation_only') {
+            $dispatch_mode = 'immediate';
+            LogsManager::log("Translation-only mode: forcing immediate dispatch, skipping workflows", "info");
+        }
 
         // Prepare payload for target endpoint
         $payload = [
