@@ -41,13 +41,20 @@ class LanguageManager
 
     /**
      * Sets up translation relationships between original and translated posts.
-     * 
+     *
      * @param int $new_post_id New translated post ID
      * @param int $original_post_id Original post ID
      * @param string $target_language Target language code
      */
     private function setup_translation_relationship($new_post_id, $original_post_id, $target_language)
     {
+        // Check if original post exists locally before setting up relationships
+        $original_post = get_post($original_post_id);
+        if (!$original_post) {
+            error_log("[polytrans] Cannot setup translation relationship: original post $original_post_id does not exist locally");
+            return;
+        }
+
         if (function_exists('pll_save_post_translations')) {
             // Get existing translations for the original post
             $translations = function_exists('pll_get_post_translations') ?

@@ -14,7 +14,7 @@ class PostCreator
 {
     /**
      * Creates a new WordPress post with the translated content.
-     * 
+     *
      * @param array $translated Translated content data
      * @param int $original_post_id Original post ID
      * @return int|WP_Error New post ID or WP_Error on failure
@@ -22,13 +22,22 @@ class PostCreator
     public function create_post(array $translated, $original_post_id)
     {
         $original_post = get_post($original_post_id);
-        if (!$original_post) {
-            return new \WP_Error('invalid_post', 'Could not retrieve original post');
-        }
 
-        $original_post_type = $original_post->post_type;
-        if (!$original_post_type) {
-            return new \WP_Error('invalid_post_type', 'Could not determine original post type');
+        // Determine post type and author from original post or use defaults
+        if ($original_post) {
+            $post_type = $original_post->post_type ?: 'post';
+            $post_author = $original_post->post_author ?: get_current_user_id();
+        } else {
+            // Original post doesn't exist locally (separate database architecture)
+            // Use defaults from translated data or system defaults
+            $post_type = $translated['post_type'] ?? 'post';
+            $post_author = $translated['author_id'] ?? get_current_user_id();
+
+            \PolyTrans_Logs_Manager::log(
+                "Original post $original_post_id not found locally - using defaults (type: $post_type, author: $post_author)",
+                "info",
+                ['source' => 'translation_post_creator', 'original_post_id' => $original_post_id]
+            );
         }
 
         $postarr = [
@@ -36,8 +45,8 @@ class PostCreator
             'post_content' => $this->sanitize_content(isset($translated['content']) ? $translated['content'] : ''),
             'post_excerpt' => $this->sanitize_excerpt(isset($translated['excerpt']) ? $translated['excerpt'] : ''),
             'post_status'  => 'pending', // Will be updated later based on settings
-            'post_type'    => $original_post_type,
-            'post_author'  => $original_post->post_author, // Preserve original post author
+            'post_type'    => $post_type,
+            'post_author'  => $post_author,
         ];
 
         $new_post_id = wp_insert_post($postarr);
@@ -48,19 +57,20 @@ class PostCreator
         }
 
         // Log the author attribution for audit purposes
-        $original_author = get_user_by('id', $original_post->post_author);
+        $original_author = get_user_by('id', $post_author);
         $author_name = $original_author ? $original_author->display_name : 'Unknown';
-        \PolyTrans_Logs_Manager::log("Created translated post {$new_post_id} with preserved author attribution", "info", [
+        \PolyTrans_Logs_Manager::log("Created translated post {$new_post_id}", "info", [
             'source' => 'translation_post_creator',
             'original_post_id' => $original_post_id,
+            'original_exists_locally' => (bool)$original_post,
             'translated_post_id' => $new_post_id,
-            'original_author_id' => $original_post->post_author,
-            'original_author_name' => $author_name,
-            'post_type' => $original_post_type
+            'author_id' => $post_author,
+            'author_name' => $author_name,
+            'post_type' => $post_type
         ]);
 
         // Ensure initial revision is created with correct author
-        $this->create_initial_revision($new_post_id, $original_post->post_author);
+        $this->create_initial_revision($new_post_id, $post_author);
 
         return $new_post_id;
     }

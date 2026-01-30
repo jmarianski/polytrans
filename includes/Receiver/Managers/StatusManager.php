@@ -13,14 +13,57 @@ if (!defined('ABSPATH')) {
 class StatusManager
 {
     /**
+     * Check if we can safely update the original post's translation meta.
+     *
+     * This validates that the post exists in the local database and has
+     * an appropriate status for updates (pending translation states).
+     *
+     * @param int $post_id Original post ID
+     * @param string $target_language Target language code
+     * @return bool True if safe to update, false otherwise
+     */
+    private function can_update_original_post($post_id, $target_language)
+    {
+        if (!$post_id) {
+            return false;
+        }
+
+        // Check if post exists locally
+        $post = get_post($post_id);
+        if (!$post) {
+            error_log("[polytrans] Cannot update original post $post_id: post does not exist locally (separate database?)");
+            return false;
+        }
+
+        // Check if post has a pending translation status for this language
+        $status_key = '_polytrans_translation_status_' . $target_language;
+        $current_status = get_post_meta($post_id, $status_key, true);
+
+        // Allow update if status is pending or if no status yet (first translation)
+        $updatable_statuses = ['', 'started', 'translating', 'processing'];
+        if (!in_array($current_status, $updatable_statuses, true)) {
+            error_log("[polytrans] Cannot update original post $post_id for $target_language: status is '$current_status'");
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Updates the translation status to completed.
-     * 
+     *
      * @param int $original_post_id Original post ID
      * @param string $target_language Target language code
      * @param int $new_post_id New translated post ID
      */
     public function update_status($original_post_id, $target_language, $new_post_id)
     {
+        // Verify we can update this post
+        if (!$this->can_update_original_post($original_post_id, $target_language)) {
+            error_log("[polytrans] Skipping status update for original post $original_post_id - not available locally");
+            return;
+        }
+
         $status_key = '_polytrans_translation_status_' . $target_language;
         $log_key = '_polytrans_translation_log_' . $target_language;
         $langs_key = '_polytrans_translation_langs';
@@ -62,13 +105,19 @@ class StatusManager
 
     /**
      * Marks a translation as failed.
-     * 
+     *
      * @param int $original_post_id Original post ID
      * @param string $target_language Target language code
      * @param string $error_message Error message
      */
     public function mark_as_failed($original_post_id, $target_language, $error_message)
     {
+        // Verify we can update this post
+        if (!$this->can_update_original_post($original_post_id, $target_language)) {
+            error_log("[polytrans] Skipping failure status for original post $original_post_id - not available locally: $error_message");
+            return;
+        }
+
         $status_key = '_polytrans_translation_status_' . $target_language;
         $log_key = '_polytrans_translation_log_' . $target_language;
 
