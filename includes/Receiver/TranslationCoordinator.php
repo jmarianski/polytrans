@@ -59,10 +59,16 @@ class TranslationCoordinator
             $target_language = $params['target_language'];
             $original_post_id = $params['original_post_id'];
 
+            // Check if this is an ephemeral post (e.g., for after_workflows dispatch mode)
+            // Ephemeral posts skip notifications and status updates since they'll be deleted
+            $is_ephemeral = $params['ephemeral'] ?? false;
+
             // Create the translated post
             $new_post_id = $this->post_creator->create_post($translated, $original_post_id);
             if (is_wp_error($new_post_id)) {
-                $this->status_manager->mark_as_failed($original_post_id, $target_language, $new_post_id->get_error_message());
+                if (!$is_ephemeral) {
+                    $this->status_manager->mark_as_failed($original_post_id, $target_language, $new_post_id->get_error_message());
+                }
                 return [
                     'success' => false,
                     'error' => 'Could not create translated post: ' . $new_post_id->get_error_message()
@@ -73,15 +79,22 @@ class TranslationCoordinator
             // Setup all post properties and relationships
             $this->setup_translated_post($new_post_id, $original_post_id, $source_language, $target_language, $translated);
 
-            // Handle notifications and get final status
-            $final_status = $this->notification_manager->handle_notifications(
-                $new_post_id,
-                $original_post_id,
-                $target_language
-            );
+            $final_status = 'completed';
 
-            // Update translation status
-            $this->status_manager->update_status($original_post_id, $target_language, $new_post_id);
+            // Skip notifications and status updates for ephemeral posts
+            if (!$is_ephemeral) {
+                // Handle notifications and get final status
+                $final_status = $this->notification_manager->handle_notifications(
+                    $new_post_id,
+                    $original_post_id,
+                    $target_language
+                );
+
+                // Update translation status
+                $this->status_manager->update_status($original_post_id, $target_language, $new_post_id);
+            } else {
+                LogsManager::log("Skipping notifications and status updates for ephemeral post $new_post_id", "info");
+            }
 
             LogsManager::log("Translation processing completed successfully for post $new_post_id", "info");
 

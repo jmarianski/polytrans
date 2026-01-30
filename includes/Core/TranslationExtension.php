@@ -442,12 +442,14 @@ class TranslationExtension
         ]);
 
         // Create the post locally using TranslationCoordinator
+        // Mark as ephemeral to skip notifications and status updates (handled by receiver)
         $coordinator = new \PolyTrans\Receiver\TranslationCoordinator();
         $result = $coordinator->process_translation([
             'source_language' => $source_lang,
             'target_language' => $target_lang,
             'original_post_id' => $original_post_id,
-            'translated' => $translated
+            'translated' => $translated,
+            'ephemeral' => true
         ]);
 
         if (!$result['success']) {
@@ -476,6 +478,7 @@ class TranslationExtension
             'source_language' => $source_lang,
             'target_language' => $target_lang,
             'original_post_id' => $original_post_id,
+            'workflows_executed' => true, // Signal to receiver that workflows already ran
             'translated' => [
                 'title' => $updated_post->post_title,
                 'content' => $updated_post->post_content,
