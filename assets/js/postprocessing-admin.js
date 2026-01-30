@@ -1206,6 +1206,69 @@
                 duplicateWorkflow(workflowId);
             }
         });
+
+        // Toggle workflow enabled status
+        $(document).on('click', '.workflow-toggle-status', function () {
+            const $btn = $(this);
+            const workflowId = $btn.data('workflow-id');
+            const $row = $btn.closest('tr');
+
+            $btn.prop('disabled', true);
+
+            $.ajax({
+                url: polytransWorkflows.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'polytrans_toggle_workflow',
+                    nonce: polytransWorkflows.nonce,
+                    workflow_id: workflowId
+                },
+                success: function (response) {
+                    if (response.success) {
+                        const enabled = response.data.enabled;
+                        const $icon = $btn.find('.dashicons');
+
+                        // Update button icon and state
+                        if (enabled) {
+                            $icon.removeClass('dashicons-marker').addClass('dashicons-yes-alt')
+                                .css('color', '#00a32a');
+                            $btn.attr('title', polytransWorkflows.strings.disableWorkflow || 'Disable workflow');
+                        } else {
+                            $icon.removeClass('dashicons-yes-alt').addClass('dashicons-marker')
+                                .css('color', '#d63638');
+                            $btn.attr('title', polytransWorkflows.strings.enableWorkflow || 'Enable workflow');
+                        }
+                        $btn.data('enabled', enabled ? '1' : '0');
+
+                        // Update status column
+                        const $statusCell = $row.find('.workflow-status');
+                        if (enabled) {
+                            $statusCell.removeClass('disabled').addClass('enabled')
+                                .text(polytransWorkflows.strings.enabled || 'Enabled');
+                        } else {
+                            $statusCell.removeClass('enabled').addClass('disabled')
+                                .text(polytransWorkflows.strings.disabled || 'Disabled');
+                        }
+
+                        // Update execute button
+                        const $execBtn = $row.find('.workflow-execute-btn');
+                        if (enabled) {
+                            $execBtn.prop('disabled', false).removeAttr('aria-disabled');
+                        } else {
+                            $execBtn.prop('disabled', true).attr('aria-disabled', 'true');
+                        }
+                    } else {
+                        alert(response.data || 'Failed to toggle workflow');
+                    }
+                },
+                error: function () {
+                    alert('Request failed');
+                },
+                complete: function () {
+                    $btn.prop('disabled', false);
+                }
+            });
+        });
     }
 
     /**

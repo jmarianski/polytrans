@@ -66,16 +66,20 @@
                             <strong>{{ workflow.name|esc_html }}</strong>
                         </td>
                         <td>
-                            {% set lang_index = null %}
-                            {% for i, lang in langs %}
-                                {% if lang == workflow.language %}
-                                    {% set lang_index = i %}
-                                {% endif %}
-                            {% endfor %}
-                            {% if lang_index is not null %}
-                                {{ lang_names[lang_index]|esc_html }}
+                            {% if workflow.language is empty %}
+                                <em>{{ __('All languages', 'polytrans')|esc_html }}</em>
                             {% else %}
-                                {{ workflow.language|upper|esc_html }}
+                                {% set lang_index = null %}
+                                {% for i, lang in langs %}
+                                    {% if lang == workflow.language %}
+                                        {% set lang_index = i %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if lang_index is not null %}
+                                    {{ lang_names[lang_index]|esc_html }}
+                                {% else %}
+                                    {{ workflow.language|upper|esc_html }}
+                                {% endif %}
                             {% endif %}
                         </td>
                         <td>
@@ -92,6 +96,17 @@
                             {{ (workflow.description|default(''))|esc_html }}
                         </td>
                         <td class="row-actions-visible">
+                            <button type="button"
+                                class="button button-small workflow-toggle-status"
+                                data-workflow-id="{{ workflow.id|esc_attr }}"
+                                data-enabled="{{ workflow.enabled|default(false) ? '1' : '0' }}"
+                                title="{{ workflow.enabled|default(false) ? __('Disable workflow', 'polytrans') : __('Enable workflow', 'polytrans') }}">
+                                {% if workflow.enabled|default(false) %}
+                                    <span class="dashicons dashicons-yes-alt" style="color: #00a32a;"></span>
+                                {% else %}
+                                    <span class="dashicons dashicons-marker" style="color: #d63638;"></span>
+                                {% endif %}
+                            </button>
                             <a href="{{ admin_url('admin.php?page=polytrans-workflows&action=edit&workflow_id=' ~ workflow.id|url_encode)|esc_url }}" class="button button-small">
                                 {{ __('Edit', 'polytrans')|esc_html }}
                             </a>

@@ -40,6 +40,7 @@ class PostprocessingMenu
         // AJAX handlers
         add_action('wp_ajax_polytrans_save_workflow', [$this, 'ajax_save_workflow']);
         add_action('wp_ajax_polytrans_delete_workflow', [$this, 'ajax_delete_workflow']);
+        add_action('wp_ajax_polytrans_toggle_workflow', [$this, 'ajax_toggle_workflow']);
         add_action('wp_ajax_polytrans_duplicate_workflow', [$this, 'ajax_duplicate_workflow']);
         add_action('wp_ajax_polytrans_get_workflow', [$this, 'ajax_get_workflow']);
         add_action('wp_ajax_polytrans_test_workflow', [$this, 'ajax_test_workflow']);
@@ -148,6 +149,10 @@ class PostprocessingMenu
                     'allLanguages' => __('All languages', 'polytrans'),
                     'allLanguagesOption' => __('— All languages —', 'polytrans'),
                     'allLanguagesDescription' => __('Select a specific language or "All languages" to run this workflow for any translation target', 'polytrans'),
+                    'enableWorkflow' => __('Enable workflow', 'polytrans'),
+                    'disableWorkflow' => __('Disable workflow', 'polytrans'),
+                    'enabled' => __('Enabled', 'polytrans'),
+                    'disabled' => __('Disabled', 'polytrans'),
                 ]
             ]);
 
@@ -494,6 +499,53 @@ class PostprocessingMenu
             wp_send_json_success('Workflow deleted successfully');
         } else {
             wp_send_json_error('Failed to delete workflow');
+        }
+    }
+
+    /**
+     * AJAX: Toggle workflow enabled status
+     */
+    public function ajax_toggle_workflow()
+    {
+        if (!check_ajax_referer('polytrans_workflows_nonce', 'nonce', false)) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+
+        $workflow_id = sanitize_text_field($_POST['workflow_id'] ?? '');
+
+        if (empty($workflow_id)) {
+            wp_send_json_error('Workflow ID required');
+            return;
+        }
+
+        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
+        $storage_manager = $workflow_manager->get_storage_manager();
+
+        $workflow = $storage_manager->get_workflow($workflow_id);
+        if (!$workflow) {
+            wp_send_json_error('Workflow not found');
+            return;
+        }
+
+        // Toggle enabled status
+        $workflow['enabled'] = !$workflow['enabled'];
+
+        $result = $storage_manager->save_workflow($workflow);
+        if ($result['success']) {
+            wp_send_json_success([
+                'enabled' => $workflow['enabled'],
+                'message' => $workflow['enabled']
+                    ? __('Workflow enabled', 'polytrans')
+                    : __('Workflow disabled', 'polytrans')
+            ]);
+        } else {
+            wp_send_json_error('Failed to update workflow');
         }
     }
 

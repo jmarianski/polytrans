@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.21] - 2026-01-30
+
+### Added
+- **Quick Toggle Button**: Added enable/disable toggle button on workflows list for quick status changes
+  - One-click toggle without opening the editor
+  - Visual feedback with icon and status column update
+
+### Changed
+- **Workflows List**: "All languages" now displayed instead of empty language field
+
 ## [1.6.20] - 2026-01-29
 
 ### Fixed
