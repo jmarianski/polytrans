@@ -19,6 +19,25 @@
 {% set received_workflow_mode = settings.received_translation_workflow_mode|default('run_workflows') %}
 {% set outgoing_dispatch_mode = settings.outgoing_translation_dispatch_mode|default('immediate') %}
 {% set after_workflows_cleanup = settings.after_workflows_cleanup_mode|default('delete') %}
+{% set external_same_database = settings.external_same_database|default('no') %}
+
+<h2>{{ __('External Server Database', 'polytrans') }}</h2>
+<select name="external_same_database" id="external-same-database" style="width:100%;max-width:400px;">
+    <option value="no" {{ selected(external_same_database, 'no') }}>{{ __('Separate database (Default)', 'polytrans') }}</option>
+    <option value="yes" {{ selected(external_same_database, 'yes') }}>{{ __('Same database as this site', 'polytrans') }}</option>
+</select>
+<div style="margin-top:8px;">
+    <small>
+        {{ __('Specify whether the external translation server shares the same database as this site:', 'polytrans') }}<br>
+        <strong>{{ __('Separate database:', 'polytrans') }}</strong> {{ __('External server has its own database. Each server manages its own post status updates.', 'polytrans') }}<br>
+        <strong>{{ __('Same database:', 'polytrans') }}</strong> {{ __('External server connects to the same database (e.g., separate WordPress for async processing). Prevents duplicate status updates.', 'polytrans') }}
+    </small>
+</div><br><br>
+
+<div id="no-workflows-warning" class="notice notice-warning inline" style="display:none;padding:10px;margin:0 0 16px 0;">
+    <strong>{{ __('Warning:', 'polytrans') }}</strong>
+    {{ __('With current settings (Immediate dispatch + Skip workflows + Same database), post-processing workflows will NOT run anywhere. Consider using "After workflows complete" dispatch mode or "Run workflows" on receiver.', 'polytrans') }}
+</div>
 
 <h2>{{ __('Received Translation Workflow Mode', 'polytrans') }}</h2>
 <select name="received_translation_workflow_mode" style="width:100%;max-width:400px;">
