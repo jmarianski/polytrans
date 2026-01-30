@@ -10,9 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.7.0] - 2026-01-30
 
 Major refactoring of external translation flow to support various database architectures (shared vs separate).
-Commits: bb1b2ea to 4b7091d.
+Introduces separate credentials for translation endpoint vs receiver endpoint.
+Commits: bb1b2ea onwards.
 
 ### Added
+- **Separate Endpoint Credentials**: Translation endpoint (SOURCE → TRANSLATOR) can now have separate secret configuration
+  - New fields: Endpoint Secret, Endpoint Secret Method, Endpoint Custom Header Name
+  - Falls back to Receiver credentials if not specified (backwards compatible)
+  - Receiver credentials now passed in translation payload to translator
+  - Translator uses credentials from payload when sending to receiver
+
 - **External Server Database Setting**: New option to specify if external translation server shares the same database
   - Helps clarify workflow behavior in different architectures
   - Shows warning when immediate + skip_workflows + same_database (workflows won't run anywhere)
