@@ -2,6 +2,8 @@
 
 namespace PolyTrans\Receiver;
 
+use PolyTrans\Core\LogsManager;
+
 /**
  * Extension that handles receiving translated posts from external translation services.
  * This class acts as a REST API endpoint and delegates the actual translation processing
@@ -42,7 +44,7 @@ class TranslationReceiverExtension
         $source_language = $params['source_language'] ?? '';
 
         // Use global class with leading backslash (not namespaced)
-        \PolyTrans_Logs_Manager::log("Received translation data for post $original_post_id from $source_language to $target_language", "info");
+        LogsManager::log("Received translation data for post $original_post_id from $source_language to $target_language", "info");
 
         // Process the translation using the coordinator
         $result = $this->coordinator->process_translation($params);
@@ -54,6 +56,18 @@ class TranslationReceiverExtension
         }
 
         error_log("[polytrans] Translation processing succeeded, created post ID: " . $result['created_post_id']);
+
+        // Check if we should trigger workflows for received translations
+        $settings = get_option('polytrans_settings', []);
+        $workflow_mode = $settings['received_translation_workflow_mode'] ?? 'run_workflows';
+
+        if ($workflow_mode === 'run_workflows') {
+            // Fire action for post-processing workflows
+            do_action('polytrans_translation_completed', $original_post_id, $result['created_post_id'], $target_language);
+            LogsManager::log("Triggered workflows for received translation (post {$result['created_post_id']})", "info");
+        } else {
+            LogsManager::log("Skipped workflows for received translation (mode: {$workflow_mode})", "info");
+        }
 
         // Include detailed information in the response for the sender to update status
         return new \WP_REST_Response([

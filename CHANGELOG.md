@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.23] - 2026-01-30
+
+### Fixed
+- **External Translation Hook**: Removed erroneous `polytrans_translation_completed` hook firing on SENDER in immediate mode
+  - The hook was firing with a post ID that only exists on the TARGET server
+  - Workflows would fail trying to operate on non-existent local post
+  - RECEIVER already fires this hook correctly where the post actually exists
+
 ## [1.6.22] - 2026-01-30
 
 ### Fixed

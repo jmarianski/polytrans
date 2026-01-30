@@ -524,7 +524,7 @@ class PostprocessingMenu
             return;
         }
 
-        $workflow_manager = \PolyTrans_Workflow_Manager::get_instance();
+        $workflow_manager = \PolyTrans\PostProcessing\WorkflowManager::get_instance();
         $storage_manager = $workflow_manager->get_storage_manager();
 
         $workflow = $storage_manager->get_workflow($workflow_id);

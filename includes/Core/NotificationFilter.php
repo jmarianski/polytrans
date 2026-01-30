@@ -59,7 +59,7 @@ class NotificationFilter
         $domain_match = in_array($user_domain, $allowed_domains, true);
         
         if (!$domain_match) {
-            \PolyTrans_Logs_Manager::log(
+            LogsManager::log(
                 "Notification blocked for user {$user->user_email} (ID: {$user->ID}): domain not in allowed list",
                 "info",
                 [

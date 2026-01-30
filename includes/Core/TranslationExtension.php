@@ -79,7 +79,7 @@ class TranslationExtension
      */
     public function handle_translate($request)
     {
-        \PolyTrans_Logs_Manager::log("handleTranslate called", "info");
+        LogsManager::log("handleTranslate called", "info");
 
         $params = $request->get_json_params();
         $source_lang = $params['source_language'] ?? 'auto';
@@ -89,7 +89,7 @@ class TranslationExtension
         $target_endpoint = $params['target_endpoint'] ?? null;
 
         if (!$target_endpoint) {
-            \PolyTrans_Logs_Manager::log("handleTranslate error: target_endpoint required", "info");
+            LogsManager::log("handleTranslate error: target_endpoint required", "info");
             return new WP_REST_Response(['error' => 'target_endpoint required'], 400);
         }
 
@@ -114,7 +114,7 @@ class TranslationExtension
             ];
             update_post_meta($original_post_id, $log_key, $log);
 
-            \PolyTrans_Logs_Manager::log("External translation process started for post $original_post_id from $source_lang to $target_lang", "info");
+            LogsManager::log("External translation process started for post $original_post_id from $source_lang to $target_lang", "info");
         }
 
         // Get settings and check for translation paths
@@ -127,7 +127,7 @@ class TranslationExtension
         
         if ($has_paths) {
             // Use TranslationPathExecutor to respect path rules and provider/assistant mappings
-            \PolyTrans_Logs_Manager::log("Using TranslationPathExecutor with configured paths", "info");
+            LogsManager::log("Using TranslationPathExecutor with configured paths", "info");
             
             $result = \PolyTrans\Core\TranslationPathExecutor::execute(
                 $to_translate,
@@ -137,7 +137,7 @@ class TranslationExtension
             );
         } else {
             // Fallback to default provider if no paths configured
-            \PolyTrans_Logs_Manager::log("No paths configured, using default translation provider: $translation_provider", "info");
+            LogsManager::log("No paths configured, using default translation provider: $translation_provider", "info");
 
         // Get the provider
         $provider = $this->get_provider($translation_provider);
@@ -147,7 +147,7 @@ class TranslationExtension
                 $this->update_translation_failure($original_post_id, $target_lang, "Unknown translation provider: $translation_provider");
             }
 
-            \PolyTrans_Logs_Manager::log("Unknown translation provider: $translation_provider", "info");
+            LogsManager::log("Unknown translation provider: $translation_provider", "info");
             return new WP_REST_Response(['error' => "Unknown translation provider: $translation_provider"], 400);
         }
 
@@ -158,7 +158,7 @@ class TranslationExtension
                 $this->update_translation_failure($original_post_id, $target_lang, "Translation provider $translation_provider is not properly configured");
             }
 
-            \PolyTrans_Logs_Manager::log("Translation provider $translation_provider is not properly configured", "info");
+            LogsManager::log("Translation provider $translation_provider is not properly configured", "info");
             return new WP_REST_Response(['error' => "Translation provider $translation_provider is not properly configured"], 400);
         }
 
@@ -176,7 +176,10 @@ class TranslationExtension
             return new WP_REST_Response(['error' => $result['error']], 500);
         }
 
-        // Send result to target endpoint
+        // Check dispatch mode
+        $dispatch_mode = $settings['outgoing_translation_dispatch_mode'] ?? 'immediate';
+
+        // Prepare payload for target endpoint
         $payload = [
             'source_language' => $source_lang,
             'target_language' => $target_lang,
@@ -184,6 +187,13 @@ class TranslationExtension
             'translated' => $result['translated_content']
         ];
 
+        // Handle dispatch based on mode
+        if ($dispatch_mode === 'after_workflows') {
+            // Create post locally first, run workflows, then dispatch
+            return $this->handle_after_workflows_dispatch($payload, $target_endpoint, $settings);
+        }
+
+        // Immediate mode: send to target endpoint right away
         $response = $this->post_to_target($target_endpoint, $payload);
 
         // Check if the response from the target endpoint indicates success
@@ -200,7 +210,7 @@ class TranslationExtension
             $this->update_translation_failure($original_post_id, $target_lang, "Failed to deliver translation: " . $response->get_error_message());
         }
 
-        \PolyTrans_Logs_Manager::log("Translation finished for $source_lang->$target_lang using $translation_provider", "info");
+        LogsManager::log("Translation finished for $source_lang->$target_lang (immediate dispatch)", "info");
         return new WP_REST_Response(['status' => 'sent', 'result' => $payload]);
     }
 
@@ -229,7 +239,7 @@ class TranslationExtension
         ];
 
         update_post_meta($post_id, $log_key, $log);
-        \PolyTrans_Logs_Manager::log("External translation failed for post $post_id: $error_message", "info");
+        LogsManager::log("External translation failed for post $post_id: $error_message", "info");
     }
 
     /**
@@ -330,10 +340,12 @@ class TranslationExtension
 
                         update_post_meta($original_post_id, $log_key, $log);
 
-                        // Fire action for post-processing workflows
-                        do_action('polytrans_translation_completed', $original_post_id, $created_post_id, $target_language);
+                        // Note: We do NOT fire polytrans_translation_completed here because:
+                        // 1. This is the SENDER - the created_post_id exists only on the TARGET server
+                        // 2. The RECEIVER (TranslationReceiverExtension) fires this hook where the post actually exists
+                        // 3. Workflows need the post to exist locally to function properly
 
-                        \PolyTrans_Logs_Manager::log("External translation completed successfully for post $original_post_id -> $created_post_id", "info");
+                        LogsManager::log("External translation completed successfully for post $original_post_id -> $created_post_id (remote)", "info");
                     }
                 } catch (\Exception $e) {
                     error_log("[polytrans] Error processing translation response: " . $e->getMessage());
@@ -346,6 +358,108 @@ class TranslationExtension
         }
 
         return $result;
+    }
+
+    /**
+     * Handle translation dispatch after workflows complete
+     *
+     * This method:
+     * 1. Creates the post locally
+     * 2. Triggers workflows (which run synchronously)
+     * 3. After workflows complete, fetches updated content and dispatches to target
+     *
+     * @param array $payload Translation payload
+     * @param string $target_endpoint Target endpoint URL
+     * @param array $settings Plugin settings
+     * @return \WP_REST_Response
+     */
+    private function handle_after_workflows_dispatch($payload, $target_endpoint, $settings)
+    {
+        $source_lang = $payload['source_language'];
+        $target_lang = $payload['target_language'];
+        $original_post_id = $payload['original_post_id'];
+        $translated = $payload['translated'];
+
+        LogsManager::log("After-workflows dispatch: creating local post for processing", "info", [
+            'source' => 'translation_extension',
+            'original_post_id' => $original_post_id,
+            'target_language' => $target_lang
+        ]);
+
+        // Create the post locally using TranslationCoordinator
+        $coordinator = new \PolyTrans\Receiver\TranslationCoordinator();
+        $result = $coordinator->process_translation([
+            'source_language' => $source_lang,
+            'target_language' => $target_lang,
+            'original_post_id' => $original_post_id,
+            'translated' => $translated
+        ]);
+
+        if (!$result['success']) {
+            LogsManager::log("After-workflows dispatch: failed to create local post: " . ($result['error'] ?? 'Unknown error'), "error");
+            return new \WP_REST_Response(['error' => 'Failed to create local post: ' . ($result['error'] ?? 'Unknown error')], 500);
+        }
+
+        $created_post_id = $result['created_post_id'];
+
+        LogsManager::log("After-workflows dispatch: local post created (ID: {$created_post_id}), triggering workflows", "info");
+
+        // Fire the translation completed hook - workflows will run synchronously
+        do_action('polytrans_translation_completed', $original_post_id, $created_post_id, $target_lang);
+
+        LogsManager::log("After-workflows dispatch: workflows completed, fetching updated content", "info");
+
+        // After workflows complete, fetch the updated post content
+        $updated_post = get_post($created_post_id);
+        if (!$updated_post) {
+            LogsManager::log("After-workflows dispatch: post not found after workflows", "error");
+            return new \WP_REST_Response(['error' => 'Post not found after workflow processing'], 500);
+        }
+
+        // Build updated payload with post-processed content
+        $updated_payload = [
+            'source_language' => $source_lang,
+            'target_language' => $target_lang,
+            'original_post_id' => $original_post_id,
+            'translated' => [
+                'title' => $updated_post->post_title,
+                'content' => $updated_post->post_content,
+                'excerpt' => $updated_post->post_excerpt,
+                'status' => $updated_post->post_status,
+                'meta' => $translated['meta'] ?? [] // Keep original meta, workflows may have modified post meta directly
+            ]
+        ];
+
+        // Copy any additional fields from original translated content
+        if (isset($translated['featured_image'])) {
+            $updated_payload['translated']['featured_image'] = $translated['featured_image'];
+        }
+
+        LogsManager::log("After-workflows dispatch: sending to target endpoint", "info");
+
+        // Now dispatch to target endpoint
+        $response = $this->post_to_target($target_endpoint, $updated_payload);
+
+        // Check response
+        $response_code = wp_remote_retrieve_response_code($response);
+        $response_success = ($response_code >= 200 && $response_code < 300);
+
+        if (!$response_success) {
+            $error = is_wp_error($response) ? $response->get_error_message() : wp_remote_retrieve_body($response);
+            LogsManager::log("After-workflows dispatch: failed to send to target: {$error}", "error");
+
+            if ($original_post_id) {
+                $this->update_translation_failure($original_post_id, $target_lang, "Failed to deliver translation after workflows: $error");
+            }
+        } else {
+            LogsManager::log("After-workflows dispatch: successfully sent to target", "info");
+        }
+
+        return new \WP_REST_Response([
+            'status' => 'sent_after_workflows',
+            'local_post_id' => $created_post_id,
+            'result' => $updated_payload
+        ]);
     }
 
     /**
@@ -385,7 +499,7 @@ class TranslationExtension
         }
 
         if (!$received_secret || $received_secret !== $expected_secret) {
-            \PolyTrans_Logs_Manager::log("Invalid or missing translation receiver secret (permission callback)", "info");
+            LogsManager::log("Invalid or missing translation receiver secret (permission callback)", "info");
             return false;
         }
 
