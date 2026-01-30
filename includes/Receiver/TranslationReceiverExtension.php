@@ -64,15 +64,28 @@ class TranslationReceiverExtension
         // Check if workflows were already executed by the sender (after_workflows dispatch mode)
         $workflows_already_executed = $params['workflows_executed'] ?? false;
 
-        if ($workflow_mode === 'run_workflows' && !$workflows_already_executed) {
-            // Fire action for post-processing workflows
+        // Determine if workflows will run
+        $will_run_workflows = ($workflow_mode === 'run_workflows' && !$workflows_already_executed);
+
+        // Get status manager from coordinator
+        $status_manager = $this->coordinator->get_status_manager();
+
+        if ($will_run_workflows) {
+            // Set intermediate status before workflows run
+            $status_manager->update_status_intermediate($original_post_id, $target_language, $result['created_post_id'], 'post_processing');
+            LogsManager::log("Set post_processing status, triggering workflows for post {$result['created_post_id']}", "info");
+
+            // Fire action for post-processing workflows (synchronous)
             do_action('polytrans_translation_completed', $original_post_id, $result['created_post_id'], $target_language);
-            LogsManager::log("Triggered workflows for received translation (post {$result['created_post_id']})", "info");
+            LogsManager::log("Workflows completed for received translation (post {$result['created_post_id']})", "info");
         } elseif ($workflows_already_executed) {
             LogsManager::log("Skipped workflows - already executed by sender (post {$result['created_post_id']})", "info");
         } else {
             LogsManager::log("Skipped workflows for received translation (mode: {$workflow_mode})", "info");
         }
+
+        // Update final status to completed (after workflows if they ran, or immediately if skipped)
+        $status_manager->update_status($original_post_id, $target_language, $result['created_post_id']);
 
         // Include detailed information in the response for the sender to update status
         return new \WP_REST_Response([

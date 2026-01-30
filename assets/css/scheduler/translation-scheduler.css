@@ -9,6 +9,12 @@
 
 .polytrans-loader .dashicons {
     animation: polytrans-spin 1s linear infinite;
+    color: #2271b1; /* Blue for translating */
+}
+
+/* Purple/violet spinner for post-processing (workflows running) */
+.polytrans-loader.post-processing .dashicons {
+    color: #9b59b6;
 }
 
 .polytrans-clear-translation {

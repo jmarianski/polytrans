@@ -39,14 +39,57 @@ class StatusManager
         $status_key = '_polytrans_translation_status_' . $target_language;
         $current_status = get_post_meta($post_id, $status_key, true);
 
-        // Allow update if status is pending or if no status yet (first translation)
-        $updatable_statuses = ['', 'started', 'translating', 'processing'];
+        // Allow update if status is pending/processing or if no status yet (first translation)
+        $updatable_statuses = ['', 'started', 'translating', 'processing', 'post_processing'];
         if (!in_array($current_status, $updatable_statuses, true)) {
             error_log("[polytrans] Cannot update original post $post_id for $target_language: status is '$current_status'");
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * Updates the translation status to an intermediate state (e.g., post_processing).
+     * Used when post is created but workflows are still running.
+     *
+     * @param int $original_post_id Original post ID
+     * @param string $target_language Target language code
+     * @param int $new_post_id New translated post ID
+     * @param string $status Intermediate status (default: 'post_processing')
+     */
+    public function update_status_intermediate($original_post_id, $target_language, $new_post_id, $status = 'post_processing')
+    {
+        // Verify we can update this post
+        if (!$this->can_update_original_post($original_post_id, $target_language)) {
+            error_log("[polytrans] Skipping intermediate status update for original post $original_post_id - not available locally");
+            return;
+        }
+
+        $status_key = '_polytrans_translation_status_' . $target_language;
+        $log_key = '_polytrans_translation_log_' . $target_language;
+
+        // Update status to intermediate state
+        update_post_meta($original_post_id, $status_key, $status);
+
+        // Store the translated post ID reference early (so UI can show preview link)
+        update_post_meta($original_post_id, '_polytrans_translation_target_' . $target_language, $new_post_id);
+        update_post_meta($original_post_id, '_polytrans_translation_post_id_' . $target_language, $new_post_id);
+
+        // Add log entry
+        $log = get_post_meta($original_post_id, $log_key, true);
+        if (!is_array($log)) {
+            $log = [];
+        }
+
+        $log[] = [
+            'timestamp' => time(),
+            'msg' => sprintf(__('Translation created (Post ID: %d). Running post-processing workflows...', 'polytrans'), $new_post_id)
+        ];
+
+        update_post_meta($original_post_id, $log_key, $log);
+
+        error_log("[polytrans] Set intermediate status '$status' for post $original_post_id -> $new_post_id (language: $target_language)");
     }
 
     /**
@@ -207,13 +250,13 @@ class StatusManager
         ];
 
         // Non-terminal states - include both local and external workflow status values
-        $non_terminal_states = ['started', 'translating', 'processing'];
+        $non_terminal_states = ['started', 'translating', 'processing', 'post_processing'];
 
         // Get all post meta entries with these statuses
         $status_query = $wpdb->prepare(
-            "SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} 
-            WHERE meta_key LIKE %s 
-            AND meta_value IN ('started', 'translating', 'processing')",
+            "SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta}
+            WHERE meta_key LIKE %s
+            AND meta_value IN ('started', 'translating', 'processing', 'post_processing')",
             '_polytrans_translation_status_%'
         );
 
@@ -326,6 +369,7 @@ class StatusManager
             'started' => 0,
             'translating' => 0,
             'processing' => 0,
+            'post_processing' => 0,
             'completed' => 0,
             'failed' => 0
         ];
