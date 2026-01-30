@@ -87,10 +87,25 @@ jQuery(function ($) {
             var $clearBtn = $li.find('.polytrans-clear-translation');
             if (info && (info.status === 'started' || info.status === 'translating' || info.status === 'processing')) {
                 $li.show();
-                $loader.show();
+                $loader.removeClass('post-processing').show();
                 $check.hide();
                 $failed.hide();
                 $editBtn.hide();
+                $retryBtn.show();
+                $clearBtn.show();
+                hasAny = true;
+            } else if (info && info.status === 'post_processing') {
+                // Post created, workflows running - show purple spinner + edit button
+                $li.show();
+                $loader.addClass('post-processing').show();
+                $check.hide();
+                $failed.hide();
+                // Show edit button if post_id available (post exists, can preview)
+                if (info.post_id) {
+                    $editBtn.show().attr('href', PolyTransScheduler.edit_url.replace('__ID__', info.post_id));
+                } else {
+                    $editBtn.hide();
+                }
                 $retryBtn.show();
                 $clearBtn.show();
                 hasAny = true;
@@ -357,7 +372,7 @@ jQuery(function ($) {
                         var hasActiveTranslation = false;
                         for (var lang in statusResp.data.status) {
                             var status = statusResp.data.status[lang];
-                            if (status && (status.status === 'started' || status.status === 'translating' || status.status === 'processing')) {
+                            if (status && (status.status === 'started' || status.status === 'translating' || status.status === 'processing' || status.status === 'post_processing')) {
                                 hasActiveTranslation = true;
                                 break;
                             }

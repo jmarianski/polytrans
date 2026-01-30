@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-01-30
+
+### Added
+- **Post-processing Status**: New `post_processing` status shows when translation is created but workflows are still running
+  - Purple spinner indicates workflows in progress
+  - Edit button appears early - post can be previewed while workflows run
+  - Status changes to `completed` only after all workflows finish
+
+### Changed
+- **Status Flow**: `update_status()` moved from Coordinator to ReceiverExtension, called after workflows complete
+- Stuck translation checks now include `post_processing` status
+
 ## [1.7.1] - 2026-01-30
 
 ### Changed

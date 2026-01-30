@@ -91,8 +91,9 @@ class TranslationCoordinator
                     $target_language
                 );
 
-                // Update translation status
-                $this->status_manager->update_status($original_post_id, $target_language, $new_post_id);
+                // Note: We do NOT update status to 'completed' here anymore.
+                // Status will be updated by TranslationReceiverExtension AFTER workflows complete.
+                // This allows the UI to show "post_processing" status while workflows run.
             } else {
                 LogsManager::log("Skipping notifications and status updates for ephemeral post $new_post_id", "info");
             }
