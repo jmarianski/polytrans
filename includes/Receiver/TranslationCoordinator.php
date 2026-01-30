@@ -77,7 +77,8 @@ class TranslationCoordinator
 
 
             // Setup all post properties and relationships
-            $this->setup_translated_post($new_post_id, $original_post_id, $source_language, $target_language, $translated);
+            // For ephemeral posts, skip relationship setup (receiver will handle final relationships)
+            $this->setup_translated_post($new_post_id, $original_post_id, $source_language, $target_language, $translated, $is_ephemeral);
 
             $final_status = 'completed';
 
@@ -120,19 +121,21 @@ class TranslationCoordinator
 
     /**
      * Sets up all properties for the translated post.
-     * 
+     *
      * @param int $new_post_id New translated post ID
      * @param int $original_post_id Original post ID
      * @param string $source_language Source language code
      * @param string $target_language Target language code
      * @param array $translated Translated content data
+     * @param bool $is_ephemeral Whether this is an ephemeral post (skip relationship setup)
      */
     private function setup_translated_post(
         $new_post_id,
         $original_post_id,
         $source_language,
         $target_language,
-        $translated
+        $translated,
+        $is_ephemeral = false
     ) {
         // Setup metadata (translation markers and copied meta)
         $this->metadata_manager->setup_metadata($new_post_id, $original_post_id, $source_language, $translated);
@@ -141,7 +144,8 @@ class TranslationCoordinator
         $this->taxonomy_manager->setup_taxonomies($new_post_id, $original_post_id, $target_language);
 
         // Setup language and status
-        $this->language_manager->setup_language_and_status($new_post_id, $original_post_id, $target_language);
+        // For ephemeral posts, only set language but skip relationships (receiver handles final setup)
+        $this->language_manager->setup_language_and_status($new_post_id, $original_post_id, $target_language, $is_ephemeral);
 
         // Setup featured image with translated metadata
         $featured_image_data = $translated['featured_image'] ?? null;

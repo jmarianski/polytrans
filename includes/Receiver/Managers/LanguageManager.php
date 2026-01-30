@@ -14,15 +14,23 @@ class LanguageManager
 {
     /**
      * Sets up language assignment and status for the translated post.
-     * 
+     *
      * @param int $new_post_id New translated post ID
      * @param int $original_post_id Original post ID
      * @param string $target_language Target language code
+     * @param bool $is_ephemeral Whether this is an ephemeral post (skip relationship setup)
      */
-    public function setup_language_and_status($new_post_id, $original_post_id, $target_language)
+    public function setup_language_and_status($new_post_id, $original_post_id, $target_language, $is_ephemeral = false)
     {
         $this->assign_language($new_post_id, $target_language);
-        $this->setup_translation_relationship($new_post_id, $original_post_id, $target_language);
+
+        // Skip relationship setup for ephemeral posts (receiver will create final relationships)
+        if (!$is_ephemeral) {
+            $this->setup_translation_relationship($new_post_id, $original_post_id, $target_language);
+        } else {
+            error_log("[polytrans] Skipping translation relationship setup for ephemeral post $new_post_id");
+        }
+
         $this->configure_post_status($new_post_id, $target_language);
     }
 
