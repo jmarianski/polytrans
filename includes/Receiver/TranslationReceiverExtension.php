@@ -87,6 +87,18 @@ class TranslationReceiverExtension
         // Update final status to completed (after workflows if they ran, or immediately if skipped)
         $status_manager->update_status($original_post_id, $target_language, $result['created_post_id']);
 
+        // Send notifications if timing is set to 'after_workflows'
+        $notification_timing = $settings['notification_timing'] ?? 'after_workflows';
+        if ($notification_timing === 'after_workflows') {
+            $notification_manager = new Managers\NotificationManager();
+            $notification_manager->handle_notifications(
+                $result['created_post_id'],
+                $original_post_id,
+                $target_language
+            );
+            LogsManager::log("Sent after-workflows notifications for post {$result['created_post_id']}", "info");
+        }
+
         // Include detailed information in the response for the sender to update status
         return new \WP_REST_Response([
             'created_post_id' => $result['created_post_id'],

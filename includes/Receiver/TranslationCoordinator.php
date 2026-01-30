@@ -84,12 +84,20 @@ class TranslationCoordinator
 
             // Skip notifications and status updates for ephemeral posts
             if (!$is_ephemeral) {
-                // Handle notifications and get final status
-                $final_status = $this->notification_manager->handle_notifications(
-                    $new_post_id,
-                    $original_post_id,
-                    $target_language
-                );
+                // Check notification timing setting
+                $settings = get_option('polytrans_settings', []);
+                $notification_timing = $settings['notification_timing'] ?? 'after_workflows';
+
+                if ($notification_timing === 'immediate') {
+                    // Send notifications immediately (before workflows)
+                    $final_status = $this->notification_manager->handle_notifications(
+                        $new_post_id,
+                        $original_post_id,
+                        $target_language
+                    );
+                    LogsManager::log("Sent immediate notifications for post $new_post_id", "info");
+                }
+                // If 'after_workflows', notifications will be sent by TranslationReceiverExtension
 
                 // Note: We do NOT update status to 'completed' here anymore.
                 // Status will be updated by TranslationReceiverExtension AFTER workflows complete.

@@ -37,6 +37,28 @@
 
 <hr style="margin: 2em 0;">
 
+<!-- Notification Timing Section -->
+<div class="notification-timing-section" style="margin-bottom: 2em; padding: 1em; background: #f9f9f9; border-left: 4px solid #2271b1;">
+    <h2>{{ __('Notification Timing', 'polytrans') }}</h2>
+    <p style="margin-top: 0;">
+        {{ __('Control when email notifications are sent to reviewers and authors.', 'polytrans') }}
+    </p>
+
+    {% set notification_timing = settings.notification_timing|default('after_workflows') %}
+    <div style="margin-bottom: 1em;">
+        <label for="notification-timing"><strong>{{ __('Send notifications', 'polytrans') }}</strong></label><br>
+        <select name="notification_timing" id="notification-timing" style="width:100%;max-width:400px;">
+            <option value="after_workflows" {{ selected(notification_timing, 'after_workflows') }}>{{ __('After workflows complete (Recommended)', 'polytrans') }}</option>
+            <option value="immediate" {{ selected(notification_timing, 'immediate') }}>{{ __('Immediately after translation', 'polytrans') }}</option>
+        </select>
+    </div>
+
+    <p style="margin-bottom: 0; padding: 0.5em; background: #fff; border-left: 3px solid #72aee6;">
+        <strong>{{ __('After workflows complete:', 'polytrans') }}</strong> {{ __('Notifications are sent after all post-processing workflows finish. Recipients see the final, processed content.', 'polytrans') }}<br>
+        <strong>{{ __('Immediately:', 'polytrans') }}</strong> {{ __('Notifications are sent right after translation, before workflows run. Use if workflows take a long time and you want faster notifications.', 'polytrans') }}
+    </p>
+</div>
+
 <!-- Notification Filters Section -->
 <div class="notification-filters-section" style="margin-bottom: 2em; padding: 1em; background: #f9f9f9; border-left: 4px solid #2271b1;">
     <h2>{{ __('Author Notification Filters', 'polytrans') }}</h2>

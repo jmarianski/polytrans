@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.3] - 2026-01-30
+
+### Added
+- **Notification Timing Control**: New setting in Email Settings to control when notifications are sent
+  - `After workflows complete` (default): Notifications sent after all post-processing finishes
+  - `Immediately after translation`: Notifications sent right after post creation, before workflows
+
+### Changed
+- Notifications now respect the timing setting - default behavior changed to send after workflows
+
+### Fixed
+- `post_processing` status now shown in `after_workflows` dispatch mode (when translator runs workflows)
+
 ## [1.7.2] - 2026-01-30
 
 ### Added
