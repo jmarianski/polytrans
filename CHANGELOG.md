@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.22] - 2026-01-30
+
+### Fixed
+- **Workflows List**: Fixed "All languages" not displaying for workflows without specific language
+
 ## [1.6.21] - 2026-01-30
 
 ### Added

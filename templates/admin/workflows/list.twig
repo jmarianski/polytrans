@@ -66,7 +66,7 @@
                             <strong>{{ workflow.name|esc_html }}</strong>
                         </td>
                         <td>
-                            {% if workflow.language is empty %}
+                            {% if workflow.language is not defined or workflow.language is null or workflow.language == '' %}
                                 <em>{{ __('All languages', 'polytrans')|esc_html }}</em>
                             {% else %}
                                 {% set lang_index = null %}
