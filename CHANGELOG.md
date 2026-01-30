@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.25] - 2026-01-30
+
+### Added
+- **Shared Database Verification**: Translation Extension now verifies post existence before updating meta
+  - Prevents orphan meta entries when translating server has separate database
+  - Only updates original post status if post exists and has pending translation status
+  - Logs skip operations for debugging
+
+### Changed
+- **Receiver Flexibility**: Receiver now supports separate database architectures
+  - `RequestValidator` no longer requires original post to exist locally
+  - `StatusManager` verifies post existence before updating status
+  - `LanguageManager` checks for original post before setting up Polylang relationships
+  - `PostCreator` uses default values when original post not available locally
+
 ## [1.6.24] - 2026-01-30
 
 ### Added

@@ -94,8 +94,8 @@ class TranslationExtension
         }
 
         // Update original post's status and log for external translation tracking
-        // This ensures consistent meta updates between local and external pathways
-        if ($original_post_id) {
+        // Only if the post exists locally and has a pending translation status
+        if ($original_post_id && $this->can_update_original_post($original_post_id, $target_lang)) {
             // Status and log keys for the target language
             $status_key = '_polytrans_translation_status_' . $target_lang;
             $log_key = '_polytrans_translation_log_' . $target_lang;
@@ -115,6 +115,8 @@ class TranslationExtension
             update_post_meta($original_post_id, $log_key, $log);
 
             LogsManager::log("External translation process started for post $original_post_id from $source_lang to $target_lang", "info");
+        } elseif ($original_post_id) {
+            LogsManager::log("Skipping status update for post $original_post_id - not on shared database or invalid state", "info");
         }
 
         // Get settings and check for translation paths
@@ -215,14 +217,64 @@ class TranslationExtension
     }
 
     /**
+     * Check if we can safely update the original post's translation meta.
+     *
+     * This validates that:
+     * 1. The post exists in the local database
+     * 2. The post has a pending translation status (started/translating) for this language
+     *
+     * If both conditions are met, we're likely on the same database as the source
+     * and can safely update. If not, the receiver will handle its own updates.
+     *
+     * @param int $post_id Original post ID
+     * @param string $target_lang Target language code
+     * @return bool True if safe to update, false otherwise
+     */
+    private function can_update_original_post($post_id, $target_lang)
+    {
+        if (!$post_id) {
+            return false;
+        }
+
+        // Check if post exists
+        $post = get_post($post_id);
+        if (!$post) {
+            LogsManager::log("Cannot update original post $post_id: post does not exist locally", "info");
+            return false;
+        }
+
+        // Check if post has a pending translation status for this language
+        $status_key = '_polytrans_translation_status_' . $target_lang;
+        $current_status = get_post_meta($post_id, $status_key, true);
+
+        // Only update if the post is actively waiting for this translation
+        $pending_statuses = ['started', 'translating', 'processing'];
+        if (!in_array($current_status, $pending_statuses, true)) {
+            LogsManager::log(
+                "Cannot update original post $post_id for $target_lang: status is '$current_status' (expected: started/translating/processing)",
+                "info"
+            );
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Helper method to update post meta for failed translations
-     * 
+     *
      * @param int $post_id Original post ID
      * @param string $target_lang Target language
      * @param string $error_message Error message
      */
     private function update_translation_failure($post_id, $target_lang, $error_message)
     {
+        // Verify we can update this post
+        if (!$this->can_update_original_post($post_id, $target_lang)) {
+            LogsManager::log("Skipping failure update for post $post_id - receiver will handle", "info");
+            return;
+        }
+
         $status_key = '_polytrans_translation_status_' . $target_lang;
         $log_key = '_polytrans_translation_log_' . $target_lang;
 
@@ -312,7 +364,7 @@ class TranslationExtension
                     $response_data = json_decode($response_body, true);
                     $created_post_id = $response_data['created_post_id'] ?? 0;
 
-                    if ($created_post_id) {
+                    if ($created_post_id && $this->can_update_original_post($original_post_id, $target_language)) {
                         // Update status key to completed
                         $status_key = '_polytrans_translation_status_' . $target_language;
                         update_post_meta($original_post_id, $status_key, 'completed');
@@ -346,6 +398,9 @@ class TranslationExtension
                         // 3. Workflows need the post to exist locally to function properly
 
                         LogsManager::log("External translation completed successfully for post $original_post_id -> $created_post_id (remote)", "info");
+                    } elseif ($created_post_id) {
+                        // Post doesn't exist locally or has wrong status - receiver will handle its own updates
+                        LogsManager::log("Translation delivered to receiver (post $created_post_id) - skipping local status update", "info");
                     }
                 } catch (\Exception $e) {
                     error_log("[polytrans] Error processing translation response: " . $e->getMessage());

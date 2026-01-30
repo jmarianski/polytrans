@@ -30,9 +30,9 @@ class RequestValidator
             return new \WP_Error('missing_data', 'Missing required translation data');
         }
 
-        if (!get_post($original_post_id)) {
-            return new \WP_Error('invalid_post', 'Original post not found');
-        }
+        // Note: We no longer require original_post_id to exist locally.
+        // This supports architectures where source and receiver have separate databases.
+        // Managers will check for post existence before updating meta.
 
         if (!$this->is_valid_language_code($source_language) || !$this->is_valid_language_code($target_language)) {
             return new \WP_Error('invalid_language', 'Invalid language code provided');
