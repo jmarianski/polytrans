@@ -7,30 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.6.27] - 2026-01-30
+## [1.7.0] - 2026-01-30
+
+Major refactoring of external translation flow to support various database architectures (shared vs separate).
+Commits: bb1b2ea to 4b7091d.
 
 ### Added
 - **External Server Database Setting**: New option to specify if external translation server shares the same database
   - Helps clarify workflow behavior in different architectures
   - Shows warning when immediate + skip_workflows + same_database (workflows won't run anywhere)
 
-## [1.6.26] - 2026-01-30
+- **After Workflows Cleanup Mode**: New setting to control ephemeral post cleanup in "after workflows" dispatch mode
+  - `Delete after dispatch` (default): Removes temporary local post after content is captured
+  - `Keep local post`: Preserves the post locally (useful for external mode on restricted environments)
 
-### Fixed
-- **After-workflows dispatch: prevent duplicate workflows**
-  - Added `workflows_executed` flag in payload when using after_workflows dispatch mode
-  - Receiver checks flag and skips workflows if already executed by sender
-  - Prevents duplicate workflow execution on shared database architectures
-
-- **After-workflows dispatch: prevent duplicate notifications and stale relationships**
-  - Added `ephemeral` flag for temporary posts created during after_workflows processing
-  - TranslationCoordinator skips notifications and status updates for ephemeral posts
-  - LanguageManager skips Polylang relationship setup for ephemeral posts
-  - Receiver handles final relationships, notifications and status updates
-
-## [1.6.25] - 2026-01-30
-
-### Added
 - **Shared Database Verification**: Translation Extension now verifies post existence before updating meta
   - Prevents orphan meta entries when translating server has separate database
   - Only updates original post status if post exists and has pending translation status
@@ -43,20 +33,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `LanguageManager` checks for original post before setting up Polylang relationships
   - `PostCreator` uses default values when original post not available locally
 
-## [1.6.24] - 2026-01-30
-
-### Added
-- **After Workflows Cleanup Mode**: New setting to control ephemeral post cleanup in "after workflows" dispatch mode
-  - `Delete after dispatch` (default): Removes temporary local post after content is captured
-  - `Keep local post`: Preserves the post locally (useful for external mode on restricted environments)
-
-## [1.6.23] - 2026-01-30
-
 ### Fixed
 - **External Translation Hook**: Removed erroneous `polytrans_translation_completed` hook firing on SENDER in immediate mode
   - The hook was firing with a post ID that only exists on the TARGET server
   - Workflows would fail trying to operate on non-existent local post
   - RECEIVER already fires this hook correctly where the post actually exists
+
+- **After-workflows dispatch: prevent duplicate workflows**
+  - Added `workflows_executed` flag in payload when using after_workflows dispatch mode
+  - Receiver checks flag and skips workflows if already executed by sender
+  - Prevents duplicate workflow execution on shared database architectures
+
+- **After-workflows dispatch: prevent duplicate notifications and stale relationships**
+  - Added `ephemeral` flag for temporary posts created during after_workflows processing
+  - TranslationCoordinator skips notifications and status updates for ephemeral posts
+  - LanguageManager skips Polylang relationship setup for ephemeral posts
+  - Receiver handles final relationships, notifications and status updates
 
 ## [1.6.22] - 2026-01-30
 
