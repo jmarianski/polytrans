@@ -488,7 +488,31 @@
             } else {
                 cleanupSection.hide();
             }
+            updateNoWorkflowsWarning();
         });
+
+        // Handle workflow mode and database changes for warning
+        $('select[name="received_translation_workflow_mode"], select[name="external_same_database"]').on('change', function() {
+            updateNoWorkflowsWarning();
+        });
+
+        // Function to show/hide "no workflows" warning
+        function updateNoWorkflowsWarning() {
+            var dispatchMode = $('select[name="outgoing_translation_dispatch_mode"]').val();
+            var workflowMode = $('select[name="received_translation_workflow_mode"]').val();
+            var sameDatabase = $('select[name="external_same_database"]').val();
+            var warningDiv = $('#no-workflows-warning');
+
+            // Show warning when: immediate + skip_workflows + same_database
+            if (dispatchMode === 'immediate' && workflowMode === 'skip_workflows' && sameDatabase === 'yes') {
+                warningDiv.show();
+            } else {
+                warningDiv.hide();
+            }
+        }
+
+        // Initial check on page load
+        updateNoWorkflowsWarning();
 
         // Path Rules Management
         // Function to update visual representation of path rule

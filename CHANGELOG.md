@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.27] - 2026-01-30
+
+### Added
+- **External Server Database Setting**: New option to specify if external translation server shares the same database
+  - Helps clarify workflow behavior in different architectures
+  - Shows warning when immediate + skip_workflows + same_database (workflows won't run anywhere)
+
 ## [1.6.26] - 2026-01-30
 
 ### Fixed
