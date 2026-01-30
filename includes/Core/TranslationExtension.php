@@ -478,6 +478,18 @@ class TranslationExtension
 
         LogsManager::log("After-workflows dispatch: local post created (ID: {$created_post_id}), triggering workflows", "info");
 
+        // Set post_processing status before workflows (if we can update the original post)
+        if ($this->can_update_original_post($original_post_id, $target_lang)) {
+            $status_key = '_polytrans_translation_status_' . $target_lang;
+            update_post_meta($original_post_id, $status_key, 'post_processing');
+
+            // Store the translated post ID early (so UI can show preview link)
+            update_post_meta($original_post_id, '_polytrans_translation_target_' . $target_lang, $created_post_id);
+            update_post_meta($original_post_id, '_polytrans_translation_post_id_' . $target_lang, $created_post_id);
+
+            LogsManager::log("Set post_processing status for after-workflows dispatch", "info");
+        }
+
         // Fire the translation completed hook - workflows will run synchronously
         do_action('polytrans_translation_completed', $original_post_id, $created_post_id, $target_lang);
 
