@@ -2,6 +2,8 @@
 
 namespace PolyTrans\Receiver;
 
+use PolyTrans\Core\LogsManager;
+
 /**
  * Coordinates the translation process by orchestrating all translation managers.
  */
@@ -81,7 +83,7 @@ class TranslationCoordinator
             // Update translation status
             $this->status_manager->update_status($original_post_id, $target_language, $new_post_id);
 
-            \PolyTrans_Logs_Manager::log("Translation processing completed successfully for post $new_post_id", "info");
+            LogsManager::log("Translation processing completed successfully for post $new_post_id", "info");
 
             return [
                 'success' => true,
@@ -90,7 +92,7 @@ class TranslationCoordinator
             ];
         } catch (\Exception $e) {
             $error_message = 'Translation processing failed: ' . $e->getMessage();
-            \PolyTrans_Logs_Manager::log("$error_message", "info");
+            LogsManager::log("$error_message", "info");
 
             if (isset($original_post_id) && isset($target_language)) {
                 $this->status_manager->mark_as_failed($original_post_id, $target_language, $error_message);
@@ -145,7 +147,7 @@ class TranslationCoordinator
                         'filename' => basename(get_attached_file($attachment_id))
                     ];
                 } else {
-                    \PolyTrans_Logs_Manager::log("Featured image ID $attachment_id not found, skipping", "warning", [
+                    LogsManager::log("Featured image ID $attachment_id not found, skipping", "warning", [
                         'post_id' => $new_post_id,
                         'attachment_id' => $attachment_id
                     ]);
@@ -161,12 +163,12 @@ class TranslationCoordinator
                     $featured_image_data
                 );
             } else {
-                \PolyTrans_Logs_Manager::log("Invalid featured image data format for post $new_post_id", "warning", [
+                LogsManager::log("Invalid featured image data format for post $new_post_id", "warning", [
                     'featured_image_data' => $featured_image_data
                 ]);
             }
         } else {
-            \PolyTrans_Logs_Manager::log("No featured image data provided for post $new_post_id", "info", $translated);
+            LogsManager::log("No featured image data provided for post $new_post_id", "info", $translated);
         }
     }
 

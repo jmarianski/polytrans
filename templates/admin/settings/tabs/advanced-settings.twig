@@ -16,6 +16,35 @@
     </small>
 </div><br><br>
 
+{% set received_workflow_mode = settings.received_translation_workflow_mode|default('run_workflows') %}
+{% set outgoing_dispatch_mode = settings.outgoing_translation_dispatch_mode|default('immediate') %}
+
+<h2>{{ __('Received Translation Workflow Mode', 'polytrans') }}</h2>
+<select name="received_translation_workflow_mode" style="width:100%;max-width:400px;">
+    <option value="run_workflows" {{ selected(received_workflow_mode, 'run_workflows') }}>{{ __('Run workflows (Default)', 'polytrans') }}</option>
+    <option value="skip_workflows" {{ selected(received_workflow_mode, 'skip_workflows') }}>{{ __('Skip workflows (trust external)', 'polytrans') }}</option>
+</select>
+<div style="margin-top:8px;">
+    <small>
+        {{ __('Control whether workflows should run when receiving translations from external services:', 'polytrans') }}<br>
+        <strong>{{ __('Run workflows:', 'polytrans') }}</strong> {{ __('Execute configured post-processing workflows after receiving translation.', 'polytrans') }}<br>
+        <strong>{{ __('Skip workflows:', 'polytrans') }}</strong> {{ __('Trust the external translation service and skip local workflows.', 'polytrans') }}
+    </small>
+</div><br><br>
+
+<h2>{{ __('Outgoing Translation Dispatch Mode', 'polytrans') }}</h2>
+<select name="outgoing_translation_dispatch_mode" style="width:100%;max-width:400px;">
+    <option value="immediate" {{ selected(outgoing_dispatch_mode, 'immediate') }}>{{ __('Immediate (Default)', 'polytrans') }}</option>
+    <option value="after_workflows" {{ selected(outgoing_dispatch_mode, 'after_workflows') }}>{{ __('After workflows complete', 'polytrans') }}</option>
+</select>
+<div style="margin-top:8px;">
+    <small>
+        {{ __('Control when translated content is dispatched to the target endpoint:', 'polytrans') }}<br>
+        <strong>{{ __('Immediate:', 'polytrans') }}</strong> {{ __('Send translation to target endpoint immediately after translation completes.', 'polytrans') }}<br>
+        <strong>{{ __('After workflows:', 'polytrans') }}</strong> {{ __('Wait for all post-processing workflows to finish before sending to target endpoint.', 'polytrans') }}
+    </small>
+</div><br><br>
+
 <h2>{{ __('Translation Endpoint', 'polytrans') }}</h2>
 <input type="url" name="translation_endpoint" value="{{ translation_endpoint|esc_attr }}" style="width:100%" placeholder="https://example.com/translate-endpoint" />
 <br><small>{{ __('Specify the URL of the translation endpoint. The system will send JSON with source_language, target_language, title, and text to this endpoint.', 'polytrans') }}</small><br><br>
