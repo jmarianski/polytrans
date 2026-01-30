@@ -22,6 +22,35 @@
 </div>
 <br><br>
 
+{# ========== TRANSLATION SERVER ROLE ========== #}
+{% set server_role = settings.translation_server_role|default('full') %}
+
+<fieldset style="border:1px solid #c3c4c7;padding:16px 20px;margin-bottom:24px;">
+<legend style="font-weight:600;padding:0 8px;">{{ __('Translation Server Role', 'polytrans') }}</legend>
+
+<p style="margin-top:0;">
+    <small>{{ __('Configure how this server handles incoming translation requests (when acting as a translation service for other sites).', 'polytrans') }}</small>
+</p>
+
+<select name="translation_server_role" id="translation-server-role" style="width:100%;max-width:400px;">
+    <option value="full" {{ selected(server_role, 'full') }}>{{ __('Full Storage (Default)', 'polytrans') }}</option>
+    <option value="translation_only" {{ selected(server_role, 'translation_only') }}>{{ __('Translation Only (Stateless)', 'polytrans') }}</option>
+</select>
+<div style="margin-top:8px;">
+    <small>
+        {{ __('Choose how this server processes incoming translation requests:', 'polytrans') }}<br>
+        <strong>{{ __('Full Storage:', 'polytrans') }}</strong> {{ __('Creates posts locally, runs workflows, full processing. Use when this server also stores content.', 'polytrans') }}<br>
+        <strong>{{ __('Translation Only:', 'polytrans') }}</strong> {{ __('Translates content and forwards to receiver without storing locally. No posts created, no workflows run. Ideal for dedicated translation servers.', 'polytrans') }}
+    </small>
+</div>
+
+<div id="translation-only-warning" class="notice notice-info inline" style="padding:10px;margin:16px 0 0 0;border-left-color:#72aee6;{{ server_role != 'translation_only' ? 'display:none;' : '' }}">
+    <strong>{{ __('Translation Only Mode:', 'polytrans') }}</strong>
+    {{ __('In this mode, the "After workflows complete" dispatch option is ignored. Translations are always sent immediately after completion. Workflows configured on this server will not run for external translation requests.', 'polytrans') }}
+</div>
+
+</fieldset>
+
 {# ========== EXTERNAL MODE SETTINGS ========== #}
 <div id="external-mode-settings" style="{{ transport_mode != 'external' ? 'display:none;' : '' }}">
 

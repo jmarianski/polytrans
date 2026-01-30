@@ -506,6 +506,18 @@
             }
         });
 
+        // Handle server role changes to show/hide translation-only warning
+        $('select[name="translation_server_role"]').on('change', function() {
+            var selectedRole = $(this).val();
+            var translationOnlyWarning = $('#translation-only-warning');
+
+            if (selectedRole === 'translation_only') {
+                translationOnlyWarning.show();
+            } else {
+                translationOnlyWarning.hide();
+            }
+        });
+
         // Handle dispatch mode changes to show/hide cleanup option
         $('select[name="outgoing_translation_dispatch_mode"]').on('change', function() {
             var selectedMode = $(this).val();
