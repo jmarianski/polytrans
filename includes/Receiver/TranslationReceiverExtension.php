@@ -61,10 +61,15 @@ class TranslationReceiverExtension
         $settings = get_option('polytrans_settings', []);
         $workflow_mode = $settings['received_translation_workflow_mode'] ?? 'run_workflows';
 
-        if ($workflow_mode === 'run_workflows') {
+        // Check if workflows were already executed by the sender (after_workflows dispatch mode)
+        $workflows_already_executed = $params['workflows_executed'] ?? false;
+
+        if ($workflow_mode === 'run_workflows' && !$workflows_already_executed) {
             // Fire action for post-processing workflows
             do_action('polytrans_translation_completed', $original_post_id, $result['created_post_id'], $target_language);
             LogsManager::log("Triggered workflows for received translation (post {$result['created_post_id']})", "info");
+        } elseif ($workflows_already_executed) {
+            LogsManager::log("Skipped workflows - already executed by sender (post {$result['created_post_id']})", "info");
         } else {
             LogsManager::log("Skipped workflows for received translation (mode: {$workflow_mode})", "info");
         }

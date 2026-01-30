@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.26] - 2026-01-30
+
+### Fixed
+- **After-workflows dispatch: prevent duplicate workflows**
+  - Added `workflows_executed` flag in payload when using after_workflows dispatch mode
+  - Receiver checks flag and skips workflows if already executed by sender
+  - Prevents duplicate workflow execution on shared database architectures
+
+- **After-workflows dispatch: prevent duplicate notifications**
+  - Added `ephemeral` flag for temporary posts created during after_workflows processing
+  - TranslationCoordinator skips notifications and status updates for ephemeral posts
+  - Receiver handles notifications for final post creation
+
 ## [1.6.25] - 2026-01-30
 
 ### Added
