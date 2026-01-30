@@ -435,6 +435,13 @@ class TranslationExtension
             $updated_payload['translated']['featured_image'] = $translated['featured_image'];
         }
 
+        // Check cleanup mode - delete ephemeral post before dispatch if configured
+        $cleanup_mode = $settings['after_workflows_cleanup_mode'] ?? 'delete';
+        if ($cleanup_mode === 'delete') {
+            LogsManager::log("After-workflows dispatch: deleting ephemeral post {$created_post_id}", "info");
+            wp_delete_post($created_post_id, true); // Force delete, skip trash
+        }
+
         LogsManager::log("After-workflows dispatch: sending to target endpoint", "info");
 
         // Now dispatch to target endpoint
@@ -455,11 +462,18 @@ class TranslationExtension
             LogsManager::log("After-workflows dispatch: successfully sent to target", "info");
         }
 
-        return new \WP_REST_Response([
+        $response_data = [
             'status' => 'sent_after_workflows',
-            'local_post_id' => $created_post_id,
             'result' => $updated_payload
-        ]);
+        ];
+
+        if ($cleanup_mode === 'keep') {
+            $response_data['local_post_id'] = $created_post_id;
+        } else {
+            $response_data['local_post_deleted'] = true;
+        }
+
+        return new \WP_REST_Response($response_data);
     }
 
     /**

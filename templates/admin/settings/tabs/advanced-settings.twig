@@ -18,6 +18,7 @@
 
 {% set received_workflow_mode = settings.received_translation_workflow_mode|default('run_workflows') %}
 {% set outgoing_dispatch_mode = settings.outgoing_translation_dispatch_mode|default('immediate') %}
+{% set after_workflows_cleanup = settings.after_workflows_cleanup_mode|default('delete') %}
 
 <h2>{{ __('Received Translation Workflow Mode', 'polytrans') }}</h2>
 <select name="received_translation_workflow_mode" style="width:100%;max-width:400px;">
@@ -44,6 +45,21 @@
         <strong>{{ __('After workflows:', 'polytrans') }}</strong> {{ __('Wait for all post-processing workflows to finish before sending to target endpoint.', 'polytrans') }}
     </small>
 </div><br><br>
+
+<div id="after-workflows-cleanup-section" style="{{ outgoing_dispatch_mode != 'after_workflows' ? 'display:none;' : '' }}">
+    <h2>{{ __('After Workflows: Local Post Cleanup', 'polytrans') }}</h2>
+    <select name="after_workflows_cleanup_mode" style="width:100%;max-width:400px;">
+        <option value="delete" {{ selected(after_workflows_cleanup, 'delete') }}>{{ __('Delete after dispatch (Default)', 'polytrans') }}</option>
+        <option value="keep" {{ selected(after_workflows_cleanup, 'keep') }}>{{ __('Keep local post', 'polytrans') }}</option>
+    </select>
+    <div style="margin-top:8px;">
+        <small>
+            {{ __('Control what happens to the temporary local post after workflows complete and content is dispatched:', 'polytrans') }}<br>
+            <strong>{{ __('Delete:', 'polytrans') }}</strong> {{ __('Remove the temporary post after dispatch (recommended for clean database).', 'polytrans') }}<br>
+            <strong>{{ __('Keep:', 'polytrans') }}</strong> {{ __('Keep the local post. Useful when using external mode internally.', 'polytrans') }}
+        </small>
+    </div><br><br>
+</div>
 
 <h2>{{ __('Translation Endpoint', 'polytrans') }}</h2>
 <input type="url" name="translation_endpoint" value="{{ translation_endpoint|esc_attr }}" style="width:100%" placeholder="https://example.com/translate-endpoint" />

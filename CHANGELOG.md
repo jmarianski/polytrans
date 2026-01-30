@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.24] - 2026-01-30
+
+### Added
+- **After Workflows Cleanup Mode**: New setting to control ephemeral post cleanup in "after workflows" dispatch mode
+  - `Delete after dispatch` (default): Removes temporary local post after content is captured
+  - `Keep local post`: Preserves the post locally (useful for external mode on restricted environments)
+
 ## [1.6.23] - 2026-01-30
 
 ### Fixed

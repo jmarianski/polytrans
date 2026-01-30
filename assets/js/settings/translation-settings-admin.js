@@ -478,6 +478,18 @@
             }
         });
 
+        // Handle dispatch mode changes to show/hide cleanup option
+        $('select[name="outgoing_translation_dispatch_mode"]').on('change', function() {
+            var selectedMode = $(this).val();
+            var cleanupSection = $('#after-workflows-cleanup-section');
+
+            if (selectedMode === 'after_workflows') {
+                cleanupSection.show();
+            } else {
+                cleanupSection.hide();
+            }
+        });
+
         // Path Rules Management
         // Function to update visual representation of path rule
         function updatePathRuleVisual($row) {
