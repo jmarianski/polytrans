@@ -3,8 +3,8 @@
 
 <h1>{{ __('Advanced Integration Settings', 'polytrans') }}</h1>
 
-<h2>{{ __('Transport Options', 'polytrans') }}</h2>
-<select name="translation_transport_mode" style="width:100%">
+<h2>{{ __('Transport Mode', 'polytrans') }}</h2>
+<select name="translation_transport_mode" id="translation-transport-mode" style="width:100%;max-width:400px;">
     <option value="external" {{ selected(transport_mode, 'external') }}>{{ __('External Server (Default)', 'polytrans') }}</option>
     <option value="internal" {{ selected(transport_mode, 'internal') }}>{{ __('Internal (Local Endpoint)', 'polytrans') }}</option>
 </select>
@@ -12,16 +12,28 @@
     <small>
         {{ __('Choose how to handle translation transport:', 'polytrans') }}<br>
         <strong>{{ __('External Server:', 'polytrans') }}</strong> {{ __('Sends data to the external endpoints specified below and expects the server to send data back to the specified receiver endpoint.', 'polytrans') }}<br>
-        <strong>{{ __('Internal:', 'polytrans') }}</strong> {{ __('Uses spawned processes to stay in the same server and achieve asynchronity. May not work in certain environments.', 'polytrans') }}
+        <strong>{{ __('Internal:', 'polytrans') }}</strong> {{ __('Uses spawned processes to stay in the same server and achieve asynchronity.', 'polytrans') }}
     </small>
-</div><br><br>
+</div>
+
+<div id="internal-mode-warning" class="notice notice-info inline" style="padding:10px;margin:16px 0 0 0;border-left-color:#72aee6;{{ transport_mode != 'internal' ? 'display:none;' : '' }}">
+    <strong>{{ __('Note:', 'polytrans') }}</strong>
+    {{ __('Internal mode uses non-blocking HTTP requests to trigger background processing. This may not work on all hosting environments (e.g., some shared hosts, environments without loopback connections, or servers with strict firewall rules). If translations are not processing, try switching to External mode with endpoints pointing to the same server.', 'polytrans') }}
+</div>
+<br><br>
+
+{# ========== EXTERNAL MODE SETTINGS ========== #}
+<div id="external-mode-settings" style="{{ transport_mode != 'external' ? 'display:none;' : '' }}">
+
+<fieldset style="border:1px solid #c3c4c7;padding:16px 20px;margin-bottom:24px;">
+<legend style="font-weight:600;padding:0 8px;">{{ __('External Server Configuration', 'polytrans') }}</legend>
 
 {% set received_workflow_mode = settings.received_translation_workflow_mode|default('run_workflows') %}
 {% set outgoing_dispatch_mode = settings.outgoing_translation_dispatch_mode|default('immediate') %}
 {% set after_workflows_cleanup = settings.after_workflows_cleanup_mode|default('delete') %}
 {% set external_same_database = settings.external_same_database|default('no') %}
 
-<h2>{{ __('External Server Database', 'polytrans') }}</h2>
+<h3>{{ __('Database Architecture', 'polytrans') }}</h3>
 <select name="external_same_database" id="external-same-database" style="width:100%;max-width:400px;">
     <option value="no" {{ selected(external_same_database, 'no') }}>{{ __('Separate database (Default)', 'polytrans') }}</option>
     <option value="yes" {{ selected(external_same_database, 'yes') }}>{{ __('Same database as this site', 'polytrans') }}</option>
@@ -32,28 +44,28 @@
         <strong>{{ __('Separate database:', 'polytrans') }}</strong> {{ __('External server has its own database. Each server manages its own post status updates.', 'polytrans') }}<br>
         <strong>{{ __('Same database:', 'polytrans') }}</strong> {{ __('External server connects to the same database (e.g., separate WordPress for async processing). Prevents duplicate status updates.', 'polytrans') }}
     </small>
-</div><br><br>
+</div><br>
 
 <div id="no-workflows-warning" class="notice notice-warning inline" style="display:none;padding:10px;margin:0 0 16px 0;">
     <strong>{{ __('Warning:', 'polytrans') }}</strong>
-    {{ __('With current settings (Immediate dispatch + Skip workflows + Same database), post-processing workflows will NOT run anywhere. Consider using "After workflows complete" dispatch mode or "Run workflows" on receiver.', 'polytrans') }}
+    {{ __('With current settings (Immediate dispatch + Trust external + Same database), post-processing workflows will NOT run anywhere. Consider using "After workflows complete" dispatch mode or enabling "Run workflows locally" on receiver.', 'polytrans') }}
 </div>
 
-<h2>{{ __('Received Translation Workflow Mode', 'polytrans') }}</h2>
-<select name="received_translation_workflow_mode" style="width:100%;max-width:400px;">
-    <option value="run_workflows" {{ selected(received_workflow_mode, 'run_workflows') }}>{{ __('Run workflows (Default)', 'polytrans') }}</option>
-    <option value="skip_workflows" {{ selected(received_workflow_mode, 'skip_workflows') }}>{{ __('Skip workflows (trust external)', 'polytrans') }}</option>
+<h3>{{ __('Received Translation Workflow Mode', 'polytrans') }}</h3>
+<select name="received_translation_workflow_mode" id="received-workflow-mode" style="width:100%;max-width:400px;">
+    <option value="run_workflows" {{ selected(received_workflow_mode, 'run_workflows') }}>{{ __('Run workflows locally (Default)', 'polytrans') }}</option>
+    <option value="skip_workflows" {{ selected(received_workflow_mode, 'skip_workflows') }}>{{ __('Trust external server (skip local workflows)', 'polytrans') }}</option>
 </select>
 <div style="margin-top:8px;">
     <small>
-        {{ __('Control whether workflows should run when receiving translations from external services:', 'polytrans') }}<br>
-        <strong>{{ __('Run workflows:', 'polytrans') }}</strong> {{ __('Execute configured post-processing workflows after receiving translation.', 'polytrans') }}<br>
-        <strong>{{ __('Skip workflows:', 'polytrans') }}</strong> {{ __('Trust the external translation service and skip local workflows.', 'polytrans') }}
+        {{ __('Control whether workflows should run when receiving translations:', 'polytrans') }}<br>
+        <strong>{{ __('Run workflows locally:', 'polytrans') }}</strong> {{ __('Execute configured post-processing workflows after receiving translation.', 'polytrans') }}<br>
+        <strong>{{ __('Trust external server:', 'polytrans') }}</strong> {{ __('Assume the external server already ran workflows. Use with "After workflows complete" dispatch mode on sender.', 'polytrans') }}
     </small>
-</div><br><br>
+</div><br>
 
-<h2>{{ __('Outgoing Translation Dispatch Mode', 'polytrans') }}</h2>
-<select name="outgoing_translation_dispatch_mode" style="width:100%;max-width:400px;">
+<h3>{{ __('Outgoing Translation Dispatch Mode', 'polytrans') }}</h3>
+<select name="outgoing_translation_dispatch_mode" id="outgoing-dispatch-mode" style="width:100%;max-width:400px;">
     <option value="immediate" {{ selected(outgoing_dispatch_mode, 'immediate') }}>{{ __('Immediate (Default)', 'polytrans') }}</option>
     <option value="after_workflows" {{ selected(outgoing_dispatch_mode, 'after_workflows') }}>{{ __('After workflows complete', 'polytrans') }}</option>
 </select>
@@ -61,12 +73,12 @@
     <small>
         {{ __('Control when translated content is dispatched to the target endpoint:', 'polytrans') }}<br>
         <strong>{{ __('Immediate:', 'polytrans') }}</strong> {{ __('Send translation to target endpoint immediately after translation completes.', 'polytrans') }}<br>
-        <strong>{{ __('After workflows:', 'polytrans') }}</strong> {{ __('Wait for all post-processing workflows to finish before sending to target endpoint.', 'polytrans') }}
+        <strong>{{ __('After workflows:', 'polytrans') }}</strong> {{ __('Run post-processing workflows on translator, then send processed content to target endpoint.', 'polytrans') }}
     </small>
-</div><br><br>
+</div><br>
 
 <div id="after-workflows-cleanup-section" style="{{ outgoing_dispatch_mode != 'after_workflows' ? 'display:none;' : '' }}">
-    <h2>{{ __('After Workflows: Local Post Cleanup', 'polytrans') }}</h2>
+    <h3>{{ __('After Workflows: Local Post Cleanup', 'polytrans') }}</h3>
     <select name="after_workflows_cleanup_mode" style="width:100%;max-width:400px;">
         <option value="delete" {{ selected(after_workflows_cleanup, 'delete') }}>{{ __('Delete after dispatch (Default)', 'polytrans') }}</option>
         <option value="keep" {{ selected(after_workflows_cleanup, 'keep') }}>{{ __('Keep local post', 'polytrans') }}</option>
@@ -75,29 +87,34 @@
         <small>
             {{ __('Control what happens to the temporary local post after workflows complete and content is dispatched:', 'polytrans') }}<br>
             <strong>{{ __('Delete:', 'polytrans') }}</strong> {{ __('Remove the temporary post after dispatch (recommended for clean database).', 'polytrans') }}<br>
-            <strong>{{ __('Keep:', 'polytrans') }}</strong> {{ __('Keep the local post. Useful when using external mode internally.', 'polytrans') }}
+            <strong>{{ __('Keep:', 'polytrans') }}</strong> {{ __('Keep the local post. Useful for debugging or when external mode points to the same server.', 'polytrans') }}
         </small>
-    </div><br><br>
+    </div><br>
 </div>
+
+</fieldset>
+
+<fieldset style="border:1px solid #c3c4c7;padding:16px 20px;margin-bottom:24px;">
+<legend style="font-weight:600;padding:0 8px;">{{ __('Endpoint Credentials', 'polytrans') }}</legend>
 
 {% set endpoint_method = settings.translation_endpoint_secret_method|default('') %}
 {% set receiver_method = settings.translation_receiver_secret_method|default('header_bearer') %}
 
-<h2>{{ __('Translation Endpoint (Source → Translator)', 'polytrans') }}</h2>
+<h3>{{ __('Translation Endpoint (Source → Translator)', 'polytrans') }}</h3>
 <p><small>{{ __('Configure how this site connects to the external translation service.', 'polytrans') }}</small></p>
 
-<h3>{{ __('Endpoint URL', 'polytrans') }}</h3>
+<h4>{{ __('Endpoint URL', 'polytrans') }}</h4>
 <input type="url" name="translation_endpoint" value="{{ translation_endpoint|esc_attr }}" style="width:100%" placeholder="https://example.com/wp-json/polytrans/v1/translation/translate" />
 <br><small>{{ __('URL of the external translation service endpoint.', 'polytrans') }}</small><br><br>
 
-<h3>{{ __('Endpoint Secret', 'polytrans') }}</h3>
+<h4>{{ __('Endpoint Secret', 'polytrans') }}</h4>
 <div style="display:flex;gap:0.5em;align-items:center;max-width:600px;">
     <input type="text" id="translation-endpoint-secret" name="translation_endpoint_secret" value="{{ settings.translation_endpoint_secret|default('')|esc_attr }}" data-initial="{{ settings.translation_endpoint_secret|default('')|esc_attr }}" style="width:100%" placeholder="{{ __('Leave empty to use Receiver Secret', 'polytrans')|esc_attr }}" autocomplete="off" />
     <button type="button" class="button generate-secret-btn" data-target="translation-endpoint-secret" style="white-space:nowrap;">{{ __('Generate', 'polytrans') }}</button>
 </div>
 <br><small>{{ __('Secret for authenticating to the translation endpoint. If empty, uses the Receiver Secret below.', 'polytrans') }}</small><br><br>
 
-<h3>{{ __('How to Pass Endpoint Secret', 'polytrans') }}</h3>
+<h4>{{ __('How to Pass Endpoint Secret', 'polytrans') }}</h4>
 <select name="translation_endpoint_secret_method" id="translation-endpoint-secret-method" style="width:100%;max-width:400px;">
     <option value="" {{ selected(endpoint_method, '') }}>{{ __('Use Receiver method (default)', 'polytrans') }}</option>
     <option value="none" {{ selected(endpoint_method, 'none') }}>{{ __('None (do not send secret)', 'polytrans') }}</option>
@@ -108,28 +125,28 @@
 </select><br><br>
 
 <div id="endpoint-custom-header-section" style="{{ endpoint_method != 'header_custom' ? 'display:none;' : '' }}">
-    <h3>{{ __('Endpoint Custom Header Name', 'polytrans') }}</h3>
+    <h4>{{ __('Endpoint Custom Header Name', 'polytrans') }}</h4>
     <input type="text" name="translation_endpoint_secret_custom_header" value="{{ settings.translation_endpoint_secret_custom_header|default('')|esc_attr }}" style="width:100%;max-width:400px;" placeholder="{{ __('Leave empty to use Receiver header', 'polytrans') }}" />
     <br><small>{{ __('Custom header name for endpoint authentication.', 'polytrans') }}</small><br><br>
 </div>
 
-<hr style="margin: 24px 0;">
+<hr style="margin: 20px 0;">
 
-<h2>{{ __('Receiver Endpoint (Translator → Target)', 'polytrans') }}</h2>
+<h3>{{ __('Receiver Endpoint (Translator → Target)', 'polytrans') }}</h3>
 <p><small>{{ __('Configure where the translated content should be sent. These credentials are passed to the translator in the request payload.', 'polytrans') }}</small></p>
 
-<h3>{{ __('Receiver URL', 'polytrans') }}</h3>
+<h4>{{ __('Receiver URL', 'polytrans') }}</h4>
 <input type="url" name="translation_receiver_endpoint" value="{{ translation_receiver_endpoint|esc_attr }}" style="width:100%" placeholder="https://example.com/wp-json/polytrans/v1/translation/receive-post" />
 <br><small>{{ __('URL where translated content will be delivered. This is passed to the translator.', 'polytrans') }}</small><br><br>
 
-<h3>{{ __('Receiver Secret', 'polytrans') }}</h3>
+<h4>{{ __('Receiver Secret', 'polytrans') }}</h4>
 <div style="display:flex;gap:0.5em;align-items:center;max-width:600px;">
     <input type="text" id="translation-receiver-secret" name="translation_receiver_secret" value="{{ settings.translation_receiver_secret|default('')|esc_attr }}" data-initial="{{ settings.translation_receiver_secret|default('')|esc_attr }}" style="width:100%" placeholder="{{ __('Enter secret for receiver authentication', 'polytrans')|esc_attr }}" autocomplete="off" />
     <button type="button" class="button generate-secret-btn" data-target="translation-receiver-secret" style="white-space:nowrap;">{{ __('Generate', 'polytrans') }}</button>
 </div>
 <br><small>{{ __('Secret for authenticating to the receiver. Passed to the translator in the payload.', 'polytrans') }}</small><br><br>
 
-<h3>{{ __('How to Pass Receiver Secret', 'polytrans') }}</h3>
+<h4>{{ __('How to Pass Receiver Secret', 'polytrans') }}</h4>
 <select name="translation_receiver_secret_method" id="translation-receiver-secret-method" style="width:100%;max-width:400px;">
     <option value="none" {{ selected(receiver_method, 'none') }}>{{ __('None (do not send secret)', 'polytrans') }}</option>
     <option value="get_param" {{ selected(receiver_method, 'get_param') }}>{{ __('GET parameter (?secret=...)', 'polytrans') }}</option>
@@ -139,10 +156,15 @@
 </select><br><br>
 
 <div id="receiver-custom-header-section" style="{{ receiver_method != 'header_custom' ? 'display:none;' : '' }}">
-    <h3>{{ __('Receiver Custom Header Name', 'polytrans') }}</h3>
+    <h4>{{ __('Receiver Custom Header Name', 'polytrans') }}</h4>
     <input type="text" name="translation_receiver_secret_custom_header" value="{{ settings.translation_receiver_secret_custom_header|default('x-polytrans-secret')|esc_attr }}" style="width:100%;max-width:400px;" placeholder="x-polytrans-secret" />
     <br><small>{{ __('Specify the custom header name to use when sending the secret. Default is "x-polytrans-secret".', 'polytrans') }}</small><br><br>
 </div>
+
+</fieldset>
+
+</div>
+{# ========== END EXTERNAL MODE SETTINGS ========== #}
 
 <h2>{{ __('Edit Link Base URL', 'polytrans') }}</h2>
 <input type="url" name="edit_link_base_url" value="{{ settings.edit_link_base_url|default('')|esc_attr }}" style="width:100%" placeholder="https://example.com/wp-admin" />

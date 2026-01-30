@@ -491,6 +491,21 @@
             }
         });
 
+        // Handle transport mode changes to show/hide external settings
+        $('select[name="translation_transport_mode"]').on('change', function() {
+            var selectedMode = $(this).val();
+            var externalSettings = $('#external-mode-settings');
+            var internalWarning = $('#internal-mode-warning');
+
+            if (selectedMode === 'external') {
+                externalSettings.show();
+                internalWarning.hide();
+            } else {
+                externalSettings.hide();
+                internalWarning.show();
+            }
+        });
+
         // Handle dispatch mode changes to show/hide cleanup option
         $('select[name="outgoing_translation_dispatch_mode"]').on('change', function() {
             var selectedMode = $(this).val();

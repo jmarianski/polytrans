@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-01-30
+
+### Changed
+- **UI Reorganization**: External mode settings now grouped in fieldsets and hidden when Internal mode is selected
+- **Clearer Labels**: "Skip workflows" renamed to "Trust external server (skip local workflows)" for clarity
+- **Internal Mode Warning**: Added info notice explaining that internal mode may not work on all hosting environments
+
+### Fixed
+- Warning message updated to use new label terminology
+
 ## [1.7.0] - 2026-01-30
 
 Major refactoring of external translation flow to support various database architectures (shared vs separate).
