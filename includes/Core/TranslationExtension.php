@@ -309,10 +309,27 @@ class TranslationExtension
         $original_post_id = $payload['original_post_id'] ?? null;
         $target_language = $payload['target_language'] ?? null;
 
-        $settings = get_option('polytrans_settings', []);
-        $secret = $settings['translation_receiver_secret'] ?? '';
-        $secret_method = $settings['translation_receiver_secret_method'] ?? 'header_bearer';
-        $custom_header_name = $settings['translation_receiver_secret_custom_header'] ?? 'x-polytrans-secret';
+        // Use credentials from payload if provided (passed from source server)
+        // Otherwise fall back to local settings
+        $receiver_credentials = $payload['receiver_credentials'] ?? null;
+
+        if ($receiver_credentials && !empty($receiver_credentials['secret'])) {
+            // Use credentials from payload (source server told us how to authenticate to receiver)
+            $secret = $receiver_credentials['secret'];
+            $secret_method = $receiver_credentials['method'] ?? 'header_bearer';
+            $custom_header_name = $receiver_credentials['custom_header'] ?? 'x-polytrans-secret';
+            LogsManager::log("Using receiver credentials from payload", "debug");
+        } else {
+            // Fall back to local settings (translator's own receiver config)
+            $settings = get_option('polytrans_settings', []);
+            $secret = $settings['translation_receiver_secret'] ?? '';
+            $secret_method = $settings['translation_receiver_secret_method'] ?? 'header_bearer';
+            $custom_header_name = $settings['translation_receiver_secret_custom_header'] ?? 'x-polytrans-secret';
+            LogsManager::log("Using local receiver credentials", "debug");
+        }
+
+        // Remove receiver_credentials from payload before sending (not needed by receiver)
+        unset($payload['receiver_credentials']);
 
         $args = [
             'headers' => [

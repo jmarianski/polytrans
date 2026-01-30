@@ -433,16 +433,27 @@
             window.PolyTransAssistants.loadAssistants();
         }
 
-        // Secret generator button logic
-        var btn = document.getElementById('generate-translation-secret');
-        var input = document.getElementById('translation-receiver-secret');
-        var initialSecret = input ? input.getAttribute('data-initial') : '';
-        var confirmOverwrite = true;
-        if (input && (!initialSecret || initialSecret.trim() === '')) {
-            confirmOverwrite = false; // No need to confirm if no initial value
+        // Secret generator button logic (handles multiple buttons via data-target)
+        function randomSecret(length) {
+            var array = new Uint8Array(length);
+            if (window.crypto && window.crypto.getRandomValues) {
+                window.crypto.getRandomValues(array);
+            } else {
+                for (var i = 0; i < length; i++) array[i] = Math.floor(Math.random() * 256);
+            }
+            return btoa(String.fromCharCode.apply(null, array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '').substring(0, length);
         }
-        if (btn && input) {
-            btn.addEventListener('click', function (e) {
+
+        $('.generate-secret-btn').each(function() {
+            var btn = this;
+            var targetId = $(btn).data('target');
+            var input = document.getElementById(targetId);
+            if (!input) return;
+
+            var initialSecret = input.getAttribute('data-initial') || '';
+            var confirmOverwrite = initialSecret.trim() !== '';
+
+            $(btn).on('click', function(e) {
                 e.preventDefault();
                 // Only ask once, and only if there was a value set before entering the form
                 if (confirmOverwrite && input.value && input.value.trim() !== '') {
@@ -451,25 +462,27 @@
                     }
                     confirmOverwrite = false; // Only ask once
                 }
-                // Generate a secure random 32-char string (base64url)
-                function randomSecret(length) {
-                    var array = new Uint8Array(length);
-                    if (window.crypto && window.crypto.getRandomValues) {
-                        window.crypto.getRandomValues(array);
-                    } else {
-                        for (var i = 0; i < length; i++) array[i] = Math.floor(Math.random() * 256);
-                    }
-                    return btoa(String.fromCharCode.apply(null, array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '').substring(0, length);
-                }
                 input.value = randomSecret(32);
                 input.focus();
             });
-        }
+        });
 
-        // Handle secret method changes to show/hide custom header field
+        // Handle secret method changes to show/hide custom header field (receiver)
         $('select[name="translation_receiver_secret_method"]').on('change', function() {
             var selectedMethod = $(this).val();
-            var customHeaderSection = $('#custom-header-section');
+            var customHeaderSection = $('#receiver-custom-header-section');
+
+            if (selectedMethod === 'header_custom') {
+                customHeaderSection.show();
+            } else {
+                customHeaderSection.hide();
+            }
+        });
+
+        // Handle secret method changes to show/hide custom header field (endpoint)
+        $('select[name="translation_endpoint_secret_method"]').on('change', function() {
+            var selectedMethod = $(this).val();
+            var customHeaderSection = $('#endpoint-custom-header-section');
 
             if (selectedMethod === 'header_custom') {
                 customHeaderSection.show();

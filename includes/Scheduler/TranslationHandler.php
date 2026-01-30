@@ -369,6 +369,11 @@ class TranslationHandler
             update_post_meta($post_id, $log_key, $log);
         }
 
+        // Receiver credentials (passed in payload to translator, for use when sending to receiver)
+        $receiver_secret = $settings['translation_receiver_secret'] ?? '';
+        $receiver_secret_method = $settings['translation_receiver_secret_method'] ?? 'header_bearer';
+        $receiver_custom_header = $settings['translation_receiver_secret_custom_header'] ?? 'x-polytrans-secret';
+
         // Prepare payload for the external translation request
         $payload = [
             'source_language' => $source_lang,
@@ -381,13 +386,36 @@ class TranslationHandler
                 'excerpt' => $post->post_excerpt,
                 'meta' => json_decode(json_encode($meta), true)
             ],
-            'context_articles' => $context_articles
+            'context_articles' => $context_articles,
+            // Receiver credentials - translator will use these when sending to receiver
+            'receiver_credentials' => [
+                'secret' => $receiver_secret,
+                'method' => $receiver_secret_method,
+                'custom_header' => $receiver_custom_header,
+            ]
         ];
 
-        // Add authentication if needed
-        $secret = isset($settings['translation_receiver_secret']) ? $settings['translation_receiver_secret'] : '';
-        $secret_method = isset($settings['translation_receiver_secret_method']) ? $settings['translation_receiver_secret_method'] : 'header_bearer';
-        $custom_header_name = isset($settings['translation_receiver_secret_custom_header']) ? $settings['translation_receiver_secret_custom_header'] : 'x-polytrans-secret';
+        // Endpoint credentials (for authenticating SOURCE → TRANSLATOR)
+        // Falls back to receiver credentials if not specified
+        $endpoint_secret = $settings['translation_endpoint_secret'] ?? '';
+        $endpoint_secret_method = $settings['translation_endpoint_secret_method'] ?? '';
+        $endpoint_custom_header = $settings['translation_endpoint_secret_custom_header'] ?? '';
+
+        // Apply fallbacks
+        if (empty($endpoint_secret)) {
+            $endpoint_secret = $receiver_secret;
+        }
+        if (empty($endpoint_secret_method)) {
+            $endpoint_secret_method = $receiver_secret_method;
+        }
+        if (empty($endpoint_custom_header)) {
+            $endpoint_custom_header = $receiver_custom_header;
+        }
+
+        // These are what we use for the HTTP request to the translation endpoint
+        $secret = $endpoint_secret;
+        $secret_method = $endpoint_secret_method;
+        $custom_header_name = $endpoint_custom_header;
 
         $args = [
             'headers' => [
