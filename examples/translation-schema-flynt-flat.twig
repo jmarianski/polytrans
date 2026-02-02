@@ -1,0 +1,12 @@
+{
+  "title": {"type": "string", "target": "post.title", "required": true},
+  "content": {"type": "string", "target": "post.content", "required": true},
+  "excerpt": {"type": "string", "target": "post.excerpt"},
+  "meta": {
+    "_yoast_wpseo_metadesc": {"type": "string", "target": "meta._yoast_wpseo_metadesc"},
+    "_yoast_wpseo_title": {"type": "string", "target": "meta._yoast_wpseo_title"},
+    "_yoast_wpseo_twitter-description": {"type": "string", "target": "meta._yoast_wpseo_twitter-description"}
+    {% for key, value in original.meta %}{% if key matches '/^postComponents_\\d+_contentHtml$/' %},
+    "{{ key }}": {"type": "string", "target": "meta.{{ key }}"}{% endif %}{% endfor %}
+  }
+}

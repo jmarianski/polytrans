@@ -1,0 +1,21 @@
+Translate the following WordPress post from {{ source_language }} to {{ target_language }}:
+
+{
+  "title": "{{ original.title|escape('js') }}",
+  "content": "{{ original.content|escape('js') }}",
+  "excerpt": "{{ original.excerpt|default('')|escape('js') }}",
+  "meta": {
+    "_yoast_wpseo_metadesc": "{{ original.meta._yoast_wpseo_metadesc|default('')|escape('js') }}",
+    "_yoast_wpseo_title": "{{ original.meta._yoast_wpseo_title|default('')|escape('js') }}",
+    "_yoast_wpseo_twitter-description": "{{ original.meta['_yoast_wpseo_twitter-description']|default('')|escape('js') }}"
+    {% for key, value in original.meta %}{% if key matches '/^postComponents_\\d+_contentHtml$/' %},
+    "{{ key }}": "{{ value|escape('js') }}"{% endif %}{% endfor %}
+  }
+}
+
+Return the translated content in the same JSON structure.
+
+IMPORTANT for postComponents (Flynt/ACF Flexible Content):
+- Each postComponents_N_contentHtml contains HTML content to translate
+- Preserve all HTML tags and structure
+- Only translate the text content within HTML tags

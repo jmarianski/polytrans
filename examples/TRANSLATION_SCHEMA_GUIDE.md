@@ -195,6 +195,10 @@ WordPress stores each component field as a separate meta key:
 - `postComponents_2_contentHtml`
 - etc.
 
+**Use these files:**
+- **`translation-schema-flynt-flat.twig`** - Schema with Twig loop for postComponents
+- **`translation-user-message-flynt-flat.twig`** - User message template
+
 **Use Twig in your schema** to dynamically include all matching keys:
 
 ```json
