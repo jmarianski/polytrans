@@ -1,0 +1,26 @@
+Translate the following WordPress post from {{ source_language }} to {{ target_language }}:
+
+{
+  "title": "{{ translated.title|escape('js') }}",
+  "content": "{{ translated.content|escape('js') }}",
+  "excerpt": "{{ translated.excerpt|escape('js') }}"{% if translated.meta.pageComponents %},
+  "pageComponents": {{ translated.meta.pageComponents|json_encode|raw }}{% endif %}{% if translated.featured_image %},
+  "featured_image": {
+    "id": {{ translated.featured_image.id }},
+    "alt": "{{ translated.featured_image.alt|escape('js') }}",
+    "title": "{{ translated.featured_image.title|escape('js') }}",
+    "caption": "{{ translated.featured_image.caption|escape('js') }}",
+    "description": "{{ translated.featured_image.description|escape('js') }}",
+    "filename": "{{ translated.featured_image.filename|escape('js') }}"
+  }{% endif %}
+}
+
+Return the translated content in the same JSON structure.
+
+IMPORTANT for pageComponents (Flynt/ACF Flexible Content):
+- Translate ONLY text values: contentHtml, title, text, caption, description, headline, subline, intro, body
+- Preserve EXACT JSON structure - do NOT add, remove, rename, or reorder any keys
+- Keep these fields UNCHANGED: acf_fc_layout, id, image, video, url, link, options, settings, any numeric values
+- Each component in the array must keep its original structure
+
+For featured_image: translate only text fields (alt, title, caption, description). Keep id and filename unchanged.

@@ -1,0 +1,46 @@
+{
+  "title": {
+    "type": "string",
+    "target": "post.title",
+    "required": true
+  },
+  "content": {
+    "type": "string",
+    "target": "post.content",
+    "required": true
+  },
+  "excerpt": {
+    "type": "string",
+    "target": "post.excerpt"
+  },
+  "pageComponents": {
+    "type": "array",
+    "target": "meta.pageComponents"
+  },
+  "featured_image": {
+    "id": {
+      "type": "number",
+      "target": "featured_image.id"
+    },
+    "alt": {
+      "type": "string",
+      "target": "featured_image.alt"
+    },
+    "title": {
+      "type": "string",
+      "target": "featured_image.title"
+    },
+    "caption": {
+      "type": "string",
+      "target": "featured_image.caption"
+    },
+    "description": {
+      "type": "string",
+      "target": "featured_image.description"
+    },
+    "filename": {
+      "type": "string",
+      "target": "featured_image.filename"
+    }
+  }
+}

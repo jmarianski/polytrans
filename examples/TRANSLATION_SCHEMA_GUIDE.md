@@ -183,3 +183,55 @@ Return JSON: {"title": "...", "content": "..."}
 
 Done! 🎉
 
+## Flynt / ACF Flexible Content
+
+For sites using Flynt theme or ACF Flexible Content (pageComponents), use these files:
+
+- **`translation-schema-flynt.json`** - Schema with pageComponents as array
+- **`translation-user-message-flynt.twig`** - User message template for Flynt
+
+### How It Works
+
+Flynt stores page content in `pageComponents` meta field as an array of blocks:
+
+```json
+[
+  {
+    "acf_fc_layout": "blockWysiwyg",
+    "contentHtml": "<p>Text to translate</p>",
+    "options": {"theme": "light"}
+  },
+  {
+    "acf_fc_layout": "blockImageText",
+    "title": "Headline",
+    "text": "<p>Description</p>",
+    "image": 123
+  }
+]
+```
+
+The schema defines `pageComponents` as `"type": "array"`, which passes the entire structure to AI for translation.
+
+### Important
+
+The AI prompt instructs to:
+- Translate ONLY text fields (contentHtml, title, text, caption, etc.)
+- Preserve exact JSON structure
+- Keep layout names, IDs, and options unchanged
+
+### Translatable Fields in Flynt
+
+Common text fields across Flynt components:
+- `contentHtml` - WYSIWYG content
+- `title`, `headline`, `subline` - Headings
+- `text`, `intro`, `body` - Text blocks
+- `caption`, `description` - Image/media descriptions
+
+### Customization
+
+If your Flynt theme has custom components with different field names, add them to the prompt:
+
+```
+Translate ONLY text values: contentHtml, title, text, YOUR_CUSTOM_FIELD, ...
+```
+
