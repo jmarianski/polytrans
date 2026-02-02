@@ -33,7 +33,7 @@ php-syntax-check:
       docker run --rm
       -v "${CI_PROJECT_DIR}:/src:ro"
       php:8.3-cli
-      sh -c "find /src/includes -name '*.php' -exec php -l {} \; 2>&1 | grep -v 'No syntax errors'"
+      sh -c "find /src/includes -name '*.php' -print0 | xargs -0 -n1 php -l 2>&1 | { grep -E '(Parse|Fatal) error' && exit 1 || exit 0; }"
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_COMMIT_MESSAGE !~ /\[skip ci\]/
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
