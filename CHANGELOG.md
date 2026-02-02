@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-02-02
+
+### Added
+- Flynt flat meta keys examples (`translation-schema-flynt-flat.twig`, `translation-user-message-flynt-flat.twig`)
+- Updated Flynt documentation with both serialized array and flat meta keys approaches
+
+### Fixed
+- CI: Add php-dom extension for PHPUnit tests
+- CI: Add fallback bootstrap for unit tests without WordPress environment
+- CI: Fix php-syntax-check exit code
+
 ## [1.8.0] - 2026-02-02
 
 Major refactoring: Workflow system with Dependency Injection for virtual/external context support.
