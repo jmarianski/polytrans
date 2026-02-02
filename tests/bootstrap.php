@@ -14,6 +14,13 @@ if (!$_tests_dir) {
     $_tests_dir = '/tmp/wordpress-tests-lib';
 }
 
+// Check if WordPress test environment exists
+// If not, use lightweight Unit bootstrap (for CI/isolated unit tests)
+if (!file_exists($_tests_dir . '/includes/functions.php')) {
+    require_once __DIR__ . '/Unit/bootstrap.php';
+    return;
+}
+
 // Load WordPress test environment
 require_once $_tests_dir . '/includes/functions.php';
 
