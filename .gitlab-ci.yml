@@ -18,7 +18,7 @@ unit-tests:
     - >
       docker run --rm
       -v "${CI_PROJECT_DIR}:/src:ro"
-      php:8.1-cli
+      composer:2
       sh -c "cp -r /src /work && cd /work && composer install --no-interaction && ./vendor/bin/pest tests/Unit --colors=never"
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_COMMIT_MESSAGE !~ /\[skip ci\]/
