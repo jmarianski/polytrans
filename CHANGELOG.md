@@ -7,9 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.8.0-alpha] - 2026-01-30
+## [1.8.0] - 2026-02-02
 
 Major refactoring: Workflow system with Dependency Injection for virtual/external context support.
+
+### Added
+- **Flynt/ACF Flexible Content support**: Translation context now includes `postComponents_*_contentHtml` and `pageComponents_*_contentHtml` meta fields
+  - New `POLYTRANS_ADDITIONAL_META_PATTERNS` constant for regex-based meta filtering
+  - New `TranslationHandler::filter_meta_for_translation()` method
+- **Twig templates in Assistant schema**: Expected Output Schema now supports Twig syntax for dynamic field generation
+  - `ManagedAssistantStep` interpolates schema before JSON parsing
+  - `AssistantManager` validates and preserves Twig templates
+  - `assistants-admin.js` detects Twig syntax and skips JSON validation
+
+### Changed
+- `BackgroundProcessor` uses new `filter_meta_for_translation()` instead of hardcoded SEO keys
+- Replaced legacy class aliases with proper namespaces in `polytrans.php`
 
 ### Added
 - **Workflow Context System**: New abstraction layer for workflow execution

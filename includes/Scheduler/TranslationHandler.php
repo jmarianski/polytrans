@@ -37,6 +37,46 @@ class TranslationHandler
         '_yoast_wpseo_twitter-title',
         '_yoast_wpseo_twitter-description',
     ];
+
+    // Additional meta key patterns (regex) to include in translation context
+    // These are passed to assistants but not necessarily translated by default providers
+    public const POLYTRANS_ADDITIONAL_META_PATTERNS = [
+        // Flynt/ACF Flexible Content components
+        '/^postComponents_\d+_contentHtml$/',
+        '/^pageComponents_\d+_contentHtml$/',
+    ];
+
+    /**
+     * Filter meta keys for translation context
+     * Includes both explicit SEO keys and pattern-matched keys
+     *
+     * @param array $all_meta All post meta (from get_post_meta)
+     * @return array Filtered meta array
+     */
+    public static function filter_meta_for_translation($all_meta)
+    {
+        $filtered = [];
+        $allowed_keys = self::POLYTRANS_ALLOWED_SEO_META_KEYS;
+        $patterns = self::POLYTRANS_ADDITIONAL_META_PATTERNS;
+
+        foreach ($all_meta as $key => $value) {
+            // Check explicit keys
+            if (in_array($key, $allowed_keys, true)) {
+                $filtered[$key] = is_array($value) && count($value) === 1 ? $value[0] : $value;
+                continue;
+            }
+
+            // Check patterns
+            foreach ($patterns as $pattern) {
+                if (preg_match($pattern, $key)) {
+                    $filtered[$key] = is_array($value) && count($value) === 1 ? $value[0] : $value;
+                    break;
+                }
+            }
+        }
+
+        return $filtered;
+    }
     
     private static $instance = null;
 
@@ -299,15 +339,8 @@ class TranslationHandler
         }
 
         // Prepare metadata
-        $meta = get_post_meta($post_id);
-        $allowed_meta_keys = self::POLYTRANS_ALLOWED_SEO_META_KEYS;
-        $meta = array_intersect_key($meta, array_flip($allowed_meta_keys));
-
-        foreach ($meta as $k => $v) {
-            if (is_array($v) && count($v) === 1) {
-                $meta[$k] = $v[0];
-            }
-        }
+        $all_meta = get_post_meta($post_id);
+        $meta = self::filter_meta_for_translation($all_meta);
 
         // Get recent articles in target language for context
         $context_articles = [];

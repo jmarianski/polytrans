@@ -201,14 +201,19 @@ class AssistantManager
 			}
 		}
 
-		// Optional: expected_output_schema (validate JSON if present and not null)
+		// Optional: expected_output_schema (validate JSON if present and not Twig template)
 		if (isset($data['expected_output_schema']) && ! is_null($data['expected_output_schema'])) {
 			if (is_string($data['expected_output_schema'])) {
-				$decoded = json_decode($data['expected_output_schema'], true);
-				if (json_last_error() !== JSON_ERROR_NONE) {
-					$errors['expected_output_schema'] = __('Invalid JSON in expected_output_schema', 'polytrans');
-				} elseif (! is_array($decoded)) {
-					$errors['expected_output_schema'] = __('Expected output schema must be a JSON object', 'polytrans');
+				$schema_str = $data['expected_output_schema'];
+				// Skip JSON validation if schema contains Twig syntax (dynamic template)
+				$has_twig = strpos($schema_str, '{%') !== false || strpos($schema_str, '{{') !== false;
+				if (! $has_twig) {
+					$decoded = json_decode($schema_str, true);
+					if (json_last_error() !== JSON_ERROR_NONE) {
+						$errors['expected_output_schema'] = __('Invalid JSON in expected_output_schema', 'polytrans');
+					} elseif (! is_array($decoded)) {
+						$errors['expected_output_schema'] = __('Expected output schema must be a JSON object', 'polytrans');
+					}
 				}
 			}
 		}
@@ -248,7 +253,9 @@ class AssistantManager
 			'user_message_template' => $sanitized['user_message_template'],
 			'api_parameters'        => wp_json_encode($sanitized['api_parameters']),
 			'expected_format'       => $sanitized['expected_format'],
-			'expected_output_schema' => ! empty($sanitized['expected_output_schema']) ? wp_json_encode($sanitized['expected_output_schema']) : null,
+			'expected_output_schema' => ! empty($sanitized['expected_output_schema'])
+				? (is_string($sanitized['expected_output_schema']) ? $sanitized['expected_output_schema'] : wp_json_encode($sanitized['expected_output_schema']))
+				: null,
 			'output_variables'      => ! empty($sanitized['output_variables']) ? wp_json_encode($sanitized['output_variables']) : null,
 			'created_at'            => current_time('mysql'),
 			'updated_at'            => current_time('mysql'),
@@ -286,9 +293,22 @@ class AssistantManager
 		}
 
 		// Decode JSON fields
-		$assistant['api_parameters']        = json_decode($assistant['api_parameters'], true);
-		$assistant['expected_output_schema'] = ! empty($assistant['expected_output_schema']) ? json_decode($assistant['expected_output_schema'], true) : null;
-		$assistant['output_variables']      = ! empty($assistant['output_variables']) ? json_decode($assistant['output_variables'], true) : null;
+		$assistant['api_parameters']   = json_decode($assistant['api_parameters'], true);
+		$assistant['output_variables'] = ! empty($assistant['output_variables']) ? json_decode($assistant['output_variables'], true) : null;
+
+		// Schema: decode if JSON, keep as string if Twig template
+		if (! empty($assistant['expected_output_schema'])) {
+			$schema_str = $assistant['expected_output_schema'];
+			$has_twig = strpos($schema_str, '{%') !== false || strpos($schema_str, '{{') !== false;
+			if ($has_twig) {
+				$assistant['expected_output_schema'] = $schema_str;
+			} else {
+				$decoded = json_decode($schema_str, true);
+				$assistant['expected_output_schema'] = (json_last_error() === JSON_ERROR_NONE) ? $decoded : $schema_str;
+			}
+		} else {
+			$assistant['expected_output_schema'] = null;
+		}
 
 		return $assistant;
 	}
@@ -329,7 +349,9 @@ class AssistantManager
 			'user_message_template' => $sanitized['user_message_template'],
 			'api_parameters'        => wp_json_encode($sanitized['api_parameters']),
 			'expected_format'       => $sanitized['expected_format'],
-			'expected_output_schema' => ! empty($sanitized['expected_output_schema']) ? wp_json_encode($sanitized['expected_output_schema']) : null,
+			'expected_output_schema' => ! empty($sanitized['expected_output_schema'])
+				? (is_string($sanitized['expected_output_schema']) ? $sanitized['expected_output_schema'] : wp_json_encode($sanitized['expected_output_schema']))
+				: null,
 			'output_variables'      => ! empty($sanitized['output_variables']) ? wp_json_encode($sanitized['output_variables']) : null,
 			'updated_at'            => current_time('mysql'),
 		);
@@ -539,10 +561,19 @@ class AssistantManager
 		// Expected format
 		$sanitized['expected_format'] = isset($data['expected_format']) ? sanitize_text_field($data['expected_format']) : 'text';
 
-		// Expected output schema (decode if string)
+		// Expected output schema (decode if JSON string, keep as-is if Twig template)
 		if (isset($data['expected_output_schema']) && ! is_null($data['expected_output_schema'])) {
 			if (is_string($data['expected_output_schema'])) {
-				$sanitized['expected_output_schema'] = json_decode($data['expected_output_schema'], true);
+				$schema_str = $data['expected_output_schema'];
+				$has_twig = strpos($schema_str, '{%') !== false || strpos($schema_str, '{{') !== false;
+				if ($has_twig) {
+					// Twig template - store as string
+					$sanitized['expected_output_schema'] = $schema_str;
+				} else {
+					// Pure JSON - decode to array
+					$decoded = json_decode($schema_str, true);
+					$sanitized['expected_output_schema'] = (json_last_error() === JSON_ERROR_NONE) ? $decoded : null;
+				}
 			} else {
 				$sanitized['expected_output_schema'] = $data['expected_output_schema'];
 			}

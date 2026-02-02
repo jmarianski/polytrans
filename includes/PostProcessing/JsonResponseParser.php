@@ -133,7 +133,7 @@ class JsonResponseParser
 
     /**
      * Normalize schema format (supports both simple and object format)
-     * 
+     *
      * @param array $schema Schema definition
      * @return array ['normalized_schema' => [...], 'mappings' => [...]]
      */

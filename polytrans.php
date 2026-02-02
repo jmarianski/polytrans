@@ -4,7 +4,7 @@
  * Plugin Name: PolyTrans
  * Plugin URI: https://github.com/your-username/polytrans
  * Description: Advanced multilingual translation management system with AI-powered translation, scheduling, and review workflow
- * Version: 1.8.0-alpha
+ * Version: 1.8.0
  * Author: PolyTrans Team
  * Author URI: https://github.com/your-username/polytrans
  * Text Domain: polytrans
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('POLYTRANS_VERSION', '1.8.0-alpha');
+define('POLYTRANS_VERSION', '1.8.0');
 define('POLYTRANS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('POLYTRANS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('POLYTRANS_PLUGIN_FILE', __FILE__);
@@ -122,10 +122,8 @@ add_action('init', 'polytrans_handle_background_request', 5);
  * These are registered via hook for consistency with external plugins
  */
 add_action('polytrans_register_providers', function($registry) {
-    // Register default providers (using backward-compatible aliases)
-    // Classes are autoloaded via PSR-4, no require_once needed
-    $registry->register_provider(new \PolyTrans_Google_Provider());
-    $registry->register_provider(new \PolyTrans_OpenAI_Provider());
+    $registry->register_provider(new \PolyTrans\Providers\Google\GoogleProvider());
+    $registry->register_provider(new \PolyTrans\Providers\OpenAI\OpenAIProvider());
     $registry->register_provider(new \PolyTrans\Providers\Claude\ClaudeProvider());
     $registry->register_provider(new \PolyTrans\Providers\Gemini\GeminiProvider());
 }, 10, 1);
@@ -192,11 +190,8 @@ add_action('plugins_loaded', 'polytrans_init_workflow_bridge', 20);
  */
 function polytrans_check_workflows_table()
 {
-    // Note: Classes are autoloaded
-    PolyTrans_Workflow_Storage_Manager::initialize();
-
-    // Check assistants table (Phase 1)
-    PolyTrans_Assistant_Manager::create_table();
+    \PolyTrans\PostProcessing\Managers\WorkflowStorageManager::initialize();
+    \PolyTrans\Assistants\AssistantManager::create_table();
     
     // Add expected_output_schema column if it doesn't exist
     global $wpdb;
@@ -239,39 +234,31 @@ function polytrans_activate()
     \PolyTrans\Bootstrap::init();
 
     // Create database tables if needed and enabled in settings
-    // Use class alias for backward compatibility
-    if (class_exists('PolyTrans_Logs_Manager') && PolyTrans_Logs_Manager::is_db_logging_enabled()) {
-        PolyTrans_Logs_Manager::create_logs_table();
-
-        // Try to log an activation message
-        PolyTrans_Logs_Manager::log(
+    if (\PolyTrans\Core\LogsManager::is_db_logging_enabled()) {
+        \PolyTrans\Core\LogsManager::create_logs_table();
+        \PolyTrans\Core\LogsManager::log(
             "PolyTrans plugin activated",
             "info",
-            [
-                'version' => POLYTRANS_VERSION,
-                'source' => 'activation'
-            ]
+            ['version' => POLYTRANS_VERSION, 'source' => 'activation']
         );
     } else {
-        // Just log to error_log
         error_log("[polytrans] Plugin activated, database logging disabled in settings");
     }
 
-    // Initialize workflows table (will migrate if needed)
-    // Note: Classes are autoloaded
-    PolyTrans_Workflow_Storage_Manager::initialize();
+    // Initialize workflows table
+    \PolyTrans\PostProcessing\Managers\WorkflowStorageManager::initialize();
 
-    // Initialize assistants table (Phase 1)
-    PolyTrans_Assistant_Manager::create_table();
-    
+    // Initialize assistants table
+    \PolyTrans\Assistants\AssistantManager::create_table();
+
     // Run migration from ai_assistant to managed_assistant (one-time)
-    if (PolyTrans_Assistant_Migration_Manager::is_migration_needed()) {
-        PolyTrans_Assistant_Migration_Manager::migrate_workflows_to_managed_assistants();
+    if (\PolyTrans\Assistants\AssistantMigration::is_migration_needed()) {
+        \PolyTrans\Assistants\AssistantMigration::migrate_workflows_to_managed_assistants();
     }
 
     // Check the logs table structure for debugging
-    if (class_exists('PolyTrans_Background_Processor')) {
-        PolyTrans_Background_Processor::check_on_activation();
+    if (class_exists(\PolyTrans\Core\BackgroundProcessor::class)) {
+        \PolyTrans\Core\BackgroundProcessor::check_on_activation();
     }
 
     // Schedule cron job to check for stuck translations (daily)
@@ -310,11 +297,7 @@ function polytrans_create_tables()
         }
         \PolyTrans\Bootstrap::init();
 
-        // This will handle creation and structure adaptation
-        // Use class alias for backward compatibility
-        if (class_exists('PolyTrans_Logs_Manager')) {
-            PolyTrans_Logs_Manager::create_logs_table();
-        }
+        \PolyTrans\Core\LogsManager::create_logs_table();
     } else {
         error_log("[polytrans] Database logging is disabled, skipping logs table creation");
     }
@@ -347,9 +330,8 @@ add_action('wp', 'polytrans_schedule_cleanup');
  */
 function polytrans_run_cleanup()
 {
-    // Fix stuck translations
-    $handler = PolyTrans_Translation_Handler::get_instance();
-    $fixed = $handler->fix_stuck_translations(24); // 24 hours timeout
+    $handler = \PolyTrans\Scheduler\TranslationHandler::get_instance();
+    $fixed = $handler->fix_stuck_translations(24);
 
     if ($fixed > 0) {
         error_log("[polytrans] Fixed $fixed stuck translations");
@@ -362,13 +344,8 @@ add_action('polytrans_cleanup', 'polytrans_run_cleanup');
  */
 function polytrans_check_stuck_translations()
 {
-    // Load the status manager class if not already loaded
-    if (!class_exists('PolyTrans_Translation_Status_Manager')) {
-        require_once POLYTRANS_PLUGIN_DIR . 'includes/receiver/managers/class-translation-status-manager.php';
-    }
-
-    $status_manager = new PolyTrans_Translation_Status_Manager();
-    $results = $status_manager->check_stuck_translations(24); // Check translations stuck for > 24 hours
+    $status_manager = new \PolyTrans\Receiver\Managers\StatusManager();
+    $results = $status_manager->check_stuck_translations(24);
 
     if ($results['fixed'] > 0) {
         error_log("[polytrans] Fixed {$results['fixed']} stuck translations out of {$results['checked']} checked");

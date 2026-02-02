@@ -477,15 +477,8 @@ class BackgroundProcessor
         try {
             // Get post content and metadata
 
-            $meta = get_post_meta($post_id);
-            $allowed_meta_keys =  TranslationHandler::POLYTRANS_ALLOWED_SEO_META_KEYS;
-            $meta = array_intersect_key($meta, array_flip($allowed_meta_keys));
-
-            foreach ($meta as $k => $v) {
-                if (is_array($v) && count($v) === 1) {
-                    $meta[$k] = $v[0];
-                }
-            }
+            $all_meta = get_post_meta($post_id);
+            $meta = TranslationHandler::filter_meta_for_translation($all_meta);
 
             // Get featured image metadata for translation
             $featured_image_data = null;

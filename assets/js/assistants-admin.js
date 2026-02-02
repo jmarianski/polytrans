@@ -374,12 +374,21 @@
             if (responseFormat === 'json') {
                 const schemaText = $('#assistant-expected-output-schema').val().trim();
                 if (schemaText) {
-                    try {
-                        expectedOutputSchema = JSON.parse(schemaText);
-                    } catch (e) {
-                        this.showNotice('Invalid JSON in Expected Output Schema: ' + e.message, 'error');
-                        $submitBtn.prop('disabled', false).text(polytransAssistants.strings.save);
-                        return;
+                    // Check if schema contains Twig syntax (dynamic template)
+                    const hasTwigSyntax = schemaText.includes('{%') || schemaText.includes('{{');
+                    if (hasTwigSyntax) {
+                        // Store as raw string - will be interpolated at runtime
+                        expectedOutputSchema = schemaText;
+                    } else {
+                        // Validate as pure JSON
+                        try {
+                            expectedOutputSchema = JSON.parse(schemaText);
+                            expectedOutputSchema = JSON.stringify(expectedOutputSchema);
+                        } catch (e) {
+                            this.showNotice('Invalid JSON in Expected Output Schema: ' + e.message, 'error');
+                            $submitBtn.prop('disabled', false).text(polytransAssistants.strings.save);
+                            return;
+                        }
                     }
                 }
             }
@@ -395,7 +404,7 @@
                 system_prompt: systemPrompt,
                 user_message_template: userMessage,
                 response_format: responseFormat,
-                expected_output_schema: expectedOutputSchema ? JSON.stringify(expectedOutputSchema) : null,
+                expected_output_schema: expectedOutputSchema || null,
                 config: {
                     temperature: parseFloat($('#assistant-temperature').val()) || 0.7
                 }

@@ -110,8 +110,24 @@ class ManagedAssistantStep implements WorkflowStepInterface
             $auto_actions = [];
 
             if (!empty($assistant['expected_output_schema']) && $assistant['expected_format'] === 'json') {
+                // Interpolate schema through Twig (allows dynamic field generation)
+                $schema = $assistant['expected_output_schema'];
+                if (is_string($schema)) {
+                    $variable_manager = new \PolyTrans\PostProcessing\VariableManager();
+                    $interpolated_schema = $variable_manager->interpolate_template($schema, $context);
+                    $schema = json_decode($interpolated_schema, true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        \PolyTrans\Core\LogsManager::log(
+                            "Schema interpolation resulted in invalid JSON: " . json_last_error_msg(),
+                            'error',
+                            ['schema_preview' => substr($interpolated_schema, 0, 500)]
+                        );
+                        $schema = [];
+                    }
+                }
+
                 $parser = new \PolyTrans_JSON_Response_Parser();
-                $parse_result = $parser->parse_with_schema($ai_output, $assistant['expected_output_schema']);
+                $parse_result = $parser->parse_with_schema($ai_output, $schema);
 
                 if ($parse_result['success']) {
                     // Use parsed structured data
