@@ -185,14 +185,59 @@ Done! 🎉
 
 ## Flynt / ACF Flexible Content
 
-For sites using Flynt theme or ACF Flexible Content (pageComponents), use these files:
+ACF Flexible Content can store data in two ways:
 
-- **`translation-schema-flynt.json`** - Schema with pageComponents as array
-- **`translation-user-message-flynt.twig`** - User message template for Flynt
+### Option A: Flat Meta Keys (Trans.info style)
 
-### How It Works
+WordPress stores each component field as a separate meta key:
+- `postComponents_0_contentHtml`
+- `postComponents_1_contentHtml`
+- `postComponents_2_contentHtml`
+- etc.
 
-Flynt stores page content in `pageComponents` meta field as an array of blocks:
+**Use Twig in your schema** to dynamically include all matching keys:
+
+```json
+{
+  "title": {"type": "string", "target": "post.title", "required": true},
+  "content": {"type": "string", "target": "post.content", "required": true},
+  "meta": {
+    "_yoast_wpseo_metadesc": {"type": "string", "target": "meta._yoast_wpseo_metadesc"}
+    {% for key, value in original.meta %}
+      {% if key matches '/^postComponents_\\d+_contentHtml$/' %}
+        ,"{{ key }}": {"type": "string", "target": "meta.{{ key }}"}
+      {% endif %}
+    {% endfor %}
+  }
+}
+```
+
+**User Message Template:**
+
+```twig
+Translate from {{ source_language }} to {{ target_language }}:
+
+{
+  "title": "{{ original.title|escape('js') }}",
+  "content": "{{ original.content|escape('js') }}",
+  "meta": {
+    "_yoast_wpseo_metadesc": "{{ original.meta._yoast_wpseo_metadesc|default('')|escape('js') }}"
+    {% for key, value in original.meta %}
+      {% if key matches '/^postComponents_\\d+_contentHtml$/' %}
+        ,"{{ key }}": "{{ value|escape('js') }}"
+      {% endif %}
+    {% endfor %}
+  }
+}
+
+Return translated JSON with same structure.
+```
+
+> **Note:** PolyTrans 1.8.0+ automatically includes `postComponents_*_contentHtml` and `pageComponents_*_contentHtml` in the translation context.
+
+### Option B: Serialized Array (Classic ACF)
+
+Some setups store all components in a single `pageComponents` meta field as a serialized array:
 
 ```json
 [
@@ -210,11 +255,15 @@ Flynt stores page content in `pageComponents` meta field as an array of blocks:
 ]
 ```
 
+For this approach, use:
+- **`translation-schema-flynt.json`** - Schema with pageComponents as array
+- **`translation-user-message-flynt.twig`** - User message template for Flynt
+
 The schema defines `pageComponents` as `"type": "array"`, which passes the entire structure to AI for translation.
 
 ### Important
 
-The AI prompt instructs to:
+The AI prompt should instruct to:
 - Translate ONLY text fields (contentHtml, title, text, caption, etc.)
 - Preserve exact JSON structure
 - Keep layout names, IDs, and options unchanged
@@ -226,12 +275,4 @@ Common text fields across Flynt components:
 - `title`, `headline`, `subline` - Headings
 - `text`, `intro`, `body` - Text blocks
 - `caption`, `description` - Image/media descriptions
-
-### Customization
-
-If your Flynt theme has custom components with different field names, add them to the prompt:
-
-```
-Translate ONLY text values: contentHtml, title, text, YOUR_CUSTOM_FIELD, ...
-```
 
