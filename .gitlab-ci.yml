@@ -1,9 +1,47 @@
 stages:
+  - test
   - build
   - release
 
 variables:
   PHP_VERSION: "8.1"
+
+# ==============================================================================
+# Test Stage - runs on main branch and merge requests
+# ==============================================================================
+
+unit-tests:
+  stage: test
+  tags:
+    - vps
+  script:
+    - >
+      docker run --rm
+      -v "${CI_PROJECT_DIR}:/src:ro"
+      php:8.1-cli
+      sh -c "cp -r /src /work && cd /work && composer install --no-interaction && ./vendor/bin/pest tests/Unit --colors=never"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_COMMIT_MESSAGE !~ /\[skip ci\]/
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+php-syntax-check:
+  stage: test
+  tags:
+    - vps
+  script:
+    - >
+      docker run --rm
+      -v "${CI_PROJECT_DIR}:/src:ro"
+      php:8.1-cli
+      sh -c "find /src/includes -name '*.php' -exec php -l {} \; 2>&1 | grep -v 'No syntax errors'"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_COMMIT_MESSAGE !~ /\[skip ci\]/
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  allow_failure: true
+
+# ==============================================================================
+# Build Stage - triggered only by version tags
+# ==============================================================================
 
 # Build plugin release (triggered only by version tags)
 build:

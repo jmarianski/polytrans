@@ -7,6 +7,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0-alpha] - 2026-01-30
+
+Major refactoring: Workflow system with Dependency Injection for virtual/external context support.
+
+### Added
+- **Workflow Context System**: New abstraction layer for workflow execution
+  - `WorkflowContextInterface` - unified data access via dot notation
+  - `VirtualWorkflowContext` - pure JSON transformation without WordPress
+  - Supports both database-backed and stateless execution
+
+- **Workflow Executor**: Orchestrates step execution with error handling
+  - `WorkflowExecutor` - manages step registration and execution
+  - `WorkflowResult` - detailed execution results with stats
+  - Continue-on-error and skip-incompatible options
+
+- **Workflow Step Interface**: Clean abstraction for workflow steps
+  - `WorkflowStepInterface` - contract for all workflow steps
+  - `AbstractWorkflowStep` - base class with common functionality
+  - `is_external_compatible()` - flag for virtual context compatibility
+  - `get_required_services()` - declare service dependencies
+  - `get_required_paths()` - declare required data paths
+
+- **Taxonomy Resolution Service**: Translation matching for categories/tags
+  - `TaxonomyResolverInterface` - contract for term resolution
+  - `TaxonomyResolver` - Polylang-based implementation
+  - `TaxonomyResolution` - result object with matched/unresolved/unknown status
+  - `ResolveTaxonomyStep` - workflow step using the resolver
+
+- **Legacy Step Adapter**: Bridge pattern for existing PostProcessing steps
+  - `LegacyStepAdapter` - wraps old steps to work with new context
+  - Automatic context conversion (array ↔ object)
+  - Output mapping back to context
+
+- **Database Context**: WordPress post wrapper (Phase 3)
+  - `DatabaseWorkflowContext` - loads post data, buffers changes
+  - `commit()` for atomic database updates
+  - Auto-detection of languages via Polylang
+
+- **Workflow Runner**: High-level integration API
+  - `run_virtual()` - execute on JSON payload (stateless)
+  - `run_on_post()` - execute on WordPress post
+  - `check_virtual_compatibility()` - validate workflow for external use
+
+- **Workflow Bridge**: Integration with existing PolyTrans system
+  - `WorkflowBridge` singleton for hooking into translation flow
+  - Filter `polytrans_before_dispatch_payload` for virtual workflow processing
+  - UI setting "Enable Virtual Workflows" in Translation Only mode
+  - Automatic filtering of non-compatible workflows in virtual mode
+
+### Architecture
+- Services injected into context (DI pattern)
+- Steps are pure transformations on JSON data
+- Virtual context = no WordPress side effects
+- Database context = wrapper with buffered commits
+- Legacy steps automatically wrapped via adapter
+
+### Future Considerations
+- **Workflow mode flag**: Add `mode: "external" | "internal" | "both"` to workflow definition
+- **Context-dependent step config**: `assistant_id_external` or `config_external` for steps needing different params in virtual vs database context
+- **UI indicators**: Badge showing external-compatible steps/workflows in editor
+
+### File Structure
+```
+includes/Workflows/
+├── Context/
+│   ├── WorkflowContextInterface.php
+│   ├── AbstractWorkflowContext.php
+│   ├── VirtualWorkflowContext.php
+│   └── DatabaseWorkflowContext.php
+├── Services/
+│   ├── TaxonomyResolverInterface.php
+│   └── TaxonomyResolver.php
+├── Steps/
+│   ├── WorkflowStepInterface.php
+│   ├── AbstractWorkflowStep.php
+│   ├── ResolveTaxonomyStep.php
+│   └── LegacyStepAdapter.php
+├── WorkflowExecutor.php
+├── WorkflowRegistry.php
+├── WorkflowRunner.php
+└── WorkflowBridge.php
+```
+
+## [1.7.5] - 2026-01-30
+
+### Changed
+- **Translation Only Mode Warning**: Expanded UI info to clearly list all implications of stateless mode
+  - No local posts created
+  - Workflows won't run for external requests
+  - Dispatch mode ignored (always immediate)
+  - Added visual icon and bullet point formatting
+
 ## [1.7.4] - 2026-01-30
 
 ### Added

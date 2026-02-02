@@ -45,8 +45,25 @@
 </div>
 
 <div id="translation-only-warning" class="notice notice-info inline" style="padding:10px;margin:16px 0 0 0;border-left-color:#72aee6;{{ server_role != 'translation_only' ? 'display:none;' : '' }}">
-    <strong>{{ __('Translation Only Mode:', 'polytrans') }}</strong>
-    {{ __('In this mode, the "After workflows complete" dispatch option is ignored. Translations are always sent immediately after completion. Workflows configured on this server will not run for external translation requests.', 'polytrans') }}
+    <strong>⚡ {{ __('Translation Only Mode:', 'polytrans') }}</strong>
+    <ul style="margin:8px 0 0 16px;padding:0;list-style:disc;">
+        <li>{{ __('No posts are created locally - server acts as stateless translator', 'polytrans') }}</li>
+        <li>{{ __('Translations are sent immediately after completion (dispatch mode ignored)', 'polytrans') }}</li>
+        <li>{{ __('Use for dedicated translation servers that only process and forward content', 'polytrans') }}</li>
+    </ul>
+</div>
+
+<div id="virtual-workflows-section" style="margin-top:16px;{{ server_role != 'translation_only' ? 'display:none;' : '' }}">
+    {% set enable_virtual_workflows = settings.enable_virtual_workflows|default(false) %}
+    <label style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" name="enable_virtual_workflows" value="1" {{ checked(enable_virtual_workflows) }} />
+        <strong>{{ __('Enable Virtual Workflows', 'polytrans') }}</strong>
+    </label>
+    <p style="margin:4px 0 0 26px;">
+        <small>
+            {{ __('Run compatible workflows on the translation payload before sending to receiver. Only steps that work without database access will execute. Taxonomy resolution, AI post-processing, and other stateless operations can still run.', 'polytrans') }}
+        </small>
+    </p>
 </div>
 
 </fieldset>

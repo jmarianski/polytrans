@@ -506,15 +506,18 @@
             }
         });
 
-        // Handle server role changes to show/hide translation-only warning
+        // Handle server role changes to show/hide translation-only warning and virtual workflows
         $('select[name="translation_server_role"]').on('change', function() {
             var selectedRole = $(this).val();
             var translationOnlyWarning = $('#translation-only-warning');
+            var virtualWorkflowsSection = $('#virtual-workflows-section');
 
             if (selectedRole === 'translation_only') {
                 translationOnlyWarning.show();
+                virtualWorkflowsSection.show();
             } else {
                 translationOnlyWarning.hide();
+                virtualWorkflowsSection.hide();
             }
         });
 

@@ -196,6 +196,23 @@ class TranslationExtension
             'translated' => $result['translated_content']
         ];
 
+        // Apply virtual workflows in translation_only mode (if enabled)
+        if ($server_role === 'translation_only') {
+            $enable_virtual_workflows = $settings['enable_virtual_workflows'] ?? false;
+            if ($enable_virtual_workflows) {
+                /**
+                 * Filter to process virtual workflows on payload before dispatch.
+                 *
+                 * @param array $payload Translation payload
+                 * @param string $source_lang Source language code
+                 * @param string $target_lang Target language code
+                 * @return array Modified payload
+                 */
+                $payload = apply_filters('polytrans_before_dispatch_payload', $payload, $source_lang, $target_lang);
+                LogsManager::log("Virtual workflows processed on payload", "info");
+            }
+        }
+
         // Handle dispatch based on mode
         if ($dispatch_mode === 'after_workflows') {
             // Create post locally first, run workflows, then dispatch

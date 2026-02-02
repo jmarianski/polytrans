@@ -4,7 +4,7 @@
  * Plugin Name: PolyTrans
  * Plugin URI: https://github.com/your-username/polytrans
  * Description: Advanced multilingual translation management system with AI-powered translation, scheduling, and review workflow
- * Version: 1.7.4
+ * Version: 1.8.0-alpha
  * Author: PolyTrans Team
  * Author URI: https://github.com/your-username/polytrans
  * Text Domain: polytrans
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('POLYTRANS_VERSION', '1.7.4');
+define('POLYTRANS_VERSION', '1.8.0-alpha');
 define('POLYTRANS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('POLYTRANS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('POLYTRANS_PLUGIN_FILE', __FILE__);
@@ -174,6 +174,18 @@ function polytrans_init()
     PolyTrans::get_instance();
 }
 add_action('plugins_loaded', 'polytrans_init');
+
+/**
+ * Initialize the new Workflow system bridge
+ */
+function polytrans_init_workflow_bridge()
+{
+    // Initialize WorkflowBridge for virtual workflow support
+    if (class_exists(\PolyTrans\Workflows\WorkflowBridge::class)) {
+        \PolyTrans\Workflows\WorkflowBridge::get_instance();
+    }
+}
+add_action('plugins_loaded', 'polytrans_init_workflow_bridge', 20);
 
 /**
  * Check database tables on admin_init (in case activation hook didn't run)
