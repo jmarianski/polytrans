@@ -18,8 +18,8 @@ unit-tests:
     - >
       docker run --rm
       -v "${CI_PROJECT_DIR}:/src:ro"
-      composer:2
-      sh -c "cp -r /src /work && cd /work && composer install --no-interaction && ./vendor/bin/pest tests/Unit --colors=never"
+      php:8.3-cli
+      sh -c "cp -r /src /work && cd /work && curl -sS https://getcomposer.org/installer | php && php composer.phar install --no-interaction && ./vendor/bin/pest tests/Unit --colors=never"
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_COMMIT_MESSAGE !~ /\[skip ci\]/
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -32,7 +32,7 @@ php-syntax-check:
     - >
       docker run --rm
       -v "${CI_PROJECT_DIR}:/src:ro"
-      php:8.1-cli
+      php:8.3-cli
       sh -c "find /src/includes -name '*.php' -exec php -l {} \; 2>&1 | grep -v 'No syntax errors'"
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_COMMIT_MESSAGE !~ /\[skip ci\]/
