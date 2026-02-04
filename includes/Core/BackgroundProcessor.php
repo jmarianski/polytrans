@@ -618,6 +618,19 @@ class BackgroundProcessor
             // Fire action for post-processing workflows
             do_action('polytrans_translation_completed', $post_id, $result['created_post_id'], $target_lang);
 
+            // Send notifications after workflows complete (if timing is set to 'after_workflows')
+            $settings = get_option('polytrans_settings', []);
+            $notification_timing = $settings['notification_timing'] ?? 'after_workflows';
+            if ($notification_timing === 'after_workflows') {
+                $notification_manager = new \PolyTrans\Receiver\Managers\NotificationManager();
+                $notification_manager->handle_notifications(
+                    $result['created_post_id'],
+                    $post_id,
+                    $target_lang
+                );
+                self::log("Sent after-workflows notifications for post {$result['created_post_id']}", "info");
+            }
+
             self::log("Translation completed successfully", "info", [
                 'post_id' => $post_id,
                 'created_post_id' => $result['created_post_id'],

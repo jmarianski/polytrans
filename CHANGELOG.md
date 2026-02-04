@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-02-04
+
+### Fixed
+- Email notifications not being sent after translation workflows complete for local translations (BackgroundProcessor)
+- `notification_timing` setting was not being saved to the database despite form field existing
+
 ## [1.8.1] - 2026-02-02
 
 ### Added

@@ -299,6 +299,14 @@ class TranslationSettings
         $settings['reviewer_email_title'] = wp_kses_post(wp_unslash($_POST['reviewer_email_title'] ?? ''));
         $settings['author_email_title'] = wp_kses_post(wp_unslash($_POST['author_email_title'] ?? ''));
 
+        // Notification timing (when to send emails)
+        $notification_timing = sanitize_text_field(wp_unslash($_POST['notification_timing'] ?? 'after_workflows'));
+        if (in_array($notification_timing, ['immediate', 'after_workflows'], true)) {
+            $settings['notification_timing'] = $notification_timing;
+        } else {
+            $settings['notification_timing'] = 'after_workflows';
+        }
+
         // Notification filters
         
         $settings['notification_allowed_domains'] = \PolyTrans\Core\NotificationFilter::sanitize_domains(
